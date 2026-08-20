@@ -1,11 +1,15 @@
 import type {
   AuthProviderEnum,
+  CouponDiscountTypeEnum,
   CurrencyCodeEnum,
+  InquiryStatusEnum,
   LocaleCodeEnum,
   MarketCodeEnum,
   OrderStatusEnum,
   PaymentMethodEnum,
   PaymentStatusEnum,
+  PointTransactionTypeEnum,
+  ReviewStatusEnum,
   ShippingGroupStatusEnum,
   ShippingMethodEnum,
   ShippingTypeEnum,
@@ -234,4 +238,113 @@ export type AdminInventoryItem = {
   sku: string;
   stockQuantity: number;
   status: "OK" | "LOW" | "OUT";
+};
+
+export type AdminCoupon = {
+  id: string;
+  code: string;
+  name: string;
+  description: string | null;
+  discountType: CouponDiscountTypeEnum;
+  discountValue: number;
+  minimumOrderAmount: number;
+  maximumDiscountAmount: number | null;
+  validFrom: string;
+  validUntil: string;
+  usageLimit: number | null;
+  perUserLimit: number;
+  marketCode: MarketCodeEnum | null;
+  isActive: boolean;
+  usedCount: number;
+  productIds: string[];
+  categoryIds: string[];
+  createdAt: string;
+};
+
+export type AdminPointTransaction = {
+  id: string;
+  type: PointTransactionTypeEnum;
+  amount: number;
+  balanceAfter: number;
+  reason: string;
+  orderId: string | null;
+  createdAt: string;
+};
+
+export type AdminBanner = {
+  id: string;
+  title: string;
+  subtitle: string | null;
+  imageUrl: string;
+  mobileImageUrl: string | null;
+  linkUrl: string | null;
+  marketCode: MarketCodeEnum | null;
+  locale: LocaleCodeEnum | null;
+  sortOrder: number;
+  startsAt: string | null;
+  endsAt: string | null;
+  isActive: boolean;
+};
+
+export type AdminPromotionProduct = { productId: string; productNameKo: string; sortOrder: number };
+
+export type AdminPromotion = {
+  id: string;
+  slug: string;
+  titleKo: string;
+  titleEn: string;
+  descriptionKo: string | null;
+  descriptionEn: string | null;
+  imageUrl: string | null;
+  marketCode: MarketCodeEnum | null;
+  startsAt: string | null;
+  endsAt: string | null;
+  isActive: boolean;
+  products: AdminPromotionProduct[];
+};
+
+export type AdminReview = {
+  id: string;
+  productId: string;
+  productNameKo: string;
+  authorName: string;
+  rating: number;
+  content: string;
+  status: ReviewStatusEnum;
+  helpfulCount: number;
+  createdAt: string;
+};
+
+export type AdminInquiry = {
+  id: string;
+  productId: string;
+  productNameKo: string;
+  authorName: string;
+  question: string;
+  status: InquiryStatusEnum;
+  answer: string | null;
+  answeredAt: string | null;
+  createdAt: string;
+};
+
+export type AdminNotice = {
+  id: string;
+  titleKo: string;
+  titleEn: string;
+  contentKo: string;
+  contentEn: string;
+  isPinned: boolean;
+  isActive: boolean;
+  publishedAt: string;
+};
+
+export type AdminFaq = {
+  id: string;
+  category: string;
+  questionKo: string;
+  questionEn: string;
+  answerKo: string;
+  answerEn: string;
+  sortOrder: number;
+  isActive: boolean;
 };

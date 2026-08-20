@@ -33,6 +33,8 @@ export type ProductSpec = {
 
 export type Product = {
   id: string;
+  /** Real DB UUID (STEP 10) — undefined for static mock products, since reviews/inquiries need Supabase. */
+  dbId?: string;
   name: string;
   image: string;
   images?: string[];
@@ -100,9 +102,23 @@ export type HeroSlide = {
   id: string;
   title: string;
   subtitle: string;
-  ctaLabel: string;
+  ctaLabel?: string;
   background: string;
-  icon: LucideIcon;
+  /**
+   * Mock/icon-only slides (no real banner image) fall back to this. A name,
+   * not a component reference — HeroSlide[] crosses a Server→Client
+   * Component boundary (MainBanner → MainBannerSlider) once banners are
+   * DB-backed, and React can't serialize a function/component value across
+   * that boundary. MainBannerSlider resolves the name to a component itself.
+   */
+  iconName?: string;
+  /** Real DB banners (STEP 10) render an image instead of the icon block. */
+  imageUrl?: string;
+  mobileImageUrl?: string;
+  linkUrl?: string;
+  /** null/undefined means "show in every market/locale" — matches the DB's nullable columns. */
+  marketCode?: CountryCode | null;
+  locale?: import("@/types/market").LocaleCode | null;
 };
 
 export type Promotion = {

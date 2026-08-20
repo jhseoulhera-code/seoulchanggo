@@ -38,6 +38,10 @@ export type PaymentMethodEnum = "card" | "easy_pay" | "bank_transfer" | "upi" | 
 export type PaymentStatusEnum = "UNPAID" | "PAID";
 export type StockTypeEnum = "TRACKED" | "UNLIMITED";
 export type UserRoleEnum = "CUSTOMER" | "ADMIN" | "SUPER_ADMIN";
+export type CouponDiscountTypeEnum = "FIXED" | "PERCENT";
+export type PointTransactionTypeEnum = "EARN" | "USE" | "CANCEL_EARN" | "REFUND" | "ADMIN_ADJUST";
+export type ReviewStatusEnum = "PUBLISHED" | "HIDDEN" | "REPORTED";
+export type InquiryStatusEnum = "PENDING" | "ANSWERED" | "HIDDEN";
 
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
@@ -173,6 +177,10 @@ export type OrderRow = {
   order_status: OrderStatusEnum;
   shipping_address: Json;
   customs_info: Json | null;
+  coupon_id: string | null;
+  coupon_discount_amount: number;
+  points_used: number;
+  points_discount_amount: number;
   created_at: string;
   updated_at: string;
 };
@@ -234,6 +242,139 @@ export type HomeSectionItemRow = {
   created_at: string;
 };
 
+export type CouponRow = {
+  id: string;
+  code: string;
+  name: string;
+  description: string | null;
+  discount_type: CouponDiscountTypeEnum;
+  discount_value: number;
+  minimum_order_amount: number;
+  maximum_discount_amount: number | null;
+  valid_from: string;
+  valid_until: string;
+  usage_limit: number | null;
+  per_user_limit: number;
+  market_code: MarketCodeEnum | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type CouponProductRow = { coupon_id: string; product_id: string };
+export type CouponCategoryRow = { coupon_id: string; category_id: string };
+
+export type CouponUsageRow = {
+  id: string;
+  coupon_id: string;
+  user_id: string | null;
+  order_id: string;
+  used_at: string;
+};
+
+export type PointTransactionRow = {
+  id: string;
+  user_id: string;
+  type: PointTransactionTypeEnum;
+  amount: number;
+  balance_after: number;
+  reason: string;
+  order_id: string | null;
+  created_by: string | null;
+  created_at: string;
+};
+
+export type BannerRow = {
+  id: string;
+  title: string;
+  subtitle: string | null;
+  image_url: string;
+  mobile_image_url: string | null;
+  link_url: string | null;
+  market_code: MarketCodeEnum | null;
+  locale: LocaleCodeEnum | null;
+  sort_order: number;
+  starts_at: string | null;
+  ends_at: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type PromotionRow = {
+  id: string;
+  slug: string;
+  title_ko: string;
+  title_en: string;
+  description_ko: string | null;
+  description_en: string | null;
+  image_url: string | null;
+  market_code: MarketCodeEnum | null;
+  starts_at: string | null;
+  ends_at: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type PromotionProductRow = { promotion_id: string; product_id: string; sort_order: number };
+
+export type ReviewRow = {
+  id: string;
+  product_id: string;
+  user_id: string | null;
+  order_item_id: string | null;
+  rating: number;
+  content: string;
+  option_snapshot: Json;
+  status: ReviewStatusEnum;
+  helpful_count: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ReviewImageRow = { id: string; review_id: string; image_url: string; sort_order: number };
+export type ReviewHelpfulVoteRow = { review_id: string; user_id: string; created_at: string };
+
+export type ProductInquiryRow = {
+  id: string;
+  product_id: string;
+  user_id: string | null;
+  author_name: string;
+  question: string;
+  status: InquiryStatusEnum;
+  answer: string | null;
+  answered_by: string | null;
+  answered_at: string | null;
+  created_at: string;
+};
+
+export type NoticeRow = {
+  id: string;
+  title_ko: string;
+  title_en: string;
+  content_ko: string;
+  content_en: string;
+  is_pinned: boolean;
+  is_active: boolean;
+  published_at: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type FaqRow = {
+  id: string;
+  category: string;
+  question_ko: string;
+  question_en: string;
+  answer_ko: string;
+  answer_en: string;
+  sort_order: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
 export type Database = {
   public: {
     Tables: {
@@ -271,6 +412,37 @@ export type Database = {
         Omit<HomeSectionItemRow, "id" | "created_at"> & { id?: string },
         Partial<HomeSectionItemRow>
       >;
+      coupons: Table<CouponRow, Omit<CouponRow, "id" | "created_at" | "updated_at"> & { id?: string }, Partial<CouponRow>>;
+      coupon_products: Table<CouponProductRow, CouponProductRow, never>;
+      coupon_categories: Table<CouponCategoryRow, CouponCategoryRow, never>;
+      coupon_usages: Table<CouponUsageRow, never, never>;
+      point_transactions: Table<PointTransactionRow, never, never>;
+      banners: Table<BannerRow, Omit<BannerRow, "id" | "created_at" | "updated_at"> & { id?: string }, Partial<BannerRow>>;
+      promotions: Table<
+        PromotionRow,
+        Omit<PromotionRow, "id" | "created_at" | "updated_at"> & { id?: string },
+        Partial<PromotionRow>
+      >;
+      promotion_products: Table<PromotionProductRow, PromotionProductRow, Partial<PromotionProductRow>>;
+      reviews: Table<
+        ReviewRow,
+        Omit<ReviewRow, "id" | "created_at" | "updated_at" | "helpful_count" | "status"> & {
+          id?: string;
+          status?: ReviewStatusEnum;
+        },
+        Partial<ReviewRow>
+      >;
+      review_images: Table<ReviewImageRow, Omit<ReviewImageRow, "id"> & { id?: string }, never>;
+      review_helpful_votes: Table<ReviewHelpfulVoteRow, Pick<ReviewHelpfulVoteRow, "review_id" | "user_id">, never>;
+      product_inquiries: Table<
+        ProductInquiryRow,
+        Omit<ProductInquiryRow, "id" | "created_at" | "status" | "answer" | "answered_by" | "answered_at"> & {
+          id?: string;
+        },
+        Partial<ProductInquiryRow>
+      >;
+      notices: Table<NoticeRow, Omit<NoticeRow, "id" | "created_at" | "updated_at"> & { id?: string }, Partial<NoticeRow>>;
+      faqs: Table<FaqRow, Omit<FaqRow, "id" | "created_at" | "updated_at"> & { id?: string }, Partial<FaqRow>>;
     };
     Functions: {
       create_order: {
@@ -289,8 +461,41 @@ export type Database = {
           p_shipping_address: Json;
           p_customs_info: Json | null;
           p_items: Json;
+          p_coupon_code?: string | null;
+          p_points_used?: number;
         };
         Returns: string;
+      };
+      validate_coupon_code: {
+        Args: {
+          p_code: string;
+          p_market_code: MarketCodeEnum;
+          p_subtotal: number;
+          p_product_ids: (string | null)[];
+        };
+        Returns: Json;
+      };
+      list_available_coupons: {
+        Args: { p_market_code: MarketCodeEnum };
+        Returns: {
+          id: string;
+          code: string;
+          name: string;
+          description: string | null;
+          discount_type: CouponDiscountTypeEnum;
+          discount_value: number;
+          minimum_order_amount: number;
+          maximum_discount_amount: number | null;
+          valid_until: string;
+        }[];
+      };
+      get_point_balance: {
+        Args: { p_user_id: string };
+        Returns: number;
+      };
+      admin_adjust_points: {
+        Args: { p_user_id: string; p_amount: number; p_reason: string };
+        Returns: undefined;
       };
       lookup_guest_order_full: {
         Args: { p_order_number: string; p_contact: string };

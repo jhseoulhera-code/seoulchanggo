@@ -48,7 +48,7 @@ export function DetailTabs({ product }: DetailTabsProps) {
 
       {activeTab === "info" && <ProductInfoTab product={product} />}
       {activeTab === "review" && <ReviewsTab product={product} />}
-      {activeTab === "inquiry" && <InquiryTab />}
+      {activeTab === "inquiry" && <InquiryTab product={product} />}
       {activeTab === "shipping" && <ShippingExchangeTab product={product} />}
     </div>
   );

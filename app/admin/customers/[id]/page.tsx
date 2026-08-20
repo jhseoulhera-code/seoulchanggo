@@ -1,8 +1,10 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { AdminErrorScreen } from "@/components/admin/AdminBlockerScreen";
+import { PointsPanel } from "@/components/admin/customers/PointsPanel";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { getAdminCustomerDetail } from "@/lib/repositories/admin/customers";
+import { getAdminPointBalance, getAdminPointHistory } from "@/lib/repositories/admin/points";
 import { ORDER_STATUS_LABEL, PAYMENT_STATUS_LABEL } from "@/lib/adminLabels";
 import { formatCurrency } from "@/lib/currency";
 
@@ -25,9 +27,14 @@ export default async function AdminCustomerDetailPage(props: { params: Promise<{
   const { id } = await props.params;
 
   let customer: Awaited<ReturnType<typeof getAdminCustomerDetail>> | null = null;
+  let pointBalance = 0;
+  let pointHistory: Awaited<ReturnType<typeof getAdminPointHistory>> = [];
   let errorMessage: string | null = null;
   try {
     customer = await getAdminCustomerDetail(id);
+    if (customer) {
+      [pointBalance, pointHistory] = await Promise.all([getAdminPointBalance(id), getAdminPointHistory(id)]);
+    }
   } catch (error) {
     errorMessage = error instanceof Error ? error.message : "회원 정보를 불러오지 못했습니다.";
   }
@@ -95,6 +102,8 @@ export default async function AdminCustomerDetailPage(props: { params: Promise<{
           </div>
         )}
       </section>
+
+      <PointsPanel userId={id} balance={pointBalance} history={pointHistory} />
     </div>
   );
 }

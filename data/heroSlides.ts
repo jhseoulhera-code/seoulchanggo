@@ -1,4 +1,3 @@
-import { Car, House, PawPrint, Utensils } from "lucide-react";
 import type { HeroSlide } from "@/types";
 
 export const heroSlides: HeroSlide[] = [
@@ -8,7 +7,7 @@ export const heroSlides: HeroSlide[] = [
     subtitle: "오늘의 생활 필수품",
     ctaLabel: "지금 보기",
     background: "#eaf5f3",
-    icon: House,
+    iconName: "House",
   },
   {
     id: "kitchen",
@@ -16,7 +15,7 @@ export const heroSlides: HeroSlide[] = [
     subtitle: "인기 주방용품 모음전",
     ctaLabel: "지금 보기",
     background: "#f3f1ec",
-    icon: Utensils,
+    iconName: "Utensils",
   },
   {
     id: "pet",
@@ -24,7 +23,7 @@ export const heroSlides: HeroSlide[] = [
     subtitle: "반려동물 생활 필수템",
     ctaLabel: "지금 보기",
     background: "#eff2f5",
-    icon: PawPrint,
+    iconName: "PawPrint",
   },
   {
     id: "car",
@@ -32,6 +31,6 @@ export const heroSlides: HeroSlide[] = [
     subtitle: "차량용 필수 아이템 모음",
     ctaLabel: "지금 보기",
     background: "#f5eff0",
-    icon: Car,
+    iconName: "Car",
   },
 ];

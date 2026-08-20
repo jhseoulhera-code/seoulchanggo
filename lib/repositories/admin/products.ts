@@ -103,6 +103,14 @@ export async function searchAdminProductsForPicker(query: string): Promise<Admin
   }));
 }
 
+export async function getAdminProductNamesByIds(ids: string[]): Promise<Record<string, string>> {
+  if (ids.length === 0) return {};
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("products").select("id, name_ko").in("id", ids);
+  if (error) fail("getAdminProductNamesByIds", error);
+  return Object.fromEntries(((data ?? []) as unknown as { id: string; name_ko: string }[]).map((row) => [row.id, row.name_ko]));
+}
+
 export function emptyAdminProductDraft(): AdminProductDetail {
   return {
     id: null,

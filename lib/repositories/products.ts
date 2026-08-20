@@ -31,17 +31,17 @@ const SHIPPING_TYPE_FROM_DB: Record<ShippingTypeEnum, ShippingType> = {
   OVERSEAS_AGENCY: "overseas_agent",
 };
 
-const PRODUCT_SELECT =
+export const PRODUCT_SELECT =
   "*, categories(slug), product_prices(*), product_shipping_markets(*), product_images(*)";
 
-type ProductJoinRow = ProductRow & {
+export type ProductJoinRow = ProductRow & {
   categories: { slug: string } | null;
   product_prices: ProductPriceRow[];
   product_shipping_markets: ProductShippingMarketRow[];
   product_images: ProductImageRow[];
 };
 
-function mapProductRow(row: ProductJoinRow): Product {
+export function mapProductRow(row: ProductJoinRow): Product {
   const shippingType = SHIPPING_TYPE_FROM_DB[row.shipping_type];
   const krPrice = row.product_prices.find((price) => price.market_code === "KR");
 
@@ -65,6 +65,7 @@ function mapProductRow(row: ProductJoinRow): Product {
 
   return {
     id: row.slug,
+    dbId: row.id,
     name: row.name_ko,
     image: primaryImage?.image_url ?? "",
     images: sortedImages.length > 0 ? sortedImages.map((image) => image.image_url) : undefined,

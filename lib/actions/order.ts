@@ -24,9 +24,13 @@ export type CreateOrderActionInput = {
   discount: number;
   shippingFee: number;
   total: number;
+  couponCode?: string;
+  pointsUsed?: number;
 };
 
-export type CreateOrderActionResult = { ok: true; orderId: string } | { ok: false; error: "PRICE_MISMATCH" | "UNKNOWN" };
+export type CreateOrderActionResult =
+  | { ok: true; orderId: string }
+  | { ok: false; error: "PRICE_MISMATCH" | "COUPON_INVALID" | "POINTS_INVALID" | "UNKNOWN" };
 
 const PRICE_TOLERANCE = 1;
 
@@ -118,10 +122,15 @@ export async function createOrderAction(input: CreateOrderActionInput): Promise<
     p_shipping_address: input.shippingAddress,
     p_customs_info: input.customsInfo ?? null,
     p_items: rpcItems,
+    p_coupon_code: input.couponCode ?? null,
+    p_points_used: input.pointsUsed ?? 0,
   } as never);
 
   if (rpcError || !orderId) {
     console.error("[order] create_order RPC failed:", rpcError?.message);
+    const message = rpcError?.message ?? "";
+    if (message.includes("coupon")) return { ok: false, error: "COUPON_INVALID" };
+    if (message.includes("point")) return { ok: false, error: "POINTS_INVALID" };
     return { ok: false, error: "UNKNOWN" };
   }
 

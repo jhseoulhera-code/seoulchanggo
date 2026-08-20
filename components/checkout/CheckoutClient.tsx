@@ -11,7 +11,8 @@ import { ListHeader } from "@/components/layout/ListHeader";
 import { AddressForm } from "@/components/checkout/AddressForm";
 import { CheckoutItemGroup } from "@/components/checkout/CheckoutItemGroup";
 import { CheckoutSummary } from "@/components/checkout/CheckoutSummary";
-import { CouponPointsPlaceholder } from "@/components/checkout/CouponPointsPlaceholder";
+import { CouponPointsSection } from "@/components/checkout/CouponPointsSection";
+import type { CouponPointsState } from "@/components/checkout/CouponPointsSection";
 import { CustomerForm } from "@/components/checkout/CustomerForm";
 import { CustomsInfoSection } from "@/components/checkout/CustomsInfoSection";
 import { OrderAgreement } from "@/components/checkout/OrderAgreement";
@@ -101,6 +102,22 @@ export function CheckoutClient({ products }: CheckoutClientProps) {
   const hasOverseasItem = availableItems.some((item) => item.shippingType !== "domestic");
   const needsCustomsCode = market.countryCode === "KR" && hasOverseasItem;
   const paymentOptions = PAYMENT_METHODS_BY_MARKET[market.countryCode];
+
+  const [couponPoints, setCouponPoints] = useState<CouponPointsState>({
+    couponId: null,
+    couponCode: null,
+    couponDiscount: 0,
+    pointsUsed: 0,
+  });
+  const finalTotal = Math.max(0, totals.grandTotal - couponPoints.couponDiscount - couponPoints.pointsUsed);
+  // Coupon/points aren't a separate row in CheckoutSummary — folded into discountTotal so
+  // the existing summary card needs no changes, with the breakdown already visible above
+  // in CouponPointsSection itself.
+  const summaryTotals = {
+    ...totals,
+    discountTotal: totals.discountTotal + couponPoints.couponDiscount + couponPoints.pointsUsed,
+    grandTotal: finalTotal,
+  };
 
   const [customer, setCustomer] = useState<GuestCustomer>({ name: "", phone: "", email: "" });
   const [address, setAddress] = useState<ShippingAddress>(() => createEmptyAddress(market.countryCode));
@@ -192,7 +209,7 @@ export function CheckoutClient({ products }: CheckoutClientProps) {
       subtotal: totals.itemsTotal,
       discount: totals.discountTotal,
       shippingFee: totals.shippingTotal,
-      total: totals.grandTotal,
+      total: finalTotal,
       paymentMethod: paymentMethod as PaymentMethodId,
       status: "ORDER_CREATED",
     };
@@ -214,12 +231,20 @@ export function CheckoutClient({ products }: CheckoutClientProps) {
         subtotal: totals.itemsTotal,
         discount: totals.discountTotal,
         shippingFee: totals.shippingTotal,
-        total: totals.grandTotal,
+        total: finalTotal,
+        couponCode: couponPoints.couponCode ?? undefined,
+        pointsUsed: couponPoints.pointsUsed || undefined,
       });
 
       if (!result.ok) {
         setSubmitting(false);
-        setToast({ message: messages.checkout.orderFailed, tone: "error" });
+        const message =
+          result.error === "COUPON_INVALID"
+            ? "쿠폰을 적용할 수 없습니다. 다시 확인해주세요."
+            : result.error === "POINTS_INVALID"
+              ? "포인트 사용 조건을 확인해주세요."
+              : messages.checkout.orderFailed;
+        setToast({ message, tone: "error" });
         return;
       }
     }
@@ -345,7 +370,13 @@ export function CheckoutClient({ products }: CheckoutClientProps) {
                 />
               )}
 
-              <CouponPointsPlaceholder market={market} />
+              <CouponPointsSection
+                market={market}
+                isAuthenticated={isAuthenticated}
+                payableAmount={totals.grandTotal}
+                productSlugs={availableItems.map((item) => item.productId)}
+                onChange={setCouponPoints}
+              />
 
               <PaymentMethodSelector
                 market={market}
@@ -361,7 +392,7 @@ export function CheckoutClient({ products }: CheckoutClientProps) {
             <div className="hidden md:block md:w-80 md:shrink-0">
               <div className="sticky top-20">
                 <CheckoutSummary
-                  totals={totals}
+                  totals={summaryTotals}
                   market={market}
                   variant="card"
                   onSubmit={handleSubmit}
@@ -374,7 +405,7 @@ export function CheckoutClient({ products }: CheckoutClientProps) {
       </main>
 
       <CheckoutSummary
-        totals={totals}
+        totals={summaryTotals}
         market={market}
         variant="fixed"
         onSubmit={handleSubmit}
