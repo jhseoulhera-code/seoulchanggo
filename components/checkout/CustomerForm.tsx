@@ -1,6 +1,6 @@
 "use client";
 
-import { FormField } from "@/components/checkout/FormField";
+import { FormField } from "@/components/common/FormField";
 import { getMessages } from "@/messages";
 import type { GuestCustomer } from "@/types/order";
 import type { Market } from "@/types/market";

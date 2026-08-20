@@ -25,3 +25,7 @@ export function isValidInPincode(value: string): boolean {
 export function isValidCustomsCode(value: string): boolean {
   return /^P\d{12}$/i.test(value.trim());
 }
+
+export function isValidPassword(value: string): boolean {
+  return value.length >= 8;
+}

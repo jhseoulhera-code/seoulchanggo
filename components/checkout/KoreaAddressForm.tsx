@@ -1,6 +1,6 @@
 "use client";
 
-import { FormField } from "@/components/checkout/FormField";
+import { FormField } from "@/components/common/FormField";
 import type { KoreaShippingAddress } from "@/types/order";
 
 type KoreaAddressFormProps = {

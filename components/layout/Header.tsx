@@ -4,10 +4,12 @@ import { Camera, Menu, Search, ShoppingCart, User } from "lucide-react";
 import Link from "next/link";
 import { PageContainer } from "@/components/common/PageContainer";
 import { MarketSelector } from "@/components/layout/MarketSelector";
+import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
 
 export function Header() {
   const { totalQuantity } = useCart();
+  const { currentUser, isAuthenticated } = useAuth();
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background">
@@ -23,9 +25,16 @@ export function Header() {
           </div>
           <div className="flex items-center gap-3 text-text-main">
             <MarketSelector />
-            <button type="button" aria-label="마이페이지" className="cursor-not-allowed">
+            <Link
+              href={isAuthenticated ? "/mypage" : "/auth?returnTo=/mypage"}
+              aria-label="마이페이지"
+              className="flex items-center gap-1.5"
+            >
               <User size={22} />
-            </button>
+              {isAuthenticated && currentUser && (
+                <span className="hidden text-sm font-medium md:inline">{currentUser.displayName}</span>
+              )}
+            </Link>
             <Link href="/cart" aria-label="장바구니" className="relative">
               <ShoppingCart size={22} />
               {totalQuantity > 0 && (

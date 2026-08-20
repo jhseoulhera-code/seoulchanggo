@@ -8,6 +8,7 @@ import { PageContainer } from "@/components/common/PageContainer";
 import { ListHeader } from "@/components/layout/ListHeader";
 import { ProductImagePlaceholder } from "@/components/product/ProductImagePlaceholder";
 import { ShippingBadge } from "@/components/product/ShippingBadge";
+import { useAuth } from "@/contexts/AuthContext";
 import { MARKETS } from "@/data/markets";
 import { formatCurrency } from "@/lib/currency";
 import { findGuestOrder } from "@/lib/order";
@@ -39,6 +40,7 @@ export default function OrderCompletePage() {
   const params = useParams<{ orderId: string }>();
   const orderId = params.orderId;
   const order = useGuestOrder(orderId);
+  const { isAuthenticated } = useAuth();
 
   const market = order ? MARKETS[order.market] : MARKETS.KR;
   const messages = getMessages(market.locale);
@@ -120,10 +122,19 @@ export default function OrderCompletePage() {
             ))}
           </div>
 
+          {!isAuthenticated && (
+            <Link
+              href={`/auth?returnTo=${encodeURIComponent(`/order/complete/${order.orderId}`)}`}
+              className="flex h-12 items-center justify-center border border-primary text-sm font-bold text-primary"
+            >
+              {messages.order.claimOrdersCta}
+            </Link>
+          )}
+
           <div className="flex flex-col gap-2 md:flex-row">
             <Link
               href="/order/lookup"
-              className="flex h-12 flex-1 items-center justify-center border border-primary text-sm font-bold text-primary"
+              className="flex h-12 flex-1 items-center justify-center border border-border text-sm font-bold text-text-main"
             >
               {messages.order.viewOrders}
             </Link>

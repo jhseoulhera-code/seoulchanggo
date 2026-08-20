@@ -1,6 +1,6 @@
 "use client";
 
-import { FormField } from "@/components/checkout/FormField";
+import { FormField } from "@/components/common/FormField";
 import { INDIA_STATES } from "@/data/indiaStates";
 import { cn } from "@/lib/utils";
 import type { IndiaShippingAddress } from "@/types/order";

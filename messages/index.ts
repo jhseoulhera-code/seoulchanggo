@@ -58,6 +58,8 @@ export type Messages = {
     pointsLabel: string;
     pointsLoginRequired: string;
     optionalTag: string;
+    loginHint: string;
+    loginLink: string;
   };
   order: {
     completeTitle: string;
@@ -71,6 +73,49 @@ export type Messages = {
     lookupContact: string;
     lookupSubmit: string;
     lookupNotFound: string;
+    claimOrdersCta: string;
+  };
+  auth: {
+    pageTitle: string;
+    continueWithGoogle: string;
+    continueWithKakao: string;
+    continueWithNaver: string;
+    continueWithEmail: string;
+    socialComingSoon: string;
+    backToProviders: string;
+    name: string;
+    email: string;
+    password: string;
+    confirmPassword: string;
+    signIn: string;
+    signUp: string;
+    signOut: string;
+    invalidEmail: string;
+    invalidPassword: string;
+    passwordMismatch: string;
+    nameRequired: string;
+    duplicateEmail: string;
+    termsRequired: string;
+    agreeAll: string;
+    agreeTerms: string;
+    agreePrivacy: string;
+    agreeMarketing: string;
+    switchToSignup: string;
+    switchToLogin: string;
+    providerEmail: string;
+    viewDetails: string;
+  };
+  mypage: {
+    pageTitle: string;
+    orderHistory: string;
+    trackShipment: string;
+    wishlist: string;
+    reviews: string;
+    inquiries: string;
+    profile: string;
+    noOrders: string;
+    signedUpWith: string;
+    comingSoon: string;
   };
 };
 

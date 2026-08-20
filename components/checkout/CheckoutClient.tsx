@@ -16,6 +16,7 @@ import { CustomerForm } from "@/components/checkout/CustomerForm";
 import { CustomsInfoSection } from "@/components/checkout/CustomsInfoSection";
 import { OrderAgreement } from "@/components/checkout/OrderAgreement";
 import { PaymentMethodSelector } from "@/components/checkout/PaymentMethodSelector";
+import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
 import { useMarket } from "@/contexts/MarketContext";
 import { allProducts } from "@/data/products";
@@ -70,10 +71,12 @@ function createEmptyAddress(countryCode: CountryCode): ShippingAddress {
 export function CheckoutClient() {
   const { market } = useMarket();
   const cart = useCart();
+  const { currentUser, isAuthenticated } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const source = searchParams.get("source") === "buynow" ? "buynow" : "cart";
   const messages = getMessages(market.locale);
+  const checkoutReturnTo = source === "buynow" ? "/checkout?source=buynow" : "/checkout";
 
   const checkoutItems = useMemo(() => {
     if (source === "buynow") {
@@ -108,6 +111,17 @@ export function CheckoutClient() {
     setAddress(createEmptyAddress(market.countryCode));
     setErrors({});
     setToast({ message: messages.checkout.marketChangedNotice, tone: "success" });
+  }
+
+  // Prefills name/email once when a session becomes available post-hydration; never overwrites a field the user already typed.
+  const [autoFilledFromUser, setAutoFilledFromUser] = useState(false);
+  if (isAuthenticated && currentUser && !autoFilledFromUser) {
+    setAutoFilledFromUser(true);
+    setCustomer((prev) => ({
+      ...prev,
+      name: prev.name || currentUser.displayName,
+      email: prev.email || currentUser.email,
+    }));
   }
 
   function handleAddressChange(field: string, value: string) {
@@ -263,6 +277,18 @@ export function CheckoutClient() {
                   ))}
                 </div>
               </section>
+
+              {!isAuthenticated && (
+                <p className="-mb-4 text-xs text-text-secondary">
+                  {messages.checkout.loginHint}{" "}
+                  <Link
+                    href={`/auth?returnTo=${encodeURIComponent(checkoutReturnTo)}`}
+                    className="font-bold text-primary underline"
+                  >
+                    {messages.checkout.loginLink}
+                  </Link>
+                </p>
+              )}
 
               <CustomerForm
                 market={market}
