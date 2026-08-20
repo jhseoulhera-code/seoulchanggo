@@ -19,7 +19,6 @@ import { PaymentMethodSelector } from "@/components/checkout/PaymentMethodSelect
 import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
 import { useMarket } from "@/contexts/MarketContext";
-import { allProducts } from "@/data/products";
 import { PAYMENT_METHODS_BY_MARKET } from "@/data/paymentMethods";
 import {
   buildCheckoutItemFromBuyNow,
@@ -30,6 +29,8 @@ import {
 } from "@/lib/checkout";
 import { clearBuyNowItem, getBuyNowItem } from "@/lib/buyNow";
 import { generateOrderId, saveGuestOrder } from "@/lib/order";
+import { createOrderAction } from "@/lib/actions/order";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
 import {
   isNonEmpty,
   isValidCustomsCode,
@@ -40,6 +41,7 @@ import {
   isValidKrPostcode,
 } from "@/lib/validation";
 import { getMessages } from "@/messages";
+import type { Product } from "@/types";
 import type { CountryCode } from "@/types/market";
 import type { GuestCustomer, Order, PaymentMethodId, ShippingAddress } from "@/types/order";
 
@@ -68,7 +70,11 @@ function createEmptyAddress(countryCode: CountryCode): ShippingAddress {
   };
 }
 
-export function CheckoutClient() {
+type CheckoutClientProps = {
+  products: Product[];
+};
+
+export function CheckoutClient({ products }: CheckoutClientProps) {
   const { market } = useMarket();
   const cart = useCart();
   const { currentUser, isAuthenticated } = useAuth();
@@ -82,11 +88,11 @@ export function CheckoutClient() {
     if (source === "buynow") {
       const buyNow = getBuyNowItem();
       if (!buyNow) return [];
-      const item = buildCheckoutItemFromBuyNow(buyNow, allProducts, market);
+      const item = buildCheckoutItemFromBuyNow(buyNow, products, market);
       return item ? [item] : [];
     }
-    return buildCheckoutItemsFromCart(cart.items, allProducts, market);
-  }, [source, cart.items, market]);
+    return buildCheckoutItemsFromCart(cart.items, products, market);
+  }, [source, cart.items, products, market]);
 
   const unavailableItems = checkoutItems.filter((item) => !item.isAvailable);
   const availableItems = checkoutItems.filter((item) => item.isAvailable);
@@ -163,7 +169,7 @@ export function CheckoutClient() {
     return Object.keys(nextErrors).length === 0;
   }
 
-  function handleSubmit() {
+  async function handleSubmit() {
     if (submitting) return;
     if (!validate()) {
       setToast({ message: messages.toast.optionRequired, tone: "error" });
@@ -190,6 +196,33 @@ export function CheckoutClient() {
       paymentMethod: paymentMethod as PaymentMethodId,
       status: "ORDER_CREATED",
     };
+
+    // The DB (via the create_order RPC, called from a Server Action) is the source of
+    // truth once Supabase is configured; saveGuestOrder still runs either way so the
+    // confirmation/mypage pages — which read localStorage — can render this session's
+    // order immediately without a separate authenticated re-fetch. See STEP 08 report.
+    if (isSupabaseConfigured()) {
+      const result = await createOrderAction({
+        orderNumber: orderId,
+        customer,
+        shippingAddress: address,
+        customsInfo: needsCustomsCode ? { personalCustomsCode: customsCode } : undefined,
+        market: market.countryCode,
+        currency: market.currency,
+        paymentMethod: paymentMethod as PaymentMethodId,
+        items: availableItems,
+        subtotal: totals.itemsTotal,
+        discount: totals.discountTotal,
+        shippingFee: totals.shippingTotal,
+        total: totals.grandTotal,
+      });
+
+      if (!result.ok) {
+        setSubmitting(false);
+        setToast({ message: messages.checkout.orderFailed, tone: "error" });
+        return;
+      }
+    }
 
     saveGuestOrder(order);
 

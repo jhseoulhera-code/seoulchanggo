@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { SectionHeading } from "@/components/common/SectionHeading";
-import { categories } from "@/data/categories";
+import { getHomeCategories } from "@/lib/repositories/categories";
 
-export function CategorySection() {
+export async function CategorySection() {
+  const categories = await getHomeCategories();
+
   return (
     <section>
       <SectionHeading title="카테고리" />

@@ -3,13 +3,13 @@ import { BottomNav } from "@/components/layout/BottomNav";
 import { ListHeader } from "@/components/layout/ListHeader";
 import { ListToolbar } from "@/components/product/ListToolbar";
 import { ProductGrid } from "@/components/product/ProductGrid";
-import { searchProducts } from "@/data/products";
+import { searchProducts } from "@/lib/repositories/products";
 
 export default async function SearchPage(props: PageProps<"/search">) {
   const searchParams = await props.searchParams;
   const rawQuery = searchParams.q;
   const query = (Array.isArray(rawQuery) ? rawQuery[0] : rawQuery) || "텀블러";
-  const products = searchProducts(query);
+  const products = await searchProducts(query);
 
   return (
     <>

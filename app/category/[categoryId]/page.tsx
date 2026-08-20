@@ -4,22 +4,24 @@ import { BottomNav } from "@/components/layout/BottomNav";
 import { ListHeader } from "@/components/layout/ListHeader";
 import { ListToolbar } from "@/components/product/ListToolbar";
 import { ProductGrid } from "@/components/product/ProductGrid";
-import { categories } from "@/data/categories";
-import { getProductsByCategory } from "@/data/products";
+import { getCategories } from "@/lib/repositories/categories";
+import { getProductsByCategory } from "@/lib/repositories/products";
 
-export function generateStaticParams() {
+export async function generateStaticParams() {
+  const categories = await getCategories();
   return categories.map((category) => ({ categoryId: category.id }));
 }
 
 export default async function CategoryPage(props: PageProps<"/category/[categoryId]">) {
   const { categoryId } = await props.params;
+  const categories = await getCategories();
   const category = categories.find((item) => item.id === categoryId);
 
   if (!category) {
     notFound();
   }
 
-  const products = getProductsByCategory(categoryId);
+  const products = await getProductsByCategory(categoryId);
 
   return (
     <>

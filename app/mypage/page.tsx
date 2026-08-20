@@ -46,8 +46,8 @@ export default function MyPage() {
 
   const myOrders = getGuestOrders().filter((order) => order.customer.email.toLowerCase() === user.email.toLowerCase());
 
-  function handleSignOut() {
-    auth.logout();
+  async function handleSignOut() {
+    await auth.logout();
     router.push("/");
   }
 

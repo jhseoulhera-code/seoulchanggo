@@ -3,14 +3,14 @@
 import Link from "next/link";
 import { useState } from "react";
 import { FormField } from "@/components/common/FormField";
-import { findMockUserByEmail } from "@/lib/auth";
 import { isNonEmpty, isValidEmail, isValidPassword } from "@/lib/validation";
 import { getMessages } from "@/messages";
 import type { Market } from "@/types/market";
+import type { SignupResult } from "@/lib/authTypes";
 
 type EmailSignupFormProps = {
   market: Market;
-  onSubmit: (input: { displayName: string; email: string; marketingOptIn: boolean }) => void;
+  onSubmit: (input: { displayName: string; email: string; password: string; marketingOptIn: boolean }) => Promise<SignupResult>;
 };
 
 type FieldErrors = {
@@ -21,7 +21,7 @@ type FieldErrors = {
   agreement?: string;
 };
 
-/** Password never leaves this component — only email/displayName/marketingOptIn are forwarded to the caller. */
+/** Password is only ever forwarded transiently to onSubmit (which sends it straight to the auth backend) — never stored locally. */
 export function EmailSignupForm({ market, onSubmit }: EmailSignupFormProps) {
   const messages = getMessages(market.locale);
   const [displayName, setDisplayName] = useState("");
@@ -32,6 +32,7 @@ export function EmailSignupForm({ market, onSubmit }: EmailSignupFormProps) {
   const [agreePrivacy, setAgreePrivacy] = useState(false);
   const [agreeMarketing, setAgreeMarketing] = useState(false);
   const [errors, setErrors] = useState<FieldErrors>({});
+  const [submitting, setSubmitting] = useState(false);
 
   const allAgreed = agreeTerms && agreePrivacy && agreeMarketing;
 
@@ -41,18 +42,27 @@ export function EmailSignupForm({ market, onSubmit }: EmailSignupFormProps) {
     setAgreeMarketing(checked);
   }
 
-  function handleSubmit() {
+  async function handleSubmit() {
     const nextErrors: FieldErrors = {};
     if (!isNonEmpty(displayName)) nextErrors.displayName = messages.auth.nameRequired;
     if (!isValidEmail(email)) nextErrors.email = messages.auth.invalidEmail;
-    else if (findMockUserByEmail(email)) nextErrors.email = messages.auth.duplicateEmail;
     if (!isValidPassword(password)) nextErrors.password = messages.auth.invalidPassword;
     if (password !== confirmPassword) nextErrors.confirmPassword = messages.auth.passwordMismatch;
     if (!agreeTerms || !agreePrivacy) nextErrors.agreement = messages.auth.termsRequired;
 
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
-    onSubmit({ displayName, email, marketingOptIn: agreeMarketing });
+
+    setSubmitting(true);
+    const result = await onSubmit({ displayName, email, password, marketingOptIn: agreeMarketing });
+    setSubmitting(false);
+
+    if (!result.ok) {
+      setErrors({
+        email: result.error === "DUPLICATE_EMAIL" ? messages.auth.duplicateEmail : undefined,
+        agreement: result.error === "UNKNOWN" ? messages.auth.unknownError : undefined,
+      });
+    }
   }
 
   return (
@@ -124,7 +134,12 @@ export function EmailSignupForm({ market, onSubmit }: EmailSignupFormProps) {
         {errors.agreement && <span className="text-xs text-red-600">{errors.agreement}</span>}
       </div>
 
-      <button type="button" onClick={handleSubmit} className="mt-1 h-12 bg-primary text-sm font-bold text-white">
+      <button
+        type="button"
+        onClick={handleSubmit}
+        disabled={submitting}
+        className="mt-1 h-12 bg-primary text-sm font-bold text-white disabled:cursor-not-allowed disabled:bg-border"
+      >
         {messages.auth.signUp}
       </button>
     </div>

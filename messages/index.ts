@@ -60,6 +60,7 @@ export type Messages = {
     optionalTag: string;
     loginHint: string;
     loginLink: string;
+    orderFailed: string;
   };
   order: {
     completeTitle: string;
@@ -92,9 +93,12 @@ export type Messages = {
     signOut: string;
     invalidEmail: string;
     invalidPassword: string;
+    invalidCredentials: string;
+    unknownError: string;
     passwordMismatch: string;
     nameRequired: string;
     duplicateEmail: string;
+    signupCheckEmail: string;
     termsRequired: string;
     agreeAll: string;
     agreeTerms: string;

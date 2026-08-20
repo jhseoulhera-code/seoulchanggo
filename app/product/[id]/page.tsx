@@ -4,15 +4,16 @@ import { DetailHeader } from "@/components/layout/DetailHeader";
 import { DetailTabs } from "@/components/product/DetailTabs";
 import { ProductGallery } from "@/components/product/ProductGallery";
 import { ProductPurchasePanel } from "@/components/product/ProductPurchasePanel";
-import { allProducts } from "@/data/products";
+import { getAllProducts, getProductBySlug } from "@/lib/repositories/products";
 
-export function generateStaticParams() {
-  return allProducts.map((product) => ({ id: product.id }));
+export async function generateStaticParams() {
+  const products = await getAllProducts();
+  return products.map((product) => ({ id: product.id }));
 }
 
 export default async function ProductDetailPage(props: PageProps<"/product/[id]">) {
   const { id } = await props.params;
-  const product = allProducts.find((item) => item.id === id);
+  const product = await getProductBySlug(id);
 
   if (!product) {
     notFound();

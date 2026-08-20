@@ -1,13 +1,15 @@
 import { SectionHeading } from "@/components/common/SectionHeading";
 import { ProductGrid } from "@/components/product/ProductGrid";
-import { bestProducts } from "@/data/products";
+import { getBestProducts } from "@/lib/repositories/products";
 
-export function BestProducts() {
+export async function BestProducts() {
+  const products = await getBestProducts();
+
   return (
     <section>
       <SectionHeading title="베스트 상품" showMore />
       <div className="mt-3">
-        <ProductGrid products={bestProducts} />
+        <ProductGrid products={products} />
       </div>
     </section>
   );

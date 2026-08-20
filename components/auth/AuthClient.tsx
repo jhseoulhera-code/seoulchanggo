@@ -15,6 +15,7 @@ import { SOCIAL_PROVIDERS_BY_MARKET } from "@/data/authProviders";
 import { isSafeReturnTo } from "@/lib/auth";
 import { getMessages, t } from "@/messages";
 import type { Messages } from "@/messages";
+import type { LoginResult, SignupResult } from "@/lib/authTypes";
 import type { AuthProvider, SocialAuthProvider } from "@/types/auth";
 
 const SOCIAL_DISPLAY_NAME: Record<SocialAuthProvider, string> = {
@@ -64,30 +65,41 @@ export function AuthClient() {
     showToast({ message: t(messages.auth.socialComingSoon, { provider: SOCIAL_DISPLAY_NAME[provider] }), tone: "success" });
   }
 
-  function handleLogin({ email }: { email: string }) {
-    auth.loginMock({ email });
-    router.push(returnTo);
+  async function handleLogin({ email, password }: { email: string; password: string }): Promise<LoginResult> {
+    const result = await auth.login({ email, password });
+    if (result.ok) {
+      router.push(returnTo);
+    }
+    return result;
   }
 
-  function handleSignup({
+  async function handleSignup({
     displayName,
     email,
+    password,
+    marketingOptIn,
   }: {
     displayName: string;
     email: string;
+    password: string;
     marketingOptIn: boolean;
-  }) {
-    const result = auth.signupMock({
+  }): Promise<SignupResult> {
+    const result = await auth.signup({
       displayName,
       email,
+      password,
       market: market.countryCode,
       locale: market.locale,
+      marketingOptIn,
     });
-    if (!result.ok) {
-      showToast({ message: messages.auth.duplicateEmail, tone: "error" });
-      return;
+    if (result.ok) {
+      if (result.requiresEmailConfirmation) {
+        showToast({ message: messages.auth.signupCheckEmail, tone: "success" });
+      } else {
+        router.push(returnTo);
+      }
     }
-    router.push(returnTo);
+    return result;
   }
 
   const providers: AuthProvider[] = [...SOCIAL_PROVIDERS_BY_MARKET[market.countryCode], "EMAIL"];
