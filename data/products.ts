@@ -15,6 +15,7 @@ export const bestProducts: Product[] = [
     id: "best-1",
     name: "스테인리스 보온 텀블러 900ml",
     image: "",
+    brand: "서울창고 리빙",
     originalPrice: 38900,
     salePrice: 29900,
     discountRate: 23,
@@ -23,11 +24,26 @@ export const bestProducts: Product[] = [
     shippingType: "domestic",
     freeShipping: true,
     category: "kitchen",
+    description:
+      "이중 진공 구조로 보온·보냉 효과를 오래 유지하는 스테인리스 텀블러입니다. 매일 사용하는 물건인 만큼 마감과 실용성에 신경 썼습니다.",
+    specifications: [
+      { label: "재질", value: "스테인리스 스틸 304" },
+      { label: "용량", value: "500ml / 900ml" },
+      { label: "보온 유지", value: "6시간 이상(70℃ 기준)" },
+      { label: "구성품", value: "텀블러 본체, 세척 브러시" },
+      { label: "제조국", value: "대한민국" },
+    ],
+    options: [
+      { name: "색상", choices: ["화이트", "블랙"] },
+      { name: "용량", choices: ["500ml", "900ml"] },
+    ],
+    stock: 8,
   }),
   createProduct({
     id: "best-2",
     name: "무선 블루투스 이어폰 액티브 노이즈캔슬링",
     image: "",
+    brand: "서울창고 디지털",
     originalPrice: 89000,
     salePrice: 79000,
     discountRate: 11,
@@ -36,6 +52,16 @@ export const bestProducts: Product[] = [
     shippingType: "domestic",
     freeShipping: true,
     category: "digital",
+    description:
+      "액티브 노이즈캔슬링과 통화 품질에 신경 쓴 무선 이어폰입니다. 가벼운 착용감으로 장시간 사용에도 부담이 적습니다.",
+    specifications: [
+      { label: "연결", value: "블루투스 5.3" },
+      { label: "사용 시간", value: "최대 8시간(케이스 포함 32시간)" },
+      { label: "방수 등급", value: "IPX4" },
+      { label: "구성품", value: "이어폰, 충전 케이스, C타입 케이블" },
+    ],
+    options: [{ name: "색상", choices: ["블랙", "화이트", "네이비"] }],
+    stock: 24,
   }),
   createProduct({
     id: "best-3",
@@ -207,6 +233,15 @@ export const overseasProducts: Product[] = [
     shippingType: "overseas_direct",
     freeShipping: false,
     category: "kitchen",
+    description:
+      "북유럽 감성의 미니멀한 디자인을 담은 세라믹 접시 4종 세트입니다. 해외 현지에서 직접 출고되는 상품입니다.",
+    specifications: [
+      { label: "재질", value: "세라믹(도자기)" },
+      { label: "구성", value: "접시 4개(지름 22cm)" },
+      { label: "사용", value: "전자레인지/식기세척기 사용 가능" },
+    ],
+    options: [{ name: "색상", choices: ["아이보리", "그레이"] }],
+    stock: 14,
   }),
   createProduct({
     id: "overseas-2",
@@ -272,6 +307,13 @@ export const overseasProducts: Product[] = [
     shippingType: "overseas_agent",
     freeShipping: false,
     category: "pet",
+    description:
+      "산책 시 목에 무리를 덜 주는 하네스형 리드줄 세트입니다. 해외 구매대행으로 주문 후 순차 발송됩니다.",
+    specifications: [
+      { label: "재질", value: "나일론 웨빙" },
+      { label: "구성", value: "하네스 1개, 리드줄 1개" },
+    ],
+    options: [{ name: "사이즈", choices: ["S", "M", "L"] }],
   }),
 ];
 
@@ -280,6 +322,7 @@ export const discountProducts: Product[] = [
     id: "discount-1",
     name: "프리미엄 융보 롱패딩",
     image: "",
+    brand: "서울창고 라이프",
     originalPrice: 128000,
     salePrice: 76800,
     discountRate: 40,
@@ -288,6 +331,19 @@ export const discountProducts: Product[] = [
     shippingType: "domestic",
     freeShipping: true,
     category: "goods",
+    description:
+      "겨울철 실용성을 높인 융보 안감 롱패딩입니다. 무겁지 않으면서도 보온성을 챙긴 데일리 아우터입니다.",
+    specifications: [
+      { label: "겉감", value: "폴리에스터 100%" },
+      { label: "안감", value: "융보 기모 안감" },
+      { label: "충전재", value: "구스다운 20% + 덕다운 80%" },
+      { label: "제조국", value: "대한민국" },
+    ],
+    options: [
+      { name: "색상", choices: ["블랙", "베이지", "카키"] },
+      { name: "사이즈", choices: ["S", "M", "L", "XL"] },
+    ],
+    stock: 5,
   }),
   createProduct({
     id: "discount-2",

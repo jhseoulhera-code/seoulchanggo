@@ -1,5 +1,8 @@
+"use client";
+
 import { Heart, Star } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import { ProductImagePlaceholder } from "@/components/product/ProductImagePlaceholder";
 import { ShippingBadge } from "@/components/product/ShippingBadge";
 import { formatPrice } from "@/lib/utils";
@@ -13,7 +16,13 @@ export function ProductCard({ product }: ProductCardProps) {
   const hasDiscount = Boolean(product.discountRate);
 
   return (
-    <article className="w-full">
+    <article className="relative w-full">
+      <Link
+        href={`/product/${product.id}`}
+        aria-label={product.name}
+        className="absolute inset-0 z-10"
+      />
+
       <div className="relative aspect-square w-full overflow-hidden rounded-md border border-border">
         {product.image ? (
           <Image
@@ -36,7 +45,11 @@ export function ProductCard({ product }: ProductCardProps) {
         <button
           type="button"
           aria-label="찜하기"
-          className="absolute right-2 top-2 flex h-7 w-7 cursor-not-allowed items-center justify-center rounded-full bg-white/90 text-text-secondary"
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+          }}
+          className="absolute right-2 top-2 z-20 flex h-7 w-7 cursor-not-allowed items-center justify-center rounded-full bg-white/90 text-text-secondary"
         >
           <Heart size={15} />
         </button>
