@@ -1,12 +1,13 @@
 import { SectionHeading } from "@/components/common/SectionHeading";
-import { ProductRowPlaceholder } from "@/components/product/ProductRowPlaceholder";
+import { ProductGrid } from "@/components/product/ProductGrid";
+import { bestProducts } from "@/data/products";
 
 export function BestProducts() {
   return (
-    <section className="mt-6">
-      <SectionHeading title="베스트 상품" />
+    <section>
+      <SectionHeading title="베스트 상품" showMore />
       <div className="mt-3">
-        <ProductRowPlaceholder />
+        <ProductGrid products={bestProducts} />
       </div>
     </section>
   );

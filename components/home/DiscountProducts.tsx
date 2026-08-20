@@ -1,12 +1,13 @@
 import { SectionHeading } from "@/components/common/SectionHeading";
-import { ProductRowPlaceholder } from "@/components/product/ProductRowPlaceholder";
+import { ProductRow } from "@/components/product/ProductRow";
+import { discountProducts } from "@/data/products";
 
 export function DiscountProducts() {
   return (
-    <section className="mt-6">
-      <SectionHeading title="할인 상품" />
+    <section>
+      <SectionHeading title="할인상품" showMore />
       <div className="mt-3">
-        <ProductRowPlaceholder />
+        <ProductRow products={discountProducts} />
       </div>
     </section>
   );

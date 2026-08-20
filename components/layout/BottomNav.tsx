@@ -16,7 +16,14 @@ export function BottomNav() {
               isActive ? "text-primary" : "text-text-secondary"
             )}
           >
-            <item.icon size={22} />
+            <span className="relative">
+              <item.icon size={22} />
+              {Boolean(item.badge) && (
+                <span className="absolute -right-2 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-white">
+                  {item.badge}
+                </span>
+              )}
+            </span>
             {item.label}
           </Link>
         );

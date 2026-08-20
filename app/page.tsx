@@ -1,6 +1,7 @@
 import { Header } from "@/components/layout/Header";
 import { QuickNav } from "@/components/layout/QuickNav";
 import { BottomNav } from "@/components/layout/BottomNav";
+import { PageContainer } from "@/components/common/PageContainer";
 import { MainBanner } from "@/components/home/MainBanner";
 import { CategorySection } from "@/components/home/CategorySection";
 import { BestProducts } from "@/components/home/BestProducts";
@@ -14,14 +15,16 @@ export default function Home() {
     <>
       <Header />
       <QuickNav />
-      <main className="pb-20 md:pb-6">
-        <MainBanner />
-        <CategorySection />
-        <BestProducts />
-        <DomesticProducts />
-        <OverseasProducts />
-        <DiscountProducts />
-        <PromotionSection />
+      <main className="pb-24 md:pb-10">
+        <PageContainer className="flex flex-col gap-8 pt-4">
+          <MainBanner />
+          <CategorySection />
+          <BestProducts />
+          <DomesticProducts />
+          <OverseasProducts />
+          <DiscountProducts />
+          <PromotionSection />
+        </PageContainer>
       </main>
       <BottomNav />
     </>

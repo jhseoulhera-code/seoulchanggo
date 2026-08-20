@@ -1,12 +1,15 @@
 import { SectionHeading } from "@/components/common/SectionHeading";
-import { PlaceholderBox } from "@/components/common/PlaceholderBox";
+import { PromotionCard } from "@/components/home/PromotionCard";
+import { promotions } from "@/data/promotions";
 
 export function PromotionSection() {
   return (
-    <section className="mt-6 mb-6">
-      <SectionHeading title="기획전" />
-      <div className="mt-3 px-4 md:px-6">
-        <PlaceholderBox label="기획전 영역" className="h-32 w-full md:h-40" />
+    <section>
+      <SectionHeading title="기획전" showMore />
+      <div className="no-scrollbar mt-3 flex gap-3 overflow-x-auto pb-1">
+        {promotions.map((promotion) => (
+          <PromotionCard key={promotion.id} promotion={promotion} />
+        ))}
       </div>
     </section>
   );

@@ -3,17 +3,26 @@ import { categories } from "@/data/categories";
 
 export function CategorySection() {
   return (
-    <section className="mt-6">
+    <section>
       <SectionHeading title="카테고리" />
-      <div className="mt-3 grid grid-cols-4 gap-y-4 px-4 md:grid-cols-8 md:px-6">
-        {categories.map((category) => (
-          <div key={category.id} className="flex flex-col items-center gap-2">
-            <div className="h-12 w-12 rounded-full bg-primary-light" />
-            <span className="text-center text-xs text-text-secondary">
-              {category.label}
-            </span>
-          </div>
-        ))}
+      <div className="mt-3 grid grid-cols-5 gap-y-4 md:grid-cols-10">
+        {categories.map((category) => {
+          const Icon = category.icon;
+          return (
+            <button
+              key={category.id}
+              type="button"
+              className="flex cursor-not-allowed flex-col items-center gap-1.5 py-1"
+            >
+              <span className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-light text-primary">
+                <Icon size={22} strokeWidth={1.5} />
+              </span>
+              <span className="text-center text-[11px] leading-tight text-text-secondary">
+                {category.label}
+              </span>
+            </button>
+          );
+        })}
       </div>
     </section>
   );
