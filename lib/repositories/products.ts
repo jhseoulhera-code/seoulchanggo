@@ -167,63 +167,52 @@ export async function searchProducts(query: string): Promise<Product[]> {
 }
 
 /**
- * HOME sections. The dummy catalog hand-curates a distinct product set per
- * section; the DB has no such "featured" concept yet (not in the STEP 08
- * spec's table list), so these are the closest rule-derived equivalent —
- * see the STEP 08 report for the exact rule per section and why the specific
- * items shown may differ once this is actually wired to a live project.
+ * HOME sections — backed by home_sections/home_section_items (STEP 08.5), a
+ * genuine merchandising relation rather than a fixed rule, so HOME shows the
+ * same hand-picked products data/products.ts always curated once seeded.
  */
+async function getHomeSectionProducts(sectionKey: string, limit: number): Promise<Product[]> {
+  const supabase = await createClient();
+  const { data: section, error: sectionError } = await supabase
+    .from("home_sections")
+    .select("id")
+    .eq("section_key", sectionKey)
+    .eq("is_active", true)
+    .maybeSingle();
+  if (sectionError) fail(`getHomeSectionProducts(${sectionKey})`, sectionError);
+  if (!section) return [];
+
+  const { data, error } = await supabase
+    .from("home_section_items")
+    .select(`sort_order, products(${PRODUCT_SELECT})`)
+    .eq("section_id", (section as unknown as { id: string }).id)
+    .order("sort_order", { ascending: true })
+    .limit(limit);
+  if (error) fail(`getHomeSectionProducts(${sectionKey})`, error);
+
+  type SectionItemRow = { sort_order: number; products: ProductJoinRow | null };
+  return ((data ?? []) as unknown as SectionItemRow[])
+    .map((row) => row.products)
+    .filter((product): product is ProductJoinRow => product !== null)
+    .map(mapProductRow);
+}
+
 export async function getBestProducts(limit = 8): Promise<Product[]> {
   if (!isSupabaseConfigured()) return staticBestProducts;
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("products")
-    .select(PRODUCT_SELECT)
-    .eq("is_active", true)
-    .order("review_count", { ascending: false })
-    .limit(limit);
-  if (error) fail("getBestProducts", error);
-  return ((data ?? []) as unknown as ProductJoinRow[]).map(mapProductRow);
+  return getHomeSectionProducts("BEST", limit);
 }
 
 export async function getDomesticProducts(limit = 6): Promise<Product[]> {
   if (!isSupabaseConfigured()) return staticDomesticProducts;
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("products")
-    .select(PRODUCT_SELECT)
-    .eq("is_active", true)
-    .eq("shipping_type", "DOMESTIC")
-    .order("created_at", { ascending: false })
-    .limit(limit);
-  if (error) fail("getDomesticProducts", error);
-  return ((data ?? []) as unknown as ProductJoinRow[]).map(mapProductRow);
+  return getHomeSectionProducts("DOMESTIC_FEATURED", limit);
 }
 
 export async function getOverseasProducts(limit = 6): Promise<Product[]> {
   if (!isSupabaseConfigured()) return staticOverseasProducts;
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("products")
-    .select(PRODUCT_SELECT)
-    .eq("is_active", true)
-    .in("shipping_type", ["OVERSEAS_DIRECT", "OVERSEAS_AGENCY"])
-    .order("created_at", { ascending: false })
-    .limit(limit);
-  if (error) fail("getOverseasProducts", error);
-  return ((data ?? []) as unknown as ProductJoinRow[]).map(mapProductRow);
+  return getHomeSectionProducts("OVERSEAS_FEATURED", limit);
 }
 
 export async function getDiscountProducts(limit = 6): Promise<Product[]> {
   if (!isSupabaseConfigured()) return staticDiscountProducts;
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("products")
-    .select(PRODUCT_SELECT)
-    .eq("is_active", true)
-    .not("discount_rate", "is", null)
-    .order("discount_rate", { ascending: false })
-    .limit(limit);
-  if (error) fail("getDiscountProducts", error);
-  return ((data ?? []) as unknown as ProductJoinRow[]).map(mapProductRow);
+  return getHomeSectionProducts("DISCOUNT_FEATURED", limit);
 }

@@ -9,7 +9,13 @@ import { createHash } from "node:crypto";
 import { writeFileSync } from "node:fs";
 import path from "node:path";
 import { categories } from "../data/categories";
-import { allProducts } from "../data/products";
+import {
+  allProducts,
+  bestProducts,
+  discountProducts,
+  domesticProducts,
+  overseasProducts,
+} from "../data/products";
 import type { Product, ShippingType } from "../types";
 import type { CountryCode } from "../types/market";
 
@@ -148,9 +154,11 @@ lines.push(
 lines.push("");
 
 // ---- products + prices + shipping markets ------------------------------
+const productIds = new Map<string, string>();
 lines.push("-- products");
 for (const product of allProducts) {
   const productId = deterministicUuid(`product:${product.id}`);
+  productIds.set(product.id, productId);
   const categoryId = categoryIds.get(product.category);
   if (!categoryId) {
     throw new Error(`Product ${product.id} references unknown category ${product.category}`);
@@ -190,6 +198,83 @@ for (const product of allProducts) {
         `'${productId}', '${market}', true, ${resolveShippingFee(product, market)}, ${minDays}, ${maxDays}, ` +
         `${shippingMethod ? `'${shippingMethod}'` : "null"});`
     );
+  }
+}
+
+// ---- HOME section curation (STEP 08.5 item 8) --------------------------
+// Reproduces data/products.ts's hand-picked arrays exactly, via the
+// home_sections rows the migration already inserted (looked up by section_key
+// since their ids are gen_random_uuid(), not deterministic).
+lines.push("-- home section curation");
+const HOME_SECTIONS: { key: string; products: Product[] }[] = [
+  { key: "BEST", products: bestProducts },
+  { key: "DOMESTIC_FEATURED", products: domesticProducts },
+  { key: "OVERSEAS_FEATURED", products: overseasProducts },
+  { key: "DISCOUNT_FEATURED", products: discountProducts },
+];
+for (const section of HOME_SECTIONS) {
+  section.products.forEach((product, index) => {
+    const productId = productIds.get(product.id);
+    if (!productId) throw new Error(`Home section ${section.key} references unknown product ${product.id}`);
+    lines.push(
+      `insert into public.home_section_items (section_id, product_id, sort_order) ` +
+        `select hs.id, '${productId}', ${index} from public.home_sections hs where hs.section_key = '${section.key}';`
+    );
+  });
+}
+lines.push("");
+
+// ---- minimal product_images / product_variants for verification --------
+// Spec item 3 (STEP 08.5): not every product needs images/options seeded —
+// enough to exercise the schema: options + no-options, and all three shipping
+// types. Images are self-contained inline SVG placeholders (no external
+// network call, and unambiguously placeholders — not pretending to be real
+// product photography, since none exists in this project).
+const VERIFICATION_PRODUCT_IDS = ["best-1", "best-3", "overseas-1", "overseas-2", "overseas-6", "domestic-1"];
+
+function placeholderImageDataUri(label: string, bgHex: string): string {
+  const svg =
+    `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600">` +
+    `<rect width="600" height="600" fill="#${bgHex}"/>` +
+    `<text x="50%" y="50%" font-size="28" fill="#ffffff" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif">${label}</text>` +
+    `</svg>`;
+  return `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`;
+}
+
+function cartesian(groups: { name: string; choices: string[] }[]): Record<string, string>[] {
+  return groups.reduce<Record<string, string>[]>(
+    (acc, group) => acc.flatMap((combo) => group.choices.map((choice) => ({ ...combo, [group.name]: choice }))),
+    [{}]
+  );
+}
+
+lines.push("-- product_images / product_variants (verification subset only)");
+for (const productSlug of VERIFICATION_PRODUCT_IDS) {
+  const product = allProducts.find((item) => item.id === productSlug);
+  const productId = productIds.get(productSlug);
+  if (!product || !productId) throw new Error(`Verification product ${productSlug} not found`);
+
+  const primaryImage = placeholderImageDataUri(product.name.slice(0, 12), "098774");
+  lines.push(
+    `insert into public.product_images (product_id, image_url, alt_ko, sort_order, is_primary) values (` +
+      `'${productId}', ${sqlString(primaryImage)}, ${sqlString(product.name)}, 0, true);`
+  );
+  const secondaryImage = placeholderImageDataUri(`${product.name.slice(0, 10)} 2`, "07695b");
+  lines.push(
+    `insert into public.product_images (product_id, image_url, alt_ko, sort_order, is_primary) values (` +
+      `'${productId}', ${sqlString(secondaryImage)}, ${sqlString(product.name)}, 1, false);`
+  );
+
+  if (product.options && product.options.length > 0) {
+    const combos = cartesian(product.options);
+    const perVariantStock = Math.max(1, Math.floor((product.stock ?? 20) / combos.length));
+    combos.forEach((combo, index) => {
+      const variantSku = `SKU-${productSlug.toUpperCase()}-V${index + 1}`;
+      lines.push(
+        `insert into public.product_variants (product_id, sku, option_values, additional_price, stock_quantity, is_active) values (` +
+          `'${productId}', ${sqlString(variantSku)}, ${sqlJson(combo)}, 0, ${perVariantStock}, true);`
+      );
+    });
   }
 }
 

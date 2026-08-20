@@ -213,6 +213,25 @@ export type ShippingGroupItemRow = {
   order_item_id: string;
 };
 
+export type HomeSectionRow = {
+  id: string;
+  section_key: string;
+  title_ko: string;
+  title_en: string;
+  sort_order: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type HomeSectionItemRow = {
+  id: string;
+  section_id: string;
+  product_id: string;
+  sort_order: number;
+  created_at: string;
+};
+
 export type Database = {
   public: {
     Tables: {
@@ -244,6 +263,8 @@ export type Database = {
       order_items: Table<OrderItemRow, never, never>;
       shipping_groups: Table<ShippingGroupRow, never, Partial<ShippingGroupRow>>;
       shipping_group_items: Table<ShippingGroupItemRow, never, never>;
+      home_sections: Table<HomeSectionRow, never, never>;
+      home_section_items: Table<HomeSectionItemRow, never, never>;
     };
     Functions: {
       create_order: {
