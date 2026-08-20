@@ -1,29 +1,25 @@
-import { Globe, Plane, Truck } from "lucide-react";
 import type { ShippingType } from "@/types";
 
-const SHIPPING_LABEL: Record<ShippingType, string> = {
-  domestic: "국내배송",
-  overseas_direct: "해외직배송",
-  overseas_agent: "해외구매대행",
-};
-
-const SHIPPING_ICON: Record<ShippingType, typeof Truck> = {
-  domestic: Truck,
-  overseas_direct: Plane,
-  overseas_agent: Globe,
+const SHIPPING_CODE: Record<ShippingType, string> = {
+  domestic: "KR",
+  overseas_direct: "CN",
+  overseas_agent: "AG",
 };
 
 type ShippingBadgeProps = {
   type: ShippingType;
+  label: string;
 };
 
-export function ShippingBadge({ type }: ShippingBadgeProps) {
-  const Icon = SHIPPING_ICON[type];
-
+export function ShippingBadge({ type, label }: ShippingBadgeProps) {
   return (
-    <span className="inline-flex items-center gap-1 rounded border border-border px-1.5 py-0.5 text-[11px] text-text-secondary">
-      <Icon size={11} />
-      {SHIPPING_LABEL[type]}
+    <span className="inline-flex items-stretch border border-border font-mono text-[10px] leading-none">
+      <span className="flex items-center bg-primary-light px-1.5 py-1 font-bold tracking-wide text-primary">
+        {SHIPPING_CODE[type]}
+      </span>
+      <span className="flex items-center border-l border-border px-1.5 py-1 text-text-secondary">
+        {label}
+      </span>
     </span>
   );
 }

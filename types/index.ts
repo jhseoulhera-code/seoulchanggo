@@ -30,9 +30,19 @@ export type Product = {
   rating: number;
   reviewCount: number;
   shippingType: ShippingType;
+  shippingLabel: string;
   freeShipping: boolean;
   category: string;
 };
+
+export type SortOption =
+  | "recommended"
+  | "popular"
+  | "priceLow"
+  | "priceHigh"
+  | "reviews";
+
+export type PriceRangeId = "under10k" | "10kTo30k" | "30kTo50k" | "over50k";
 
 export type HeroSlide = {
   id: string;

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { SectionHeading } from "@/components/common/SectionHeading";
 import { categories } from "@/data/categories";
 
@@ -9,10 +10,10 @@ export function CategorySection() {
         {categories.map((category) => {
           const Icon = category.icon;
           return (
-            <button
+            <Link
               key={category.id}
-              type="button"
-              className="flex cursor-not-allowed flex-col items-center gap-1.5 py-1"
+              href={`/category/${category.id}`}
+              className="flex flex-col items-center gap-1.5 py-1"
             >
               <span className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-light text-primary">
                 <Icon size={22} strokeWidth={1.5} />
@@ -20,7 +21,7 @@ export function CategorySection() {
               <span className="text-center text-[11px] leading-tight text-text-secondary">
                 {category.label}
               </span>
-            </button>
+            </Link>
           );
         })}
       </div>

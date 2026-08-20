@@ -28,7 +28,7 @@ export function ProductCard({ product }: ProductCardProps) {
         )}
 
         {hasDiscount && (
-          <span className="absolute left-2 top-2 rounded bg-primary px-1.5 py-0.5 text-[11px] font-bold text-white">
+          <span className="absolute left-2 top-2 bg-primary px-1.5 py-0.5 font-mono text-[11px] font-bold text-white">
             {product.discountRate}%
           </span>
         )}
@@ -70,7 +70,7 @@ export function ProductCard({ product }: ProductCardProps) {
         </div>
 
         <div className="flex flex-wrap items-center gap-1.5">
-          <ShippingBadge type={product.shippingType} />
+          <ShippingBadge type={product.shippingType} label={product.shippingLabel} />
           {product.freeShipping && (
             <span className="text-[11px] font-medium text-primary">무료배송</span>
           )}

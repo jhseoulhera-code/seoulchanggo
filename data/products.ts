@@ -1,7 +1,17 @@
-import type { Product } from "@/types";
+import type { Product, ShippingType } from "@/types";
+
+const SHIPPING_LABEL: Record<ShippingType, string> = {
+  domestic: "국내출고",
+  overseas_direct: "직배송",
+  overseas_agent: "구매대행",
+};
+
+function createProduct(data: Omit<Product, "shippingLabel">): Product {
+  return { ...data, shippingLabel: SHIPPING_LABEL[data.shippingType] };
+}
 
 export const bestProducts: Product[] = [
-  {
+  createProduct({
     id: "best-1",
     name: "스테인리스 보온 텀블러 900ml",
     image: "",
@@ -13,8 +23,8 @@ export const bestProducts: Product[] = [
     shippingType: "domestic",
     freeShipping: true,
     category: "kitchen",
-  },
-  {
+  }),
+  createProduct({
     id: "best-2",
     name: "무선 블루투스 이어폰 액티브 노이즈캔슬링",
     image: "",
@@ -26,8 +36,8 @@ export const bestProducts: Product[] = [
     shippingType: "domestic",
     freeShipping: true,
     category: "digital",
-  },
-  {
+  }),
+  createProduct({
     id: "best-3",
     name: "극세사 항균 담요 사계절용",
     image: "",
@@ -39,8 +49,8 @@ export const bestProducts: Product[] = [
     shippingType: "domestic",
     freeShipping: true,
     category: "living",
-  },
-  {
+  }),
+  createProduct({
     id: "best-4",
     name: "반려동물 자동 급수기 2L",
     image: "",
@@ -51,8 +61,8 @@ export const bestProducts: Product[] = [
     shippingType: "domestic",
     freeShipping: true,
     category: "pet",
-  },
-  {
+  }),
+  createProduct({
     id: "best-5",
     name: "접이식 캠핑 테이블 세트",
     image: "",
@@ -64,8 +74,8 @@ export const bestProducts: Product[] = [
     shippingType: "overseas_direct",
     freeShipping: false,
     category: "hobby",
-  },
-  {
+  }),
+  createProduct({
     id: "best-6",
     name: "미니멀 크로스백 데일리백",
     image: "",
@@ -77,8 +87,8 @@ export const bestProducts: Product[] = [
     shippingType: "overseas_direct",
     freeShipping: false,
     category: "goods",
-  },
-  {
+  }),
+  createProduct({
     id: "best-7",
     name: "유아용 실리콘 빨대컵 2P",
     image: "",
@@ -89,8 +99,8 @@ export const bestProducts: Product[] = [
     shippingType: "domestic",
     freeShipping: true,
     category: "baby",
-  },
-  {
+  }),
+  createProduct({
     id: "best-8",
     name: "차량용 트렁크 정리함 대형",
     image: "",
@@ -102,11 +112,11 @@ export const bestProducts: Product[] = [
     shippingType: "domestic",
     freeShipping: true,
     category: "car",
-  },
+  }),
 ];
 
 export const domesticProducts: Product[] = [
-  {
+  createProduct({
     id: "domestic-1",
     name: "프리미엄 전기 압력밥솥 6인용",
     image: "",
@@ -118,8 +128,8 @@ export const domesticProducts: Product[] = [
     shippingType: "domestic",
     freeShipping: true,
     category: "digital",
-  },
-  {
+  }),
+  createProduct({
     id: "domestic-2",
     name: "다용도 접이식 수납박스 3P",
     image: "",
@@ -131,8 +141,8 @@ export const domesticProducts: Product[] = [
     shippingType: "domestic",
     freeShipping: true,
     category: "living",
-  },
-  {
+  }),
+  createProduct({
     id: "domestic-3",
     name: "강아지 통목욕 극세사 타월 대형",
     image: "",
@@ -143,8 +153,8 @@ export const domesticProducts: Product[] = [
     shippingType: "domestic",
     freeShipping: true,
     category: "pet",
-  },
-  {
+  }),
+  createProduct({
     id: "domestic-4",
     name: "차량용 무선 고속 충전 거치대",
     image: "",
@@ -156,8 +166,8 @@ export const domesticProducts: Product[] = [
     shippingType: "domestic",
     freeShipping: true,
     category: "car",
-  },
-  {
+  }),
+  createProduct({
     id: "domestic-5",
     name: "원목 데스크 정리 트레이",
     image: "",
@@ -168,8 +178,8 @@ export const domesticProducts: Product[] = [
     shippingType: "domestic",
     freeShipping: false,
     category: "stationery",
-  },
-  {
+  }),
+  createProduct({
     id: "domestic-6",
     name: "아기 원목 딸랑이 장난감 세트",
     image: "",
@@ -181,11 +191,11 @@ export const domesticProducts: Product[] = [
     shippingType: "domestic",
     freeShipping: true,
     category: "baby",
-  },
+  }),
 ];
 
 export const overseasProducts: Product[] = [
-  {
+  createProduct({
     id: "overseas-1",
     name: "노르딕 감성 세라믹 접시 4P 세트",
     image: "",
@@ -197,8 +207,8 @@ export const overseasProducts: Product[] = [
     shippingType: "overseas_direct",
     freeShipping: false,
     category: "kitchen",
-  },
-  {
+  }),
+  createProduct({
     id: "overseas-2",
     name: "미니멀 우드 데스크 조명 스탠드",
     image: "",
@@ -210,8 +220,8 @@ export const overseasProducts: Product[] = [
     shippingType: "overseas_direct",
     freeShipping: false,
     category: "interior",
-  },
-  {
+  }),
+  createProduct({
     id: "overseas-3",
     name: "캐릭터 실리콘 유아 식기 세트",
     image: "",
@@ -223,8 +233,8 @@ export const overseasProducts: Product[] = [
     shippingType: "overseas_direct",
     freeShipping: true,
     category: "baby",
-  },
-  {
+  }),
+  createProduct({
     id: "overseas-4",
     name: "접이식 캠핑 웨건 카트",
     image: "",
@@ -236,8 +246,8 @@ export const overseasProducts: Product[] = [
     shippingType: "overseas_direct",
     freeShipping: false,
     category: "hobby",
-  },
-  {
+  }),
+  createProduct({
     id: "overseas-5",
     name: "무선 핸디 진공 청소기",
     image: "",
@@ -249,8 +259,8 @@ export const overseasProducts: Product[] = [
     shippingType: "overseas_direct",
     freeShipping: false,
     category: "digital",
-  },
-  {
+  }),
+  createProduct({
     id: "overseas-6",
     name: "프리미엄 강아지 하네스 리드줄 세트",
     image: "",
@@ -262,11 +272,11 @@ export const overseasProducts: Product[] = [
     shippingType: "overseas_agent",
     freeShipping: false,
     category: "pet",
-  },
+  }),
 ];
 
 export const discountProducts: Product[] = [
-  {
+  createProduct({
     id: "discount-1",
     name: "프리미엄 융보 롱패딩",
     image: "",
@@ -278,8 +288,8 @@ export const discountProducts: Product[] = [
     shippingType: "domestic",
     freeShipping: true,
     category: "goods",
-  },
-  {
+  }),
+  createProduct({
     id: "discount-2",
     name: "4단 접이식 완구 정리함",
     image: "",
@@ -291,8 +301,8 @@ export const discountProducts: Product[] = [
     shippingType: "domestic",
     freeShipping: true,
     category: "hobby",
-  },
-  {
+  }),
+  createProduct({
     id: "discount-3",
     name: "강아지 자동 급식기 2L",
     image: "",
@@ -304,8 +314,8 @@ export const discountProducts: Product[] = [
     shippingType: "domestic",
     freeShipping: true,
     category: "pet",
-  },
-  {
+  }),
+  createProduct({
     id: "discount-4",
     name: "차량용 트렁크 정리함 방수형",
     image: "",
@@ -317,8 +327,8 @@ export const discountProducts: Product[] = [
     shippingType: "domestic",
     freeShipping: true,
     category: "car",
-  },
-  {
+  }),
+  createProduct({
     id: "discount-5",
     name: "문구 데스크 오거나이저 세트",
     image: "",
@@ -330,8 +340,8 @@ export const discountProducts: Product[] = [
     shippingType: "domestic",
     freeShipping: false,
     category: "stationery",
-  },
-  {
+  }),
+  createProduct({
     id: "discount-6",
     name: "LED 감성 무드등 스탠드",
     image: "",
@@ -343,5 +353,300 @@ export const discountProducts: Product[] = [
     shippingType: "overseas_direct",
     freeShipping: false,
     category: "interior",
-  },
+  }),
 ];
+
+const extraProducts: Product[] = [
+  createProduct({
+    id: "extra-1",
+    name: "다용도 극세사 청소포 50매",
+    image: "",
+    originalPrice: 12900,
+    salePrice: 9900,
+    discountRate: 23,
+    rating: 4.5,
+    reviewCount: 320,
+    shippingType: "domestic",
+    freeShipping: true,
+    category: "living",
+  }),
+  createProduct({
+    id: "extra-2",
+    name: "감성 라탄 수납 바구니 2P",
+    image: "",
+    originalPrice: 34000,
+    salePrice: 29900,
+    discountRate: 12,
+    rating: 4.4,
+    reviewCount: 88,
+    shippingType: "overseas_direct",
+    freeShipping: false,
+    category: "living",
+  }),
+  createProduct({
+    id: "extra-3",
+    name: "실리콘 다용도 정리 트레이 3P",
+    image: "",
+    originalPrice: 15000,
+    salePrice: 10500,
+    discountRate: 30,
+    rating: 4.6,
+    reviewCount: 204,
+    shippingType: "domestic",
+    freeShipping: true,
+    category: "living",
+  }),
+  createProduct({
+    id: "extra-4",
+    name: "휴대용 미니 초음파 가습기",
+    image: "",
+    originalPrice: 27000,
+    salePrice: 27000,
+    rating: 4.3,
+    reviewCount: 152,
+    shippingType: "domestic",
+    freeShipping: true,
+    category: "living",
+  }),
+  createProduct({
+    id: "extra-5",
+    name: "실리콘 밀폐용기 5종 세트",
+    image: "",
+    originalPrice: 32000,
+    salePrice: 24900,
+    discountRate: 22,
+    rating: 4.7,
+    reviewCount: 610,
+    shippingType: "domestic",
+    freeShipping: true,
+    category: "kitchen",
+  }),
+  createProduct({
+    id: "extra-6",
+    name: "논스틱 프라이팬 3종 세트",
+    image: "",
+    originalPrice: 68000,
+    salePrice: 45900,
+    discountRate: 32,
+    rating: 4.6,
+    reviewCount: 289,
+    shippingType: "domestic",
+    freeShipping: true,
+    category: "kitchen",
+  }),
+  createProduct({
+    id: "extra-7",
+    name: "스테인리스 식기 건조대",
+    image: "",
+    originalPrice: 26000,
+    salePrice: 26000,
+    rating: 4.5,
+    reviewCount: 133,
+    shippingType: "domestic",
+    freeShipping: false,
+    category: "kitchen",
+  }),
+  createProduct({
+    id: "extra-8",
+    name: "핸드드립 커피 드리퍼 세트",
+    image: "",
+    originalPrice: 29000,
+    salePrice: 24900,
+    discountRate: 14,
+    rating: 4.4,
+    reviewCount: 76,
+    shippingType: "overseas_direct",
+    freeShipping: false,
+    category: "kitchen",
+  }),
+  createProduct({
+    id: "extra-9",
+    name: "블루투스 미니 스피커",
+    image: "",
+    originalPrice: 45000,
+    salePrice: 35900,
+    discountRate: 20,
+    rating: 4.5,
+    reviewCount: 512,
+    shippingType: "domestic",
+    freeShipping: true,
+    category: "digital",
+  }),
+  createProduct({
+    id: "extra-10",
+    name: "휴대용 보조배터리 20000mAh",
+    image: "",
+    originalPrice: 39000,
+    salePrice: 27300,
+    discountRate: 30,
+    rating: 4.7,
+    reviewCount: 940,
+    shippingType: "domestic",
+    freeShipping: true,
+    category: "digital",
+  }),
+  createProduct({
+    id: "extra-11",
+    name: "스마트 디지털 무드조명",
+    image: "",
+    originalPrice: 32000,
+    salePrice: 27900,
+    discountRate: 13,
+    rating: 4.3,
+    reviewCount: 64,
+    shippingType: "overseas_direct",
+    freeShipping: false,
+    category: "digital",
+  }),
+  createProduct({
+    id: "extra-12",
+    name: "캐주얼 버킷햇",
+    image: "",
+    originalPrice: 24000,
+    salePrice: 18900,
+    discountRate: 21,
+    rating: 4.4,
+    reviewCount: 112,
+    shippingType: "overseas_direct",
+    freeShipping: false,
+    category: "goods",
+  }),
+  createProduct({
+    id: "extra-13",
+    name: "심플 파우치 3종 세트",
+    image: "",
+    originalPrice: 19900,
+    salePrice: 15900,
+    discountRate: 20,
+    rating: 4.6,
+    reviewCount: 245,
+    shippingType: "domestic",
+    freeShipping: true,
+    category: "goods",
+  }),
+  createProduct({
+    id: "extra-14",
+    name: "아기 물티슈 캡 홀더 2P",
+    image: "",
+    originalPrice: 9900,
+    salePrice: 8900,
+    discountRate: 10,
+    rating: 4.7,
+    reviewCount: 331,
+    shippingType: "domestic",
+    freeShipping: true,
+    category: "baby",
+  }),
+  createProduct({
+    id: "extra-15",
+    name: "우드 무드등 스탠드",
+    image: "",
+    originalPrice: 36000,
+    salePrice: 29900,
+    discountRate: 17,
+    rating: 4.5,
+    reviewCount: 98,
+    shippingType: "domestic",
+    freeShipping: true,
+    category: "interior",
+  }),
+  createProduct({
+    id: "extra-16",
+    name: "패브릭 러그 카펫 대형",
+    image: "",
+    originalPrice: 59000,
+    salePrice: 49900,
+    discountRate: 15,
+    rating: 4.4,
+    reviewCount: 57,
+    shippingType: "overseas_direct",
+    freeShipping: false,
+    category: "interior",
+  }),
+  createProduct({
+    id: "extra-17",
+    name: "차량용 방향제 세트",
+    image: "",
+    originalPrice: 15900,
+    salePrice: 12900,
+    discountRate: 19,
+    rating: 4.5,
+    reviewCount: 176,
+    shippingType: "domestic",
+    freeShipping: true,
+    category: "car",
+  }),
+  createProduct({
+    id: "extra-18",
+    name: "유아 퍼즐 매트 대형",
+    image: "",
+    originalPrice: 42000,
+    salePrice: 33900,
+    discountRate: 19,
+    rating: 4.6,
+    reviewCount: 214,
+    shippingType: "domestic",
+    freeShipping: true,
+    category: "hobby",
+  }),
+  createProduct({
+    id: "extra-19",
+    name: "3단 서랍형 데스크 정리함",
+    image: "",
+    originalPrice: 24000,
+    salePrice: 24000,
+    rating: 4.4,
+    reviewCount: 61,
+    shippingType: "domestic",
+    freeShipping: false,
+    category: "stationery",
+  }),
+  createProduct({
+    id: "extra-20",
+    name: "심플 다이어리 세트",
+    image: "",
+    originalPrice: 18000,
+    salePrice: 15900,
+    discountRate: 12,
+    rating: 4.3,
+    reviewCount: 39,
+    shippingType: "overseas_agent",
+    freeShipping: false,
+    category: "stationery",
+  }),
+  createProduct({
+    id: "extra-21",
+    name: "강아지 노즈워크 매트",
+    image: "",
+    originalPrice: 22000,
+    salePrice: 17600,
+    discountRate: 20,
+    rating: 4.7,
+    reviewCount: 288,
+    shippingType: "domestic",
+    freeShipping: true,
+    category: "pet",
+  }),
+];
+
+export const allProducts: Product[] = [
+  ...bestProducts,
+  ...domesticProducts,
+  ...overseasProducts,
+  ...discountProducts,
+  ...extraProducts,
+];
+
+export function getProductsByCategory(categoryId: string): Product[] {
+  return allProducts.filter((product) => product.category === categoryId);
+}
+
+export function searchProducts(query: string): Product[] {
+  const normalized = query.trim().toLowerCase();
+  if (!normalized) return allProducts.slice(0, 12);
+
+  const matched = allProducts.filter((product) =>
+    product.name.toLowerCase().includes(normalized)
+  );
+  return matched.length > 0 ? matched : allProducts.slice(0, 12);
+}

@@ -29,15 +29,13 @@ export function Header() {
         </div>
 
         <div className="flex items-center gap-2 pb-3 md:max-w-xl">
-          <div className="flex flex-1 items-center gap-2 rounded-full border border-border bg-white px-4 py-3">
+          <Link
+            href="/search"
+            className="flex flex-1 items-center gap-2 rounded-full border border-border bg-white px-4 py-3"
+          >
             <Search size={19} className="shrink-0 text-text-secondary" />
-            <input
-              type="text"
-              placeholder="상품을 검색해보세요"
-              disabled
-              className="w-full bg-transparent text-[15px] text-text-main placeholder:text-text-secondary focus:outline-none"
-            />
-          </div>
+            <span className="text-[15px] text-text-secondary">상품을 검색해보세요</span>
+          </Link>
           <button
             type="button"
             aria-label="이미지로 검색"
