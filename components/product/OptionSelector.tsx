@@ -1,18 +1,16 @@
 "use client";
 
-import { useState } from "react";
 import { cn } from "@/lib/utils";
 import type { ProductOptionGroup } from "@/types";
+import type { SelectedOptions } from "@/types/cart";
 
 type OptionSelectorProps = {
   options: ProductOptionGroup[];
+  selected: SelectedOptions;
+  onChange: (groupName: string, choice: string) => void;
 };
 
-export function OptionSelector({ options }: OptionSelectorProps) {
-  const [selected, setSelected] = useState<Record<string, string>>(() =>
-    Object.fromEntries(options.map((group) => [group.name, group.choices[0]]))
-  );
-
+export function OptionSelector({ options, selected, onChange }: OptionSelectorProps) {
   return (
     <div className="flex flex-col gap-4">
       {options.map((group) => (
@@ -25,9 +23,7 @@ export function OptionSelector({ options }: OptionSelectorProps) {
                 <button
                   key={choice}
                   type="button"
-                  onClick={() =>
-                    setSelected((prev) => ({ ...prev, [group.name]: choice }))
-                  }
+                  onClick={() => onChange(group.name, choice)}
                   className={cn(
                     "border px-3.5 py-2 text-sm",
                     isActive

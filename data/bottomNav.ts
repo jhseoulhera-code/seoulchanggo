@@ -6,5 +6,5 @@ export const bottomNavItems: NavItem[] = [
   { label: "카테고리", href: "#", icon: Grid2x2 },
   { label: "검색", href: "/search", icon: Search },
   { label: "마이", href: "#", icon: User },
-  { label: "장바구니", href: "#", icon: ShoppingCart, badge: 3 },
+  { label: "장바구니", href: "/cart", icon: ShoppingCart },
 ];

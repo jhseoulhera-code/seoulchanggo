@@ -38,6 +38,7 @@ export const bestProducts: Product[] = [
       { name: "용량", choices: ["500ml", "900ml"] },
     ],
     stock: 8,
+    availableCountries: ["KR"],
   }),
   createProduct({
     id: "best-2",
@@ -62,6 +63,8 @@ export const bestProducts: Product[] = [
     ],
     options: [{ name: "색상", choices: ["블랙", "화이트", "네이비"] }],
     stock: 24,
+    availableCountries: ["KR", "IN"],
+    marketPrices: { IN: { salePrice: 6499, originalPrice: 7299 } },
   }),
   createProduct({
     id: "best-3",
@@ -204,6 +207,7 @@ export const domesticProducts: Product[] = [
     shippingType: "domestic",
     freeShipping: false,
     category: "stationery",
+    shippingFees: { KR: 3500 },
   }),
   createProduct({
     id: "domestic-6",
@@ -242,6 +246,9 @@ export const overseasProducts: Product[] = [
     ],
     options: [{ name: "색상", choices: ["아이보리", "그레이"] }],
     stock: 14,
+    availableCountries: ["KR", "IN"],
+    originCountry: "CN",
+    internationalShippingMethod: "SEA",
   }),
   createProduct({
     id: "overseas-2",
@@ -314,6 +321,7 @@ export const overseasProducts: Product[] = [
       { label: "구성", value: "하네스 1개, 리드줄 1개" },
     ],
     options: [{ name: "사이즈", choices: ["S", "M", "L"] }],
+    availableCountries: ["IN"],
   }),
 ];
 

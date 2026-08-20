@@ -1,14 +1,34 @@
-import { Clock, MapPin, Truck } from "lucide-react";
+"use client";
+
+import { AlertTriangle, Clock, MapPin, Truck } from "lucide-react";
 import { SHIPPING_INFO } from "@/data/shippingInfo";
+import { formatCurrency } from "@/lib/currency";
+import { getShippingFeeForMarket, isProductAvailableInMarket } from "@/lib/shipping";
+import { getMessages, t } from "@/messages";
 import type { Product } from "@/types";
+import type { Market } from "@/types/market";
 
 type ShippingInfoPanelProps = {
   product: Product;
+  market: Market;
 };
 
-export function ShippingInfoPanel({ product }: ShippingInfoPanelProps) {
+export function ShippingInfoPanel({ product, market }: ShippingInfoPanelProps) {
   const info = SHIPPING_INFO[product.shippingType];
-  const feeLine = product.freeShipping ? "무료배송" : info.defaultFee;
+  const messages = getMessages(market.locale);
+  const isAvailable = isProductAvailableInMarket(product, market.countryCode);
+
+  if (!isAvailable) {
+    return (
+      <div className="flex items-start gap-2 border border-border bg-primary-light/40 p-3.5 text-sm text-text-main">
+        <AlertTriangle size={16} className="mt-0.5 shrink-0 text-text-secondary" />
+        <span>{t(messages.cart.unavailableInMarket, { country: market.countryName })}</span>
+      </div>
+    );
+  }
+
+  const fee = getShippingFeeForMarket(product, market);
+  const feeLine = product.freeShipping ? "무료배송" : formatCurrency(fee, market.currency);
 
   return (
     <div className="flex flex-col gap-2.5 border border-border p-3.5 text-sm">

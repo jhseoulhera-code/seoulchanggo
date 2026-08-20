@@ -5,9 +5,17 @@ import { cn } from "@/lib/utils";
 
 type PurchaseActionsProps = {
   variant: "fixed" | "inline";
+  onAddToCart: () => void;
+  onBuyNow: () => void;
+  disabled?: boolean;
 };
 
-export function PurchaseActions({ variant }: PurchaseActionsProps) {
+export function PurchaseActions({
+  variant,
+  onAddToCart,
+  onBuyNow,
+  disabled,
+}: PurchaseActionsProps) {
   const isFixed = variant === "fixed";
 
   return (
@@ -28,13 +36,17 @@ export function PurchaseActions({ variant }: PurchaseActionsProps) {
         </button>
         <button
           type="button"
-          className="h-12 flex-1 cursor-not-allowed border border-primary text-sm font-bold text-primary"
+          onClick={onAddToCart}
+          disabled={disabled}
+          className="h-12 flex-1 border border-primary text-sm font-bold text-primary disabled:cursor-not-allowed disabled:border-border disabled:text-text-secondary"
         >
           장바구니
         </button>
         <button
           type="button"
-          className="h-12 flex-1 cursor-not-allowed bg-primary text-sm font-bold text-white"
+          onClick={onBuyNow}
+          disabled={disabled}
+          className="h-12 flex-1 bg-primary text-sm font-bold text-white disabled:cursor-not-allowed disabled:bg-border"
         >
           바로구매
         </button>

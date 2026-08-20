@@ -1,8 +1,14 @@
+"use client";
+
 import { Camera, Menu, Search, ShoppingCart, User } from "lucide-react";
 import Link from "next/link";
 import { PageContainer } from "@/components/common/PageContainer";
+import { MarketSelector } from "@/components/layout/MarketSelector";
+import { useCart } from "@/contexts/CartContext";
 
 export function Header() {
+  const { totalQuantity } = useCart();
+
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background">
       <PageContainer>
@@ -15,16 +21,19 @@ export function Header() {
               서울창고
             </Link>
           </div>
-          <div className="flex items-center gap-4 text-text-main">
+          <div className="flex items-center gap-3 text-text-main">
+            <MarketSelector />
             <button type="button" aria-label="마이페이지" className="cursor-not-allowed">
               <User size={22} />
             </button>
-            <button type="button" aria-label="장바구니" className="relative cursor-not-allowed">
+            <Link href="/cart" aria-label="장바구니" className="relative">
               <ShoppingCart size={22} />
-              <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-white">
-                3
-              </span>
-            </button>
+              {totalQuantity > 0 && (
+                <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-white">
+                  {totalQuantity}
+                </span>
+              )}
+            </Link>
           </div>
         </div>
 

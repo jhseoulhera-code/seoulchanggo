@@ -1,4 +1,5 @@
 import type { LucideIcon } from "lucide-react";
+import type { CountryCode, InternationalShippingMethod, OriginCountryCode } from "@/types/market";
 
 export type NavItem = {
   label: string;
@@ -49,6 +50,16 @@ export type Product = {
   specifications?: ProductSpec[];
   options?: ProductOptionGroup[];
   stock?: number;
+  /** Per-market authoritative price in that market's own currency. Falls back to a dev exchange-rate conversion of salePrice/originalPrice when absent for the current market. */
+  marketPrices?: Partial<Record<CountryCode, { salePrice: number; originalPrice: number }>>;
+  /** Countries this product can be shipped to. Omitted/empty means it ships everywhere — avoids a magic "ALL" string. */
+  availableCountries?: CountryCode[];
+  /** Country the product physically ships from (distinct from shippingType). */
+  originCountry?: OriginCountryCode;
+  /** Per-destination-market shipping fee override, in KRW. Falls back to a shippingType default when absent. */
+  shippingFees?: Partial<Record<CountryCode, number>>;
+  /** Default international transport mode for overseas items; sea is the business default. */
+  internationalShippingMethod?: InternationalShippingMethod;
 };
 
 export type ReviewSort = "latest" | "ratingHigh" | "ratingLow" | "helpful";

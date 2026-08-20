@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Noto_Sans_KR } from "next/font/google";
+import { CartProvider } from "@/contexts/CartContext";
+import { MarketProvider } from "@/contexts/MarketContext";
 import "./globals.css";
 
 const notoSansKr = Noto_Sans_KR({
@@ -16,7 +18,11 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="ko" className={notoSansKr.variable}>
-      <body className="font-sans antialiased">{children}</body>
+      <body className="font-sans antialiased">
+        <MarketProvider>
+          <CartProvider>{children}</CartProvider>
+        </MarketProvider>
+      </body>
     </html>
   );
 }

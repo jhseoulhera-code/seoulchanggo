@@ -1,6 +1,7 @@
 "use client";
 
 import { X } from "lucide-react";
+import { createPortal } from "react-dom";
 import type { ReactNode } from "react";
 
 type BottomSheetProps = {
@@ -11,9 +12,9 @@ type BottomSheetProps = {
 };
 
 export function BottomSheet({ open, title, onClose, children }: BottomSheetProps) {
-  if (!open) return null;
+  if (!open || typeof document === "undefined") return null;
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-end justify-center md:items-center">
       <div
         className="absolute inset-0 bg-black/40"
@@ -34,6 +35,7 @@ export function BottomSheet({ open, title, onClose, children }: BottomSheetProps
         </div>
         <div className="overflow-y-auto px-4 py-4">{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

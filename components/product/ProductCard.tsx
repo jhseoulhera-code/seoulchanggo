@@ -5,7 +5,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { ProductImagePlaceholder } from "@/components/product/ProductImagePlaceholder";
 import { ShippingBadge } from "@/components/product/ShippingBadge";
-import { formatPrice } from "@/lib/utils";
+import { useMarket } from "@/contexts/MarketContext";
+import { formatCurrency, getProductMarketPrice } from "@/lib/currency";
+import { isProductAvailableInMarket } from "@/lib/shipping";
+import { getMessages } from "@/messages";
 import type { Product } from "@/types";
 
 type ProductCardProps = {
@@ -13,7 +16,11 @@ type ProductCardProps = {
 };
 
 export function ProductCard({ product }: ProductCardProps) {
+  const { market } = useMarket();
   const hasDiscount = Boolean(product.discountRate);
+  const { salePrice, originalPrice } = getProductMarketPrice(product, market);
+  const isAvailable = isProductAvailableInMarket(product, market.countryCode);
+  const messages = getMessages(market.locale);
 
   return (
     <article className="relative w-full">
@@ -42,6 +49,14 @@ export function ProductCard({ product }: ProductCardProps) {
           </span>
         )}
 
+        {!isAvailable && (
+          <div className="absolute inset-0 flex items-center justify-center bg-white/70">
+            <span className="border border-text-main bg-white px-2 py-1 font-mono text-[11px] font-bold text-text-main">
+              {messages.product.outOfMarketShort}
+            </span>
+          </div>
+        )}
+
         <button
           type="button"
           aria-label="찜하기"
@@ -66,12 +81,12 @@ export function ProductCard({ product }: ProductCardProps) {
               </span>
             )}
             <span className="text-base font-bold text-text-main">
-              {formatPrice(product.salePrice)}
+              {formatCurrency(salePrice, market.currency)}
             </span>
           </div>
           {hasDiscount && (
             <span className="text-xs text-text-secondary line-through">
-              {formatPrice(product.originalPrice)}
+              {formatCurrency(originalPrice, market.currency)}
             </span>
           )}
         </div>
@@ -83,7 +98,11 @@ export function ProductCard({ product }: ProductCardProps) {
         </div>
 
         <div className="flex flex-wrap items-center gap-1.5">
-          <ShippingBadge type={product.shippingType} label={product.shippingLabel} />
+          <ShippingBadge
+            type={product.shippingType}
+            label={product.shippingLabel}
+            originCountry={product.originCountry}
+          />
           {product.freeShipping && (
             <span className="text-[11px] font-medium text-primary">무료배송</span>
           )}
