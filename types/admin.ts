@@ -1,0 +1,237 @@
+import type {
+  AuthProviderEnum,
+  CurrencyCodeEnum,
+  LocaleCodeEnum,
+  MarketCodeEnum,
+  OrderStatusEnum,
+  PaymentMethodEnum,
+  PaymentStatusEnum,
+  ShippingGroupStatusEnum,
+  ShippingMethodEnum,
+  ShippingTypeEnum,
+  StockTypeEnum,
+  SupplyTypeEnum,
+  UserRoleEnum,
+} from "@/types/database";
+
+export type AdminProductListItem = {
+  id: string;
+  sku: string;
+  slug: string;
+  nameKo: string;
+  brand: string | null;
+  categoryId: string;
+  categoryName: string;
+  supplyType: SupplyTypeEnum;
+  shippingType: ShippingTypeEnum;
+  krPrice: number | null;
+  inPrice: number | null;
+  stockQuantity: number;
+  stockType: StockTypeEnum;
+  isActive: boolean;
+  primaryImageUrl: string | null;
+};
+
+export type AdminProductPrice = {
+  marketCode: MarketCodeEnum;
+  currencyCode: CurrencyCodeEnum;
+  originalPrice: number;
+  salePrice: number;
+};
+
+export type AdminProductShippingMarket = {
+  countryCode: MarketCodeEnum;
+  isAvailable: boolean;
+  shippingFee: number;
+  estimatedMinDays: number | null;
+  estimatedMaxDays: number | null;
+  shippingMethod: ShippingMethodEnum | null;
+};
+
+export type AdminProductVariant = {
+  id: string;
+  sku: string;
+  optionValues: Record<string, string>;
+  additionalPrice: number;
+  stockQuantity: number;
+  isActive: boolean;
+};
+
+export type AdminProductImage = {
+  id: string;
+  imageUrl: string;
+  altKo: string | null;
+  sortOrder: number;
+  isPrimary: boolean;
+};
+
+export type AdminOptionGroup = {
+  name: string;
+  choices: string[];
+};
+
+export type AdminProductDetail = {
+  id: string | null;
+  sku: string;
+  categoryId: string;
+  slug: string;
+  brand: string;
+  nameKo: string;
+  nameEn: string;
+  descriptionKo: string;
+  descriptionEn: string;
+  originCountry: string;
+  supplyType: SupplyTypeEnum;
+  shippingType: ShippingTypeEnum;
+  defaultShippingMethod: ShippingMethodEnum | null;
+  stockType: StockTypeEnum;
+  stockQuantity: number;
+  optionGroups: AdminOptionGroup[];
+  isActive: boolean;
+  freeShipping: boolean;
+  discountRate: number | null;
+  prices: AdminProductPrice[];
+  shippingMarkets: AdminProductShippingMarket[];
+  variants: AdminProductVariant[];
+  images: AdminProductImage[];
+};
+
+export type AdminCategory = {
+  id: string;
+  slug: string;
+  nameKo: string;
+  nameEn: string;
+  iconName: string | null;
+  parentId: string | null;
+  level: number;
+  sortOrder: number;
+  isVisible: boolean;
+  showOnHome: boolean;
+};
+
+export type AdminHomeSectionItem = {
+  itemId: string;
+  productId: string;
+  productNameKo: string;
+  sortOrder: number;
+};
+
+export type AdminHomeSection = {
+  id: string;
+  sectionKey: string;
+  titleKo: string;
+  titleEn: string;
+  sortOrder: number;
+  isActive: boolean;
+  items: AdminHomeSectionItem[];
+};
+
+export type AdminOrderListItem = {
+  id: string;
+  orderNumber: string;
+  createdAt: string;
+  isGuest: boolean;
+  customerName: string;
+  customerEmail: string;
+  marketCode: MarketCodeEnum;
+  currencyCode: CurrencyCodeEnum;
+  destinationCountries: MarketCodeEnum[];
+  itemCount: number;
+  totalAmount: number;
+  paymentStatus: PaymentStatusEnum;
+  orderStatus: OrderStatusEnum;
+};
+
+export type AdminOrderItem = {
+  id: string;
+  productNameSnapshot: string;
+  skuSnapshot: string;
+  optionSnapshot: Record<string, string>;
+  unitPrice: number;
+  originalPrice: number;
+  quantity: number;
+  shippingType: ShippingTypeEnum;
+  originCountry: string | null;
+};
+
+export type AdminShippingGroup = {
+  id: string;
+  shippingType: ShippingTypeEnum;
+  shippingMethod: ShippingMethodEnum | null;
+  destinationCountry: MarketCodeEnum;
+  shippingFee: number;
+  status: ShippingGroupStatusEnum;
+  carrier: string | null;
+  trackingNumber: string | null;
+  itemIds: string[];
+};
+
+export type AdminOrderDetail = {
+  id: string;
+  orderNumber: string;
+  createdAt: string;
+  marketCode: MarketCodeEnum;
+  currencyCode: CurrencyCodeEnum;
+  paymentMethod: PaymentMethodEnum;
+  paymentStatus: PaymentStatusEnum;
+  orderStatus: OrderStatusEnum;
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string;
+  isGuest: boolean;
+  shippingAddress: Record<string, unknown>;
+  customsCode: string | null;
+  subtotal: number;
+  discountAmount: number;
+  shippingAmount: number;
+  totalAmount: number;
+  items: AdminOrderItem[];
+  shippingGroups: AdminShippingGroup[];
+};
+
+export type AdminCustomerListItem = {
+  id: string;
+  displayName: string;
+  email: string;
+  authProvider: AuthProviderEnum;
+  marketCode: MarketCodeEnum;
+  createdAt: string;
+  orderCount: number;
+  totalSpentByCurrency: { currencyCode: CurrencyCodeEnum; amount: number }[];
+};
+
+export type AdminCustomerDetail = AdminCustomerListItem & {
+  localeCode: LocaleCodeEnum;
+  marketingOptIn: boolean;
+  role: UserRoleEnum;
+  orders: AdminOrderListItem[];
+};
+
+export type AdminDashboardStats = {
+  todayOrderCount: number;
+  todayRevenueByCurrency: { currencyCode: CurrencyCodeEnum; amount: number }[];
+  paymentPendingCount: number;
+  preparingCount: number;
+  shippingCount: number;
+  cancelReturnRequestCount: number;
+  lowStockCount: number;
+};
+
+export type AdminLowStockItem = {
+  productId: string;
+  variantId: string | null;
+  label: string;
+  sku: string;
+  stockQuantity: number;
+  status: "LOW" | "OUT";
+};
+
+export type AdminInventoryItem = {
+  productId: string;
+  variantId: string | null;
+  productNameKo: string;
+  variantLabel: string | null;
+  sku: string;
+  stockQuantity: number;
+  status: "OK" | "LOW" | "OUT";
+};

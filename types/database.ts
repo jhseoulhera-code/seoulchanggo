@@ -37,6 +37,7 @@ export type ShippingGroupStatusEnum =
 export type PaymentMethodEnum = "card" | "easy_pay" | "bank_transfer" | "upi" | "net_banking" | "wallet";
 export type PaymentStatusEnum = "UNPAID" | "PAID";
 export type StockTypeEnum = "TRACKED" | "UNLIMITED";
+export type UserRoleEnum = "CUSTOMER" | "ADMIN" | "SUPER_ADMIN";
 
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
@@ -50,6 +51,7 @@ export type ProfileRow = {
   preferred_locale: LocaleCodeEnum;
   preferred_market: MarketCodeEnum;
   marketing_opt_in: boolean;
+  role: UserRoleEnum;
   created_at: string;
   updated_at: string;
 };
@@ -263,8 +265,12 @@ export type Database = {
       order_items: Table<OrderItemRow, never, never>;
       shipping_groups: Table<ShippingGroupRow, never, Partial<ShippingGroupRow>>;
       shipping_group_items: Table<ShippingGroupItemRow, never, never>;
-      home_sections: Table<HomeSectionRow, never, never>;
-      home_section_items: Table<HomeSectionItemRow, never, never>;
+      home_sections: Table<HomeSectionRow, never, Partial<HomeSectionRow>>;
+      home_section_items: Table<
+        HomeSectionItemRow,
+        Omit<HomeSectionItemRow, "id" | "created_at"> & { id?: string },
+        Partial<HomeSectionItemRow>
+      >;
     };
     Functions: {
       create_order: {
@@ -292,6 +298,45 @@ export type Database = {
       };
       merge_guest_cart: {
         Args: { p_items: Json };
+        Returns: undefined;
+      };
+      admin_update_shipping_group: {
+        Args: {
+          p_shipping_group_id: string;
+          p_status: ShippingGroupStatusEnum;
+          p_carrier: string | null;
+          p_tracking_number: string | null;
+        };
+        Returns: undefined;
+      };
+      admin_upsert_product: {
+        Args: {
+          p_id: string | null;
+          p_sku: string;
+          p_category_id: string;
+          p_slug: string;
+          p_brand: string | null;
+          p_name_ko: string;
+          p_name_en: string | null;
+          p_description_ko: string | null;
+          p_description_en: string | null;
+          p_origin_country: string | null;
+          p_supply_type: SupplyTypeEnum;
+          p_shipping_type: ShippingTypeEnum;
+          p_default_shipping_method: ShippingMethodEnum | null;
+          p_stock_type: StockTypeEnum;
+          p_stock_quantity: number;
+          p_option_groups: Json;
+          p_is_active: boolean;
+          p_free_shipping: boolean;
+          p_discount_rate: number | null;
+          p_prices: Json;
+          p_shipping_markets: Json;
+        };
+        Returns: string;
+      };
+      admin_set_primary_image: {
+        Args: { p_product_id: string; p_image_id: string };
         Returns: undefined;
       };
     };
