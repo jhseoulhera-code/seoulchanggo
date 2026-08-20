@@ -6,7 +6,9 @@ import type {
   LocaleCodeEnum,
   MarketCodeEnum,
   OrderStatusEnum,
+  PaymentAttemptStatusEnum,
   PaymentMethodEnum,
+  PaymentProviderEnum,
   PaymentStatusEnum,
   PointTransactionTypeEnum,
   ReviewStatusEnum,
@@ -170,6 +172,19 @@ export type AdminShippingGroup = {
   itemIds: string[];
 };
 
+export type AdminPaymentAttempt = {
+  id: string;
+  provider: PaymentProviderEnum;
+  paymentMethod: PaymentMethodEnum;
+  amount: number;
+  currencyCode: CurrencyCodeEnum;
+  status: PaymentAttemptStatusEnum;
+  failureCode: string | null;
+  failureMessage: string | null;
+  paidAt: string | null;
+  createdAt: string;
+};
+
 export type AdminOrderDetail = {
   id: string;
   orderNumber: string;
@@ -191,6 +206,7 @@ export type AdminOrderDetail = {
   totalAmount: number;
   items: AdminOrderItem[];
   shippingGroups: AdminShippingGroup[];
+  payments: AdminPaymentAttempt[];
 };
 
 export type AdminCustomerListItem = {

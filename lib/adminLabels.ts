@@ -1,4 +1,11 @@
-import type { OrderStatusEnum, PaymentStatusEnum, ShippingGroupStatusEnum, SupplyTypeEnum } from "@/types/database";
+import type {
+  OrderStatusEnum,
+  PaymentAttemptStatusEnum,
+  PaymentProviderEnum,
+  PaymentStatusEnum,
+  ShippingGroupStatusEnum,
+  SupplyTypeEnum,
+} from "@/types/database";
 
 export const ORDER_STATUS_LABEL: Record<OrderStatusEnum, string> = {
   ORDER_CREATED: "주문접수",
@@ -64,4 +71,23 @@ export const SHIPPING_TYPE_LABEL: Record<string, string> = {
   DOMESTIC: "국내배송",
   OVERSEAS_DIRECT: "해외직배송",
   OVERSEAS_AGENCY: "해외구매대행",
+};
+
+export const PAYMENT_PROVIDER_LABEL: Record<PaymentProviderEnum, string> = {
+  KOREA_PG: "국내 PG",
+  INDIA_PG: "인도 PG",
+  GLOBAL_PG: "글로벌 PG",
+  MOCK: "Mock(개발용)",
+};
+
+export const PAYMENT_ATTEMPT_STATUS_LABEL: Record<PaymentAttemptStatusEnum, string> = {
+  CREATED: "생성됨",
+  READY: "결제대기",
+  PENDING: "처리중",
+  AUTHORIZED: "승인됨",
+  PAID: "결제완료",
+  FAILED: "실패",
+  CANCELLED: "취소됨",
+  PARTIALLY_REFUNDED: "부분환불",
+  REFUNDED: "환불완료",
 };

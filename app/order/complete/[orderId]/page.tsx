@@ -10,6 +10,7 @@ import { ProductImagePlaceholder } from "@/components/product/ProductImagePlaceh
 import { ShippingBadge } from "@/components/product/ShippingBadge";
 import { useAuth } from "@/contexts/AuthContext";
 import { MARKETS } from "@/data/markets";
+import { PAYMENT_METHODS_BY_MARKET } from "@/data/paymentMethods";
 import { formatCurrency } from "@/lib/currency";
 import { findGuestOrder } from "@/lib/order";
 import { getMessages } from "@/messages";
@@ -83,6 +84,16 @@ export default function OrderCompletePage() {
             <div className="flex items-center justify-between">
               <span className="text-text-secondary">{messages.order.orderDate}</span>
               <span className="text-text-main">{new Date(order.createdAt).toLocaleString(market.locale === "ko" ? "ko-KR" : "en-IN")}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-text-secondary">결제수단</span>
+              <span className="text-text-main">
+                {PAYMENT_METHODS_BY_MARKET[order.market].find((m) => m.id === order.paymentMethod)?.label ?? order.paymentMethod}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-text-secondary">결제상태</span>
+              <span className="border border-primary px-2 py-0.5 text-xs font-bold text-primary">결제완료</span>
             </div>
             <div className="flex items-center justify-between border-t border-border pt-3 text-base font-bold">
               <span className="text-text-main">{messages.order.total}</span>

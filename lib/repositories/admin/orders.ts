@@ -1,7 +1,7 @@
 import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
-import type { OrderItemRow, OrderRow, ShippingGroupItemRow, ShippingGroupRow } from "@/types/database";
+import type { OrderItemRow, OrderRow, PaymentRow, ShippingGroupItemRow, ShippingGroupRow } from "@/types/database";
 import type { AdminOrderDetail, AdminOrderListItem } from "@/types/admin";
 
 function fail(context: string, error: { message: string }): never {
@@ -64,6 +64,7 @@ type OrderDetailRow = OrderRow & {
   profiles: { display_name: string; email: string } | null;
   order_items: OrderItemRow[];
   shipping_groups: (ShippingGroupRow & { shipping_group_items: ShippingGroupItemRow[] })[];
+  payments: PaymentRow[];
 };
 
 /** Personal customs code is masked at the repository boundary — see components/admin/orders/OrderDetailView.tsx for the "show full value" control. */
@@ -77,7 +78,7 @@ export async function getAdminOrderDetail(id: string): Promise<AdminOrderDetail 
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("orders")
-    .select("*, profiles(display_name, email), order_items(*), shipping_groups(*, shipping_group_items(*))")
+    .select("*, profiles(display_name, email), order_items(*), shipping_groups(*, shipping_group_items(*)), payments(*)")
     .eq("id", id)
     .maybeSingle();
   if (error) fail("getAdminOrderDetail", error);
@@ -127,6 +128,20 @@ export async function getAdminOrderDetail(id: string): Promise<AdminOrderDetail 
       trackingNumber: group.tracking_number,
       itemIds: group.shipping_group_items.map((item) => item.order_item_id),
     })),
+    payments: [...row.payments]
+      .sort((a, b) => b.created_at.localeCompare(a.created_at))
+      .map((payment) => ({
+        id: payment.id,
+        provider: payment.provider,
+        paymentMethod: payment.payment_method,
+        amount: payment.amount,
+        currencyCode: payment.currency_code,
+        status: payment.status,
+        failureCode: payment.failure_code,
+        failureMessage: payment.failure_message,
+        paidAt: payment.paid_at,
+        createdAt: payment.created_at,
+      })),
   };
 }
 
@@ -152,6 +167,21 @@ export async function updateAdminShippingGroup(input: {
       return { ok: false, error: "허용되지 않는 배송상태 변경입니다." };
     }
     return { ok: false, error: "배송상태를 변경하지 못했습니다." };
+  }
+  return { ok: true };
+}
+
+export type CancelUnpaidOrderResult = { ok: true } | { ok: false; error: string };
+
+/** Reverses coupon usage / point deduction for an abandoned unpaid order — see cancel_unpaid_order() in 20260825000300_step11_payment_rpcs.sql. */
+export async function cancelUnpaidOrder(orderId: string, reason: string): Promise<CancelUnpaidOrderResult> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("cancel_unpaid_order", { p_order_id: orderId, p_reason: reason } as never);
+
+  if (error) {
+    console.error("[admin/orders] cancelUnpaidOrder failed:", error.message);
+    if (error.message.includes("paid order")) return { ok: false, error: "이미 결제완료된 주문은 이 기능으로 취소할 수 없습니다." };
+    return { ok: false, error: "주문을 취소하지 못했습니다." };
   }
   return { ok: true };
 }

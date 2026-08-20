@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { AdminErrorScreen } from "@/components/admin/AdminBlockerScreen";
+import { PaymentHistoryPanel } from "@/components/admin/orders/PaymentHistoryPanel";
 import { ShippingGroupEditor } from "@/components/admin/orders/ShippingGroupEditor";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { getAdminOrderDetail } from "@/lib/repositories/admin/orders";
@@ -126,6 +127,8 @@ export default async function AdminOrderDetailPage(props: { params: Promise<{ id
           <span className="text-primary">{formatCurrency(order.totalAmount, order.currencyCode)}</span>
         </div>
       </section>
+
+      <PaymentHistoryPanel orderId={order.id} paymentStatus={order.paymentStatus} payments={order.payments} />
 
       <section className="flex flex-col gap-3">
         <h2 className="text-sm font-bold text-text-main">배송그룹</h2>

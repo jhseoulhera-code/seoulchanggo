@@ -127,6 +127,8 @@ export function CheckoutClient({ products }: CheckoutClientProps) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [toast, setToast] = useState<ToastState | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [paymentFailure, setPaymentFailure] = useState<{ orderId: string; orderNumber: string; message: string } | null>(null);
+  const [simulateMockFailure, setSimulateMockFailure] = useState(false);
 
   const [prevMarketCode, setPrevMarketCode] = useState(market.countryCode);
   if (market.countryCode !== prevMarketCode) {
@@ -186,18 +188,9 @@ export function CheckoutClient({ products }: CheckoutClientProps) {
     return Object.keys(nextErrors).length === 0;
   }
 
-  async function handleSubmit() {
-    if (submitting) return;
-    if (!validate()) {
-      setToast({ message: messages.toast.optionRequired, tone: "error" });
-      return;
-    }
-
-    setSubmitting(true);
-
-    const orderId = generateOrderId();
-    const order: Order = {
-      orderId,
+  function buildLocalOrder(orderNumber: string): Order {
+    return {
+      orderId: orderNumber,
       createdAt: new Date().toISOString(),
       market: market.countryCode,
       currency: market.currency,
@@ -213,6 +206,84 @@ export function CheckoutClient({ products }: CheckoutClientProps) {
       paymentMethod: paymentMethod as PaymentMethodId,
       status: "ORDER_CREATED",
     };
+  }
+
+  function finalizeOrder(orderNumber: string) {
+    saveGuestOrder(buildLocalOrder(orderNumber));
+
+    if (source === "cart") {
+      availableItems.forEach((item) => {
+        if (item.cartItemId) cart.removeItem(item.cartItemId);
+      });
+    } else {
+      clearBuyNowItem();
+    }
+
+    router.push(`/order/complete/${orderNumber}`);
+  }
+
+  /**
+   * Order → Payment handoff (STEP 11 spec section 9). The order row already
+   * exists (ORDER_CREATED/UNPAID) by the time this runs — a failed payment
+   * here never re-creates or re-validates the order, only attempts a new
+   * Payment against it, so retrying never double-charges coupon/point usage.
+   */
+  async function attemptPayment(dbOrderId: string, orderNumber: string) {
+    const prepareResponse = await fetch("/api/payments/prepare", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        orderId: dbOrderId,
+        paymentMethod: paymentMethod as PaymentMethodId,
+        marketCode: market.countryCode,
+        guestContact: customer.email,
+      }),
+    });
+    const prepared = await prepareResponse.json();
+    if (!prepared.ok) {
+      setSubmitting(false);
+      setPaymentFailure({ orderId: dbOrderId, orderNumber, message: prepared.error ?? "결제를 준비하지 못했습니다." });
+      return;
+    }
+
+    const confirmResponse = await fetch("/api/payments/confirm", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        paymentId: prepared.paymentId,
+        providerPaymentId: prepared.providerPaymentId,
+        provider: prepared.provider,
+        simulateFailure: prepared.provider === "MOCK" ? simulateMockFailure : undefined,
+        guestContact: customer.email,
+      }),
+    });
+    const confirmed = await confirmResponse.json();
+
+    if (!confirmed.ok) {
+      setSubmitting(false);
+      setPaymentFailure({
+        orderId: dbOrderId,
+        orderNumber,
+        message: confirmed.failureMessage ?? confirmed.error ?? "결제에 실패했습니다.",
+      });
+      return;
+    }
+
+    setPaymentFailure(null);
+    finalizeOrder(orderNumber);
+  }
+
+  async function handleSubmit() {
+    if (submitting) return;
+    if (!validate()) {
+      setToast({ message: messages.toast.optionRequired, tone: "error" });
+      return;
+    }
+
+    setSubmitting(true);
+    setPaymentFailure(null);
+
+    const orderNumber = generateOrderId();
 
     // The DB (via the create_order RPC, called from a Server Action) is the source of
     // truth once Supabase is configured; saveGuestOrder still runs either way so the
@@ -220,7 +291,7 @@ export function CheckoutClient({ products }: CheckoutClientProps) {
     // order immediately without a separate authenticated re-fetch. See STEP 08 report.
     if (isSupabaseConfigured()) {
       const result = await createOrderAction({
-        orderNumber: orderId,
+        orderNumber,
         customer,
         shippingAddress: address,
         customsInfo: needsCustomsCode ? { personalCustomsCode: customsCode } : undefined,
@@ -247,19 +318,18 @@ export function CheckoutClient({ products }: CheckoutClientProps) {
         setToast({ message, tone: "error" });
         return;
       }
+
+      await attemptPayment(result.orderId, orderNumber);
+      return;
     }
 
-    saveGuestOrder(order);
+    finalizeOrder(orderNumber);
+  }
 
-    if (source === "cart") {
-      availableItems.forEach((item) => {
-        if (item.cartItemId) cart.removeItem(item.cartItemId);
-      });
-    } else {
-      clearBuyNowItem();
-    }
-
-    router.push(`/order/complete/${orderId}`);
+  async function handleRetryPayment() {
+    if (!paymentFailure || submitting) return;
+    setSubmitting(true);
+    await attemptPayment(paymentFailure.orderId, paymentFailure.orderNumber);
   }
 
   if (checkoutItems.length === 0) {
@@ -385,6 +455,38 @@ export function CheckoutClient({ products }: CheckoutClientProps) {
                 error={errors.paymentMethod}
                 onChange={setPaymentMethod}
               />
+
+              {process.env.NODE_ENV !== "production" && isSupabaseConfigured() && (
+                <label className="-mt-4 flex items-center gap-2 text-xs text-text-secondary">
+                  <input
+                    type="checkbox"
+                    checked={simulateMockFailure}
+                    onChange={(e) => setSimulateMockFailure(e.target.checked)}
+                    className="h-3.5 w-3.5 accent-primary"
+                  />
+                  [개발모드] Mock 결제 실패 시뮬레이션
+                </label>
+              )}
+
+              {paymentFailure && (
+                <div className="flex flex-col gap-2 border border-red-500 bg-red-50 p-3.5 text-sm text-red-700">
+                  <span className="flex items-center gap-2">
+                    <AlertTriangle size={16} className="shrink-0" />
+                    결제에 실패했습니다: {paymentFailure.message}
+                  </span>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={handleRetryPayment}
+                      disabled={submitting}
+                      className="h-9 border border-red-600 px-3 text-xs font-bold text-red-700 disabled:opacity-50"
+                    >
+                      다시 결제
+                    </button>
+                    <span className="self-center text-xs text-red-600">다른 결제수단을 선택한 뒤 다시 시도할 수도 있습니다.</span>
+                  </div>
+                </div>
+              )}
 
               <OrderAgreement market={market} checked={agreed} error={errors.agreement} onChange={setAgreed} />
             </div>

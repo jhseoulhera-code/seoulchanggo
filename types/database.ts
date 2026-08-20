@@ -42,6 +42,17 @@ export type CouponDiscountTypeEnum = "FIXED" | "PERCENT";
 export type PointTransactionTypeEnum = "EARN" | "USE" | "CANCEL_EARN" | "REFUND" | "ADMIN_ADJUST";
 export type ReviewStatusEnum = "PUBLISHED" | "HIDDEN" | "REPORTED";
 export type InquiryStatusEnum = "PENDING" | "ANSWERED" | "HIDDEN";
+export type PaymentAttemptStatusEnum =
+  | "CREATED"
+  | "READY"
+  | "PENDING"
+  | "AUTHORIZED"
+  | "PAID"
+  | "FAILED"
+  | "CANCELLED"
+  | "PARTIALLY_REFUNDED"
+  | "REFUNDED";
+export type PaymentProviderEnum = "KOREA_PG" | "INDIA_PG" | "GLOBAL_PG" | "MOCK";
 
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
@@ -375,6 +386,46 @@ export type FaqRow = {
   updated_at: string;
 };
 
+export type PaymentRow = {
+  id: string;
+  order_id: string;
+  provider: PaymentProviderEnum;
+  payment_method: PaymentMethodEnum;
+  market_code: MarketCodeEnum;
+  currency_code: CurrencyCodeEnum;
+  amount: number;
+  status: PaymentAttemptStatusEnum;
+  provider_payment_id: string | null;
+  provider_transaction_id: string | null;
+  failure_code: string | null;
+  failure_message: string | null;
+  raw_metadata: Json | null;
+  paid_at: string | null;
+  cancelled_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type PaymentEventRow = {
+  id: string;
+  provider: PaymentProviderEnum;
+  provider_event_id: string;
+  payment_id: string | null;
+  event_type: string;
+  payload: Json | null;
+  received_at: string;
+};
+
+export type PaymentRefundRow = {
+  id: string;
+  payment_id: string;
+  amount: number;
+  reason: string;
+  status: PaymentAttemptStatusEnum;
+  provider_refund_id: string | null;
+  created_at: string;
+};
+
 export type Database = {
   public: {
     Tables: {
@@ -443,6 +494,9 @@ export type Database = {
       >;
       notices: Table<NoticeRow, Omit<NoticeRow, "id" | "created_at" | "updated_at"> & { id?: string }, Partial<NoticeRow>>;
       faqs: Table<FaqRow, Omit<FaqRow, "id" | "created_at" | "updated_at"> & { id?: string }, Partial<FaqRow>>;
+      payments: Table<PaymentRow, never, never>;
+      payment_events: Table<PaymentEventRow, never, never>;
+      payment_refunds: Table<PaymentRefundRow, never, never>;
     };
     Functions: {
       create_order: {
@@ -495,6 +549,46 @@ export type Database = {
       };
       admin_adjust_points: {
         Args: { p_user_id: string; p_amount: number; p_reason: string };
+        Returns: undefined;
+      };
+      prepare_payment: {
+        Args: {
+          p_order_id: string;
+          p_payment_method: PaymentMethodEnum;
+          p_provider: PaymentProviderEnum;
+          p_guest_contact?: string | null;
+        };
+        Returns: Json;
+      };
+      confirm_payment: {
+        Args: {
+          p_payment_id: string;
+          p_success: boolean;
+          p_provider_payment_id?: string | null;
+          p_provider_transaction_id?: string | null;
+          p_failure_code?: string | null;
+          p_failure_message?: string | null;
+          p_guest_contact?: string | null;
+        };
+        Returns: Json;
+      };
+      process_webhook_payment_event: {
+        Args: {
+          p_provider: PaymentProviderEnum;
+          p_provider_event_id: string;
+          p_payment_id: string;
+          p_event_type: string;
+          p_payload: Json;
+          p_success: boolean;
+          p_provider_payment_id?: string | null;
+          p_provider_transaction_id?: string | null;
+          p_failure_code?: string | null;
+          p_failure_message?: string | null;
+        };
+        Returns: Json;
+      };
+      cancel_unpaid_order: {
+        Args: { p_order_id: string; p_reason: string };
         Returns: undefined;
       };
       lookup_guest_order_full: {
