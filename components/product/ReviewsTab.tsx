@@ -5,19 +5,15 @@ import { useEffect, useMemo, useState } from "react";
 import { getProductReviewsAction, submitReviewAction, toggleReviewHelpfulAction, type ProductReview } from "@/lib/actions/reviews";
 import { RATING_DISTRIBUTION, reviews as mockReviews } from "@/data/reviews";
 import { useAuth } from "@/contexts/AuthContext";
+import { useMarket } from "@/contexts/MarketContext";
+import { formatDate, formatNumber } from "@/lib/intl";
 import { cn } from "@/lib/utils";
+import { getMessages, t } from "@/messages";
 import type { Product, ReviewSort } from "@/types";
 
 type ReviewsTabProps = {
   product: Product;
 };
-
-const SORT_OPTIONS: { value: ReviewSort; label: string }[] = [
-  { value: "latest", label: "최신순" },
-  { value: "ratingHigh", label: "평점 높은순" },
-  { value: "ratingLow", label: "평점 낮은순" },
-  { value: "helpful", label: "도움순" },
-];
 
 function mockToProductReview(review: (typeof mockReviews)[number]): ProductReview {
   return {
@@ -35,7 +31,16 @@ function mockToProductReview(review: (typeof mockReviews)[number]): ProductRevie
 
 export function ReviewsTab({ product }: ReviewsTabProps) {
   const { isAuthenticated } = useAuth();
+  const { market } = useMarket();
+  const messages = getMessages(market.locale);
   const isReal = Boolean(product.dbId);
+
+  const sortOptions: { value: ReviewSort; label: string }[] = [
+    { value: "latest", label: messages.review.sortLatest },
+    { value: "ratingHigh", label: messages.review.sortRatingHigh },
+    { value: "ratingLow", label: messages.review.sortRatingLow },
+    { value: "helpful", label: messages.review.sortHelpful },
+  ];
 
   const [sort, setSort] = useState<ReviewSort>("latest");
   const [mediaOnly, setMediaOnly] = useState(false);
@@ -134,7 +139,7 @@ export function ReviewsTab({ product }: ReviewsTabProps) {
                 <Star key={index} size={14} className={index < Math.round(product.rating) ? "fill-primary text-primary" : "text-border"} />
               ))}
             </div>
-            <p className="mt-0.5 text-xs text-text-secondary">전체 {product.reviewCount.toLocaleString("ko-KR")}개</p>
+            <p className="mt-0.5 text-xs text-text-secondary">{t(messages.review.totalCount, { count: formatNumber(product.reviewCount, market.locale) })}</p>
           </div>
         </div>
 
@@ -142,7 +147,7 @@ export function ReviewsTab({ product }: ReviewsTabProps) {
           <div className="flex flex-1 flex-col gap-1">
             {RATING_DISTRIBUTION.map((row) => (
               <div key={row.star} className="flex items-center gap-2 text-xs text-text-secondary">
-                <span className="w-6 shrink-0">{row.star}점</span>
+                <span className="w-6 shrink-0">{t(messages.review.starLabel, { star: row.star })}</span>
                 <div className="h-1.5 flex-1 bg-border">
                   <div className="h-full bg-primary" style={{ width: `${row.percentage}%` }} />
                 </div>
@@ -169,7 +174,7 @@ export function ReviewsTab({ product }: ReviewsTabProps) {
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
                   rows={3}
-                  placeholder="상품에 대한 솔직한 후기를 남겨주세요."
+                  placeholder={messages.review.writePlaceholder}
                   className="border border-border px-2.5 py-2 text-sm outline-none"
                 />
                 {formError && <p className="text-xs text-red-600">{formError}</p>}
@@ -180,27 +185,27 @@ export function ReviewsTab({ product }: ReviewsTabProps) {
                     disabled={submitting}
                     className="h-9 bg-primary px-4 text-xs font-bold text-white disabled:bg-border"
                   >
-                    {submitting ? "등록 중..." : "등록"}
+                    {submitting ? messages.review.submitting : messages.review.submit}
                   </button>
                   <button type="button" onClick={() => setShowForm(false)} className="h-9 border border-border px-4 text-xs text-text-secondary">
-                    취소
+                    {messages.review.cancel}
                   </button>
                 </div>
               </div>
             ) : (
               <button type="button" onClick={() => setShowForm(true)} className="self-start border border-primary px-3 py-1.5 text-xs font-bold text-primary">
-                리뷰 작성
+                {messages.review.writeReview}
               </button>
             )
           ) : (
-            <p className="text-xs text-text-secondary">로그인 후 구매하신 상품에 리뷰를 작성할 수 있습니다.</p>
+            <p className="text-xs text-text-secondary">{messages.review.loginRequired}</p>
           )}
         </section>
       )}
 
       <section className="flex items-center justify-between gap-2 border-t border-border pt-4">
         <div className="no-scrollbar flex gap-1.5 overflow-x-auto">
-          {SORT_OPTIONS.map((option) => (
+          {sortOptions.map((option) => (
             <button
               key={option.value}
               type="button"
@@ -223,14 +228,14 @@ export function ReviewsTab({ product }: ReviewsTabProps) {
           )}
         >
           <ImageIcon size={12} />
-          사진/동영상만
+          {messages.review.withPhotoOnly}
         </button>
       </section>
 
       <section className="flex flex-col">
-        {loading && <p className="py-10 text-center text-sm text-text-secondary">불러오는 중...</p>}
+        {loading && <p className="py-10 text-center text-sm text-text-secondary">{messages.common.loading}</p>}
         {!loading && visibleReviews.length === 0 && (
-          <p className="py-10 text-center text-sm text-text-secondary">조건에 맞는 리뷰가 없습니다.</p>
+          <p className="py-10 text-center text-sm text-text-secondary">{messages.review.noMatching}</p>
         )}
         {!loading &&
           visibleReviews.map((review) => (
@@ -238,7 +243,7 @@ export function ReviewsTab({ product }: ReviewsTabProps) {
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-text-main">{review.authorName}</span>
                 <span className="text-xs text-text-secondary">
-                  {isReal ? new Date(review.createdAt).toLocaleDateString("ko-KR") : review.createdAt}
+                  {isReal ? formatDate(review.createdAt, market.locale) : review.createdAt}
                 </span>
               </div>
               <div className="mt-1.5 flex items-center gap-2">
@@ -280,7 +285,7 @@ export function ReviewsTab({ product }: ReviewsTabProps) {
                 )}
               >
                 <ThumbsUp size={12} />
-                도움이 돼요 {review.helpfulCount}
+                {messages.review.helpful} {review.helpfulCount}
               </button>
             </article>
           ))}

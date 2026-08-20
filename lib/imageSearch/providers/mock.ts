@@ -1,5 +1,6 @@
 import { getBestProducts } from "@/lib/repositories/products";
-import type { ImageSearchProviderAdapter, ImageSearchResult } from "@/lib/imageSearch/types";
+import { getMessages } from "@/messages";
+import type { ImageSearchInput, ImageSearchProviderAdapter, ImageSearchResult } from "@/lib/imageSearch/types";
 
 /**
  * Dev-only stand-in for a real Vision-based image search (STEP 12 spec
@@ -12,12 +13,12 @@ import type { ImageSearchProviderAdapter, ImageSearchResult } from "@/lib/imageS
  */
 export const mockImageSearchProvider: ImageSearchProviderAdapter = {
   name: "MOCK",
-  async search(): Promise<ImageSearchResult> {
+  async search(input: ImageSearchInput): Promise<ImageSearchResult> {
     const products = await getBestProducts(12);
     return {
       provider: "MOCK",
       isFallback: true,
-      message: "이미지 기반 검색은 아직 준비 중입니다. 지금은 인기 상품을 대신 보여드려요.",
+      message: getMessages(input.locale).search.imageFallbackMessage,
       items: products.map((product) => ({ product })),
     };
   },

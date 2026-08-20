@@ -1,54 +1,60 @@
 "use client";
 
 import { FormField } from "@/components/common/FormField";
+import { getMessages } from "@/messages";
 import type { KoreaShippingAddress } from "@/types/order";
+import type { LocaleCode } from "@/types/market";
 
 type KoreaAddressFormProps = {
   value: KoreaShippingAddress;
   errors: Record<string, string>;
   onChange: (field: string, value: string) => void;
+  locale: LocaleCode;
 };
 
-export function KoreaAddressForm({ value, errors, onChange }: KoreaAddressFormProps) {
+export function KoreaAddressForm({ value, errors, onChange, locale }: KoreaAddressFormProps) {
+  const messages = getMessages(locale);
+  const labels = messages.address.kr;
+
   return (
     <div className="flex flex-col gap-3">
       <FormField
-        label="수령인 이름"
+        label={labels.recipientName}
         value={value.recipientName}
         onChange={(v) => onChange("recipientName", v)}
         error={errors.recipientName}
       />
       <FormField
-        label="휴대폰 번호"
+        label={labels.phone}
         value={value.phone}
         onChange={(v) => onChange("phone", v)}
         error={errors.phone}
         placeholder="010-1234-5678"
       />
       <FormField
-        label="우편번호"
+        label={labels.postcode}
         value={value.postcode}
         onChange={(v) => onChange("postcode", v)}
         error={errors.postcode}
         placeholder="12345"
       />
       <FormField
-        label="주소"
+        label={labels.address}
         value={value.address}
         onChange={(v) => onChange("address", v)}
         error={errors.address}
       />
       <FormField
-        label="상세주소"
+        label={labels.addressDetail}
         value={value.addressDetail}
         onChange={(v) => onChange("addressDetail", v)}
         error={errors.addressDetail}
       />
       <FormField
-        label="배송 메모"
+        label={labels.deliveryMemo}
         value={value.deliveryMemo}
         onChange={(v) => onChange("deliveryMemo", v)}
-        optionalTag="(선택)"
+        optionalTag={messages.address.optionalTag}
       />
     </div>
   );

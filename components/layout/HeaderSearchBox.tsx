@@ -16,6 +16,8 @@ import {
   subscribeRecentSearches,
 } from "@/lib/search/recentSearches";
 import { normalizeSearchQuery } from "@/lib/search/normalize";
+import { useMarket } from "@/contexts/MarketContext";
+import { getMessages, t } from "@/messages";
 
 const DEBOUNCE_MS = 250;
 
@@ -30,6 +32,8 @@ const DEBOUNCE_MS = 250;
  */
 export function HeaderSearchBox() {
   const router = useRouter();
+  const { market } = useMarket();
+  const messages = getMessages(market.locale);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -112,11 +116,11 @@ export function HeaderSearchBox() {
           value={value}
           onChange={(event) => setValue(event.target.value)}
           onFocus={() => setOpen(true)}
-          placeholder="상품을 검색해보세요"
+          placeholder={messages.nav.searchPlaceholder}
           className="w-full bg-transparent text-[15px] text-text-main outline-none placeholder:text-text-secondary"
         />
         {value && (
-          <button type="button" aria-label="검색어 지우기" onClick={() => setValue("")} className="shrink-0 text-text-secondary">
+          <button type="button" aria-label={messages.a11y.clearSearch} onClick={() => setValue("")} className="shrink-0 text-text-secondary">
             <X size={16} />
           </button>
         )}
@@ -127,7 +131,7 @@ export function HeaderSearchBox() {
           {isAutocompleteMode ? (
             suggestions.length === 0 ? (
               <p className="py-6 text-center text-xs text-text-secondary">
-                {suggestionsQuery !== trimmed ? "검색 중..." : "일치하는 검색어가 없습니다."}
+                {suggestionsQuery !== trimmed ? messages.search.searching : messages.search.noSuggestions}
               </p>
             ) : (
               <ul className="flex flex-col">
@@ -158,9 +162,9 @@ export function HeaderSearchBox() {
               {recent.length > 0 && (
                 <div>
                   <div className="mb-2 flex items-center justify-between">
-                    <h4 className="text-xs font-bold text-text-secondary">최근 검색어</h4>
+                    <h4 className="text-xs font-bold text-text-secondary">{messages.search.recentSearches}</h4>
                     <button type="button" onClick={() => clearRecentSearches()} className="text-[11px] text-text-secondary underline">
-                      전체삭제
+                      {messages.search.clearAll}
                     </button>
                   </div>
                   <div className="flex flex-wrap gap-1.5">
@@ -171,7 +175,7 @@ export function HeaderSearchBox() {
                         </button>
                         <button
                           type="button"
-                          aria-label={`${term} 삭제`}
+                          aria-label={t(messages.a11y.removeRecentSearch, { term })}
                           onClick={() => removeRecentSearch(term)}
                           className="text-text-secondary"
                         >
@@ -185,7 +189,7 @@ export function HeaderSearchBox() {
 
               {popular.length > 0 && (
                 <div>
-                  <h4 className="mb-2 text-xs font-bold text-text-secondary">인기 검색어</h4>
+                  <h4 className="mb-2 text-xs font-bold text-text-secondary">{messages.search.popularSearches}</h4>
                   <div className="flex flex-wrap gap-1.5">
                     {popular.map((keyword) => (
                       <button
@@ -204,7 +208,7 @@ export function HeaderSearchBox() {
               {recommended.length > 0 && (
                 <div>
                   <h4 className="mb-2 flex items-center gap-1 text-xs font-bold text-text-secondary">
-                    <Tag size={11} /> 추천 검색어
+                    <Tag size={11} /> {messages.search.recommendedSearches}
                   </h4>
                   <div className="flex flex-wrap gap-1.5">
                     {recommended.map((keyword) => (
@@ -223,7 +227,7 @@ export function HeaderSearchBox() {
 
               {!hasIdleContent && (
                 <Link href="/search" className="py-2 text-center text-xs text-text-secondary" onClick={() => setOpen(false)}>
-                  전체 검색결과 보기
+                  {messages.search.viewAllResults}
                 </Link>
               )}
             </div>

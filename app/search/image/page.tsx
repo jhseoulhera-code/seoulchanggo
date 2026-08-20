@@ -1,8 +1,12 @@
+"use client";
+
 import { PageContainer } from "@/components/common/PageContainer";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { ListHeader } from "@/components/layout/ListHeader";
 import { ImageSearchClient } from "@/components/product/ImageSearchClient";
 import { ImageSearchComingSoon } from "@/components/product/ImageSearchComingSoon";
+import { useMarket } from "@/contexts/MarketContext";
+import { getMessages } from "@/messages";
 
 /**
  * STEP 12 spec sections 10-14, 21-30. Only ever shows the real upload/preview
@@ -13,9 +17,12 @@ import { ImageSearchComingSoon } from "@/components/product/ImageSearchComingSoo
 const IMAGE_SEARCH_ENABLED = process.env.NODE_ENV !== "production";
 
 export default function ImageSearchPage() {
+  const { market } = useMarket();
+  const messages = getMessages(market.locale);
+
   return (
     <>
-      <ListHeader title="이미지로 검색" />
+      <ListHeader title={messages.search.imageSearchTitle} />
       <main className="pb-24 md:pb-10">
         <PageContainer>{IMAGE_SEARCH_ENABLED ? <ImageSearchClient /> : <ImageSearchComingSoon />}</PageContainer>
       </main>

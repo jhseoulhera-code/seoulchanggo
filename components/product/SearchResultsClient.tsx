@@ -11,6 +11,7 @@ import { isProductAvailableInMarket } from "@/lib/shipping";
 import { buildSearchQueryString } from "@/lib/search/params";
 import type { SearchQueryState } from "@/lib/search/params";
 import { logSearchClickAction, logSearchEventAction } from "@/lib/actions/searchEvents";
+import { getMessages, t } from "@/messages";
 import type { Product } from "@/types";
 
 const PAGE_SIZE = 24;
@@ -34,6 +35,7 @@ type SearchResultsClientProps = {
 export function SearchResultsClient({ products, queryState, recommendedProducts }: SearchResultsClientProps) {
   const router = useRouter();
   const { market } = useMarket();
+  const messages = getMessages(market.locale);
   const [availableOnly, setAvailableOnly] = useState(false);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [searchEventId, setSearchEventId] = useState<string | null>(null);
@@ -85,20 +87,20 @@ export function SearchResultsClient({ products, queryState, recommendedProducts 
     <div className="flex flex-col">
       <div className="border-b border-border py-3 text-sm">
         <strong className="font-bold text-text-main">&quot;{queryState.q}&quot;</strong>{" "}
-        <span className="text-text-secondary">검색 결과 {filteredSorted.length}개</span>
+        <span className="text-text-secondary">{t(messages.search.resultsCount, { count: filteredSorted.length })}</span>
       </div>
 
       <SearchFilterSortBar state={queryState} onApply={applyQueryChange} />
 
       <label className="flex items-center gap-2 border-b border-border pb-3 text-xs text-text-secondary">
         <input type="checkbox" checked={availableOnly} onChange={(e) => setAvailableOnly(e.target.checked)} className="h-3.5 w-3.5 accent-primary" />
-        {market.countryName}로 배송 가능한 상품만 보기
+        {t(messages.search.shippableOnly, { country: market.countryName })}
       </label>
 
       {filteredSorted.length === 0 ? (
         <div className="flex flex-col items-center gap-2 py-16 text-center">
           <PackageSearch size={36} className="text-text-secondary" />
-          <p className="text-sm text-text-secondary">조건에 맞는 검색 결과가 없습니다.</p>
+          <p className="text-sm text-text-secondary">{messages.search.noMatchingFilters}</p>
         </div>
       ) : (
         <div className="pt-4" onClickCapture={(event) => {
@@ -118,13 +120,13 @@ export function SearchResultsClient({ products, queryState, recommendedProducts 
           onClick={() => setVisibleCount((prev) => prev + PAGE_SIZE)}
           className="mt-4 h-11 border border-border text-sm font-bold text-text-main"
         >
-          더보기
+          {messages.search.loadMore}
         </button>
       )}
 
       {filteredSorted.length === 0 && recommendedProducts.length > 0 && (
         <section className="mt-8 border-t border-border pt-6">
-          <h2 className="mb-3 text-sm font-bold text-text-main">이런 상품은 어떠세요?</h2>
+          <h2 className="mb-3 text-sm font-bold text-text-main">{messages.search.recommendedForYou}</h2>
           <ProductGrid products={recommendedProducts} />
         </section>
       )}

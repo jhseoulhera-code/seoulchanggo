@@ -5,7 +5,10 @@ import { InquiryTab } from "@/components/product/InquiryTab";
 import { ProductInfoTab } from "@/components/product/ProductInfoTab";
 import { ReviewsTab } from "@/components/product/ReviewsTab";
 import { ShippingExchangeTab } from "@/components/product/ShippingExchangeTab";
+import { useMarket } from "@/contexts/MarketContext";
 import { cn } from "@/lib/utils";
+import { getMessages } from "@/messages";
+import type { Messages } from "@/messages";
 import type { Product } from "@/types";
 
 type DetailTabsProps = {
@@ -13,16 +16,18 @@ type DetailTabsProps = {
 };
 
 const TABS = [
-  { id: "info", label: "상품정보" },
-  { id: "review", label: "리뷰" },
-  { id: "inquiry", label: "문의" },
-  { id: "shipping", label: "배송/교환" },
-] as const;
+  { id: "info", messageKey: "tabInfo" },
+  { id: "review", messageKey: "tabReview" },
+  { id: "inquiry", messageKey: "tabInquiry" },
+  { id: "shipping", messageKey: "tabShipping" },
+] as const satisfies { id: string; messageKey: keyof Messages["product"] }[];
 
 type TabId = (typeof TABS)[number]["id"];
 
 export function DetailTabs({ product }: DetailTabsProps) {
   const [activeTab, setActiveTab] = useState<TabId>("info");
+  const { market } = useMarket();
+  const messages = getMessages(market.locale);
 
   return (
     <div>
@@ -40,7 +45,7 @@ export function DetailTabs({ product }: DetailTabsProps) {
                   : "border-transparent text-text-secondary"
               )}
             >
-              {tab.label}
+              {messages.product[tab.messageKey]}
             </button>
           ))}
         </div>

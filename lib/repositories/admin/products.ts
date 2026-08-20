@@ -70,6 +70,7 @@ export async function listAdminProducts(filters: AdminProductFilters = {}): Prom
       sku: row.sku,
       slug: row.slug,
       nameKo: row.name_ko,
+      hasEnglishName: Boolean(row.name_en?.trim()),
       brand: row.brand,
       categoryId: row.category_id,
       categoryName: row.categories?.name_ko ?? "-",
@@ -135,6 +136,7 @@ export function emptyAdminProductDraft(): AdminProductDetail {
     prices: [
       { marketCode: "KR", currencyCode: "KRW", originalPrice: 0, salePrice: 0 },
       { marketCode: "IN", currencyCode: "INR", originalPrice: 0, salePrice: 0 },
+      { marketCode: null, currencyCode: "USD", originalPrice: 0, salePrice: 0 },
     ],
     shippingMarkets: [
       { countryCode: "KR", isAvailable: true, shippingFee: 3000, estimatedMinDays: 1, estimatedMaxDays: 3, shippingMethod: null },

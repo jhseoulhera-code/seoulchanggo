@@ -7,7 +7,10 @@ import { ProductImagePlaceholder } from "@/components/product/ProductImagePlaceh
 import { ShippingBadge } from "@/components/product/ShippingBadge";
 import { useMarket } from "@/contexts/MarketContext";
 import { formatCurrency, getProductMarketPrice } from "@/lib/currency";
+import { formatNumber } from "@/lib/intl";
 import { isProductAvailableInMarket } from "@/lib/shipping";
+import { getLocalizedProductName } from "@/lib/productLocalization";
+import { shippingTypeLabel } from "@/lib/shippingLabels";
 import { getMessages } from "@/messages";
 import type { Product } from "@/types";
 
@@ -21,12 +24,13 @@ export function ProductCard({ product }: ProductCardProps) {
   const { salePrice, originalPrice } = getProductMarketPrice(product, market);
   const isAvailable = isProductAvailableInMarket(product, market.countryCode);
   const messages = getMessages(market.locale);
+  const displayName = getLocalizedProductName(product, market.locale);
 
   return (
     <article className="relative w-full">
       <Link
         href={`/product/${product.id}`}
-        aria-label={product.name}
+        aria-label={displayName}
         className="absolute inset-0 z-10"
       />
 
@@ -34,7 +38,7 @@ export function ProductCard({ product }: ProductCardProps) {
         {product.image ? (
           <Image
             src={product.image}
-            alt={product.name}
+            alt={displayName}
             fill
             sizes="(min-width: 768px) 20vw, 45vw"
             className="object-cover"
@@ -71,7 +75,7 @@ export function ProductCard({ product }: ProductCardProps) {
       </div>
 
       <div className="mt-2 flex flex-col gap-1">
-        <p className="line-clamp-2 text-sm text-text-main">{product.name}</p>
+        <p className="line-clamp-2 text-sm text-text-main">{displayName}</p>
 
         <div>
           <div className="flex items-baseline gap-1.5">
@@ -94,17 +98,17 @@ export function ProductCard({ product }: ProductCardProps) {
         <div className="flex items-center gap-1 text-xs text-text-secondary">
           <Star size={12} className="fill-primary text-primary" />
           <span>{product.rating.toFixed(1)}</span>
-          <span>({product.reviewCount.toLocaleString("ko-KR")})</span>
+          <span>({formatNumber(product.reviewCount, market.locale)})</span>
         </div>
 
         <div className="flex flex-wrap items-center gap-1.5">
           <ShippingBadge
             type={product.shippingType}
-            label={product.shippingLabel}
+            label={shippingTypeLabel(product.shippingType, market.locale)}
             originCountry={product.originCountry}
           />
           {product.freeShipping && (
-            <span className="text-[11px] font-medium text-primary">무료배송</span>
+            <span className="text-[11px] font-medium text-primary">{messages.product.freeShipping}</span>
           )}
         </div>
       </div>

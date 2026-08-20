@@ -1,10 +1,11 @@
 import type { Product } from "@/types";
+import type { LocaleCode } from "@/types/market";
 
 export type ImageSearchProviderName = "MOCK" | "FUTURE_VISION_PROVIDER";
 
 export type ImageSearchFileMeta = { fileName: string; fileSize: number; mimeType: string };
 
-export type ImageSearchInput = { meta: ImageSearchFileMeta };
+export type ImageSearchInput = { meta: ImageSearchFileMeta; locale: LocaleCode };
 
 export type ImageSearchResultItem = { product: Product };
 

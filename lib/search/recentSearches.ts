@@ -47,8 +47,10 @@ export function getRecentSearchesSnapshot(): string[] {
   return readSnapshot();
 }
 
+const EMPTY_SNAPSHOT: string[] = [];
+
 export function getRecentSearchesServerSnapshot(): string[] {
-  return [];
+  return EMPTY_SNAPSHOT;
 }
 
 export function addRecentSearch(query: string): void {

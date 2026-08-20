@@ -28,18 +28,18 @@ export function ShippingInfoPanel({ product, market }: ShippingInfoPanelProps) {
   }
 
   const fee = getShippingFeeForMarket(product, market);
-  const feeLine = product.freeShipping ? "무료배송" : formatCurrency(fee, market.currency);
+  const feeLine = product.freeShipping ? messages.product.freeShipping : formatCurrency(fee, market.currency);
 
   return (
     <div className="flex flex-col gap-2.5 border border-border p-3.5 text-sm">
       <div className="flex items-center gap-2">
         <MapPin size={15} className="shrink-0 text-primary" />
-        <span className="text-text-main">{info.origin}</span>
+        <span className="text-text-main">{info.origin[market.locale]}</span>
       </div>
       <div className="flex items-center gap-2">
         <Clock size={15} className="shrink-0 text-primary" />
-        <span className="text-text-main">{info.eta}</span>
-        <span className="text-text-secondary">· {info.methodNote}</span>
+        <span className="text-text-main">{info.eta[market.locale]}</span>
+        <span className="text-text-secondary">· {info.methodNote[market.locale]}</span>
       </div>
       <div className="flex items-center gap-2">
         <Truck size={15} className="shrink-0 text-primary" />
@@ -50,7 +50,7 @@ export function ShippingInfoPanel({ product, market }: ShippingInfoPanelProps) {
 
       {info.agencyNotice && (
         <p className="border-t border-border pt-2.5 text-xs leading-relaxed text-text-secondary">
-          {info.agencyNotice}
+          {info.agencyNotice[market.locale]}
         </p>
       )}
     </div>

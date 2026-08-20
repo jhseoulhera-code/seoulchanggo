@@ -36,6 +36,7 @@ function mapCategoryRow(row: CategoryRow): Category {
   return {
     id: row.slug,
     label: row.name_ko,
+    labelEn: row.name_en || undefined,
     icon: ICON_BY_NAME[row.icon_name ?? ""] ?? ShoppingBag,
   };
 }

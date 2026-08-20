@@ -7,6 +7,7 @@ import { PageContainer } from "@/components/common/PageContainer";
 import { ListHeader } from "@/components/layout/ListHeader";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/currency";
+import { formatDateTime, getMarketTimeZone } from "@/lib/intl";
 import { lookupGuestOrder } from "@/lib/order";
 import { useMarket } from "@/contexts/MarketContext";
 import { getMessages } from "@/messages";
@@ -71,7 +72,7 @@ export default function OrderLookupPage() {
               <div className="flex items-center justify-between">
                 <span className="text-text-secondary">{messages.order.orderDate}</span>
                 <span className="text-text-main">
-                  {new Date(result.createdAt).toLocaleString(market.locale === "ko" ? "ko-KR" : "en-IN")}
+                  {formatDateTime(result.createdAt, market.locale, getMarketTimeZone(result.market))}
                 </span>
               </div>
               <div className="flex items-center justify-between border-t border-border pt-3 text-base font-bold">

@@ -14,6 +14,7 @@ export const bestProducts: Product[] = [
   createProduct({
     id: "best-1",
     name: "스테인리스 보온 텀블러 900ml",
+    nameEn: "Stainless Insulated Tumbler 900ml",
     image: "",
     brand: "서울창고 리빙",
     originalPrice: 38900,
@@ -26,6 +27,8 @@ export const bestProducts: Product[] = [
     category: "kitchen",
     description:
       "이중 진공 구조로 보온·보냉 효과를 오래 유지하는 스테인리스 텀블러입니다. 매일 사용하는 물건인 만큼 마감과 실용성에 신경 썼습니다.",
+    descriptionEn:
+      "A double-vacuum stainless tumbler that keeps drinks hot or cold for hours. Built with everyday durability and finish in mind.",
     specifications: [
       { label: "재질", value: "스테인리스 스틸 304" },
       { label: "용량", value: "500ml / 900ml" },
@@ -39,10 +42,12 @@ export const bestProducts: Product[] = [
     ],
     stock: 8,
     availableCountries: ["KR"],
+    globalPrice: { salePrice: 21.99, originalPrice: 28.99 },
   }),
   createProduct({
     id: "best-2",
     name: "무선 블루투스 이어폰 액티브 노이즈캔슬링",
+    nameEn: "Wireless Earbuds with Active Noise Cancelling",
     image: "",
     brand: "서울창고 디지털",
     originalPrice: 89000,
@@ -55,6 +60,8 @@ export const bestProducts: Product[] = [
     category: "digital",
     description:
       "액티브 노이즈캔슬링과 통화 품질에 신경 쓴 무선 이어폰입니다. 가벼운 착용감으로 장시간 사용에도 부담이 적습니다.",
+    descriptionEn:
+      "Wireless earbuds built for active noise cancelling and clear calls. Lightweight fit stays comfortable through long sessions.",
     specifications: [
       { label: "연결", value: "블루투스 5.3" },
       { label: "사용 시간", value: "최대 8시간(케이스 포함 32시간)" },
@@ -69,6 +76,7 @@ export const bestProducts: Product[] = [
   createProduct({
     id: "best-3",
     name: "극세사 항균 담요 사계절용",
+    nameEn: "Antibacterial Microfiber Blanket, All-Season",
     image: "",
     originalPrice: 25900,
     salePrice: 19900,
@@ -82,6 +90,7 @@ export const bestProducts: Product[] = [
   createProduct({
     id: "best-4",
     name: "반려동물 자동 급수기 2L",
+    nameEn: "Automatic Pet Water Dispenser 2L",
     image: "",
     originalPrice: 32000,
     salePrice: 32000,
@@ -94,6 +103,7 @@ export const bestProducts: Product[] = [
   createProduct({
     id: "best-5",
     name: "접이식 캠핑 테이블 세트",
+    nameEn: "Folding Camping Table Set",
     image: "",
     originalPrice: 54000,
     salePrice: 45900,
@@ -107,6 +117,7 @@ export const bestProducts: Product[] = [
   createProduct({
     id: "best-6",
     name: "미니멀 크로스백 데일리백",
+    nameEn: "Minimal Crossbody Daily Bag",
     image: "",
     originalPrice: 42000,
     salePrice: 35000,
@@ -120,6 +131,7 @@ export const bestProducts: Product[] = [
   createProduct({
     id: "best-7",
     name: "유아용 실리콘 빨대컵 2P",
+    nameEn: "Baby Silicone Straw Cup, 2-Pack",
     image: "",
     originalPrice: 15900,
     salePrice: 15900,
@@ -132,6 +144,7 @@ export const bestProducts: Product[] = [
   createProduct({
     id: "best-8",
     name: "차량용 트렁크 정리함 대형",
+    nameEn: "Large Car Trunk Organizer",
     image: "",
     originalPrice: 28900,
     salePrice: 23900,

@@ -9,6 +9,7 @@ import { ListHeader } from "@/components/layout/ListHeader";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMarket } from "@/contexts/MarketContext";
 import { formatCurrency } from "@/lib/currency";
+import { formatDate, formatNumber, getMarketTimeZone } from "@/lib/intl";
 import { getGuestOrders } from "@/lib/order";
 import { listAvailableCouponsAction } from "@/lib/actions/coupon";
 import { getMyInquiriesAction, getMyOrdersAction, getMyReviewsAction } from "@/lib/actions/mypage";
@@ -96,12 +97,12 @@ export default function MyPage() {
           {configured && (
             <div className="grid grid-cols-2 gap-3">
               <div className="flex flex-col gap-1 border border-border p-4">
-                <span className="text-xs text-text-secondary">보유 포인트</span>
-                <span className="text-lg font-bold text-primary">{pointBalance.toLocaleString("ko-KR")}P</span>
+                <span className="text-xs text-text-secondary">{messages.points.balance}</span>
+                <span className="text-lg font-bold text-primary">{formatNumber(pointBalance, market.locale)}P</span>
               </div>
               <div className="flex flex-col gap-1 border border-border p-4">
-                <span className="text-xs text-text-secondary">사용 가능 쿠폰</span>
-                <span className="text-lg font-bold text-primary">{couponCount}장</span>
+                <span className="text-xs text-text-secondary">{messages.coupon.title}</span>
+                <span className="text-lg font-bold text-primary">{t(messages.coupon.availableCount, { count: couponCount })}</span>
               </div>
             </div>
           )}
@@ -113,7 +114,7 @@ export default function MyPage() {
             </h2>
             {configured ? (
               dbOrders.length === 0 ? (
-                <p className="text-sm text-text-secondary">{dataLoaded ? messages.mypage.noOrders : "불러오는 중..."}</p>
+                <p className="text-sm text-text-secondary">{dataLoaded ? messages.mypage.noOrders : messages.common.loading}</p>
               ) : (
                 <div className="flex flex-col gap-2">
                   {dbOrders.map((order) => (
@@ -121,7 +122,7 @@ export default function MyPage() {
                       <div className="flex flex-col gap-0.5">
                         <span className="font-bold text-text-main">{order.orderNumber}</span>
                         <span className="text-xs text-text-secondary">
-                          {new Date(order.createdAt).toLocaleDateString(market.locale === "ko" ? "ko-KR" : "en-IN")}
+                          {formatDate(order.createdAt, market.locale, getMarketTimeZone(market.countryCode))}
                         </span>
                       </div>
                       <span className="text-text-main">{formatCurrency(order.totalAmount, order.currencyCode)}</span>
@@ -142,7 +143,7 @@ export default function MyPage() {
                     <div className="flex flex-col gap-0.5">
                       <span className="font-bold text-text-main">{order.orderId}</span>
                       <span className="text-xs text-text-secondary">
-                        {new Date(order.createdAt).toLocaleDateString(market.locale === "ko" ? "ko-KR" : "en-IN")}
+                        {formatDate(order.createdAt, market.locale, getMarketTimeZone(order.market))}
                       </span>
                     </div>
                     <div className="flex items-center gap-1.5 text-text-main">

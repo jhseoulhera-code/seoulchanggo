@@ -1,7 +1,9 @@
 "use client";
 
 import { Heart } from "lucide-react";
+import { useMarket } from "@/contexts/MarketContext";
 import { cn } from "@/lib/utils";
+import { getMessages } from "@/messages";
 
 type PurchaseActionsProps = {
   variant: "fixed" | "inline";
@@ -17,6 +19,8 @@ export function PurchaseActions({
   disabled,
 }: PurchaseActionsProps) {
   const isFixed = variant === "fixed";
+  const { market } = useMarket();
+  const messages = getMessages(market.locale);
 
   return (
     <div
@@ -29,7 +33,7 @@ export function PurchaseActions({
       <div className={cn("flex items-stretch gap-2", isFixed && "px-4 py-3")}>
         <button
           type="button"
-          aria-label="찜하기"
+          aria-label={messages.a11y.wishlist}
           className="flex h-12 w-12 flex-shrink-0 cursor-not-allowed items-center justify-center border border-border text-text-secondary"
         >
           <Heart size={20} />
@@ -40,7 +44,7 @@ export function PurchaseActions({
           disabled={disabled}
           className="h-12 flex-1 border border-primary text-sm font-bold text-primary disabled:cursor-not-allowed disabled:border-border disabled:text-text-secondary"
         >
-          장바구니
+          {messages.a11y.cart}
         </button>
         <button
           type="button"
@@ -48,7 +52,7 @@ export function PurchaseActions({
           disabled={disabled}
           className="h-12 flex-1 bg-primary text-sm font-bold text-white disabled:cursor-not-allowed disabled:bg-border"
         >
-          바로구매
+          {messages.product.buyNow}
         </button>
       </div>
     </div>

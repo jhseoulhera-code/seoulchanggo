@@ -7,7 +7,7 @@ export async function BestProducts() {
 
   return (
     <section>
-      <SectionHeading title="베스트 상품" showMore />
+      <SectionHeading titleKey="bestProducts" showMore />
       <div className="mt-3">
         <ProductGrid products={products} />
       </div>

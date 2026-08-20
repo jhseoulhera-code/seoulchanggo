@@ -3,46 +3,52 @@
 import { FormField } from "@/components/common/FormField";
 import { INDIA_STATES } from "@/data/indiaStates";
 import { cn } from "@/lib/utils";
+import { getMessages } from "@/messages";
 import type { IndiaShippingAddress } from "@/types/order";
+import type { LocaleCode } from "@/types/market";
 
 type IndiaAddressFormProps = {
   value: IndiaShippingAddress;
   errors: Record<string, string>;
   onChange: (field: string, value: string) => void;
+  locale: LocaleCode;
 };
 
-export function IndiaAddressForm({ value, errors, onChange }: IndiaAddressFormProps) {
+export function IndiaAddressForm({ value, errors, onChange, locale }: IndiaAddressFormProps) {
+  const messages = getMessages(locale);
+  const labels = messages.address.in;
+
   return (
     <div className="flex flex-col gap-3">
       <FormField
-        label="Full Name"
+        label={labels.fullName}
         value={value.fullName}
         onChange={(v) => onChange("fullName", v)}
         error={errors.fullName}
       />
       <FormField
-        label="Mobile Number"
+        label={labels.mobileNumber}
         value={value.mobileNumber}
         onChange={(v) => onChange("mobileNumber", v)}
         error={errors.mobileNumber}
         placeholder="98765 43210"
       />
       <FormField
-        label="Address Line 1"
+        label={labels.addressLine1}
         value={value.addressLine1}
         onChange={(v) => onChange("addressLine1", v)}
         error={errors.addressLine1}
       />
       <FormField
-        label="Address Line 2"
+        label={labels.addressLine2}
         value={value.addressLine2}
         onChange={(v) => onChange("addressLine2", v)}
-        optionalTag="(optional)"
+        optionalTag={messages.address.optionalTag}
       />
-      <FormField label="City" value={value.city} onChange={(v) => onChange("city", v)} error={errors.city} />
+      <FormField label={labels.city} value={value.city} onChange={(v) => onChange("city", v)} error={errors.city} />
 
       <label className="flex flex-col gap-1.5 text-sm">
-        <span className="text-xs font-medium text-text-secondary">State</span>
+        <span className="text-xs font-medium text-text-secondary">{labels.state}</span>
         <select
           value={value.state}
           onChange={(event) => onChange("state", event.target.value)}
@@ -51,7 +57,7 @@ export function IndiaAddressForm({ value, errors, onChange }: IndiaAddressFormPr
             errors.state ? "border-red-500" : "border-border"
           )}
         >
-          <option value="">Select state</option>
+          <option value="">{labels.selectState}</option>
           {INDIA_STATES.map((state) => (
             <option key={state} value={state}>
               {state}
@@ -62,17 +68,17 @@ export function IndiaAddressForm({ value, errors, onChange }: IndiaAddressFormPr
       </label>
 
       <FormField
-        label="PIN Code"
+        label={labels.pinCode}
         value={value.pinCode}
         onChange={(v) => onChange("pinCode", v)}
         error={errors.pinCode}
         placeholder="560001"
       />
       <FormField
-        label="Delivery Instructions"
+        label={labels.deliveryInstructions}
         value={value.deliveryInstructions}
         onChange={(v) => onChange("deliveryInstructions", v)}
-        optionalTag="(optional)"
+        optionalTag={messages.address.optionalTag}
       />
     </div>
   );

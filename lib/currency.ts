@@ -48,8 +48,20 @@ export type ProductMarketPrice = {
   originalPrice: number;
 };
 
-/** Resolves a product's price for the given market: a market override wins, else a dev-rate conversion of the base KRW price. */
+/**
+ * Resolves a product's price for the given market/currency. USD is checked
+ * first and independently of country (STEP 13 currency addendum — a KR or
+ * IN customer can select USD without changing their shipping country, so
+ * product.globalPrice isn't keyed by country the way marketPrices is): an
+ * explicit product.globalPrice wins when set, otherwise falls back to the
+ * same dev-rate conversion used for every other currency. For non-USD
+ * currencies, a country-keyed marketPrices override wins, else the dev-rate
+ * conversion.
+ */
 export function getProductMarketPrice(product: Product, market: Market): ProductMarketPrice {
+  if (market.currency === "USD" && product.globalPrice && product.globalPrice.salePrice > 0) {
+    return { salePrice: product.globalPrice.salePrice, originalPrice: product.globalPrice.originalPrice };
+  }
   const override = product.marketPrices?.[market.countryCode];
   return {
     salePrice: resolveMarketAmount(product.salePrice, market, override?.salePrice),

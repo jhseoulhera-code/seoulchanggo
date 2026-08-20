@@ -45,10 +45,11 @@ export type ProductJoinRow = ProductRow & {
 export function mapProductRow(row: ProductJoinRow): Product {
   const shippingType = SHIPPING_TYPE_FROM_DB[row.shipping_type];
   const krPrice = row.product_prices.find((price) => price.market_code === "KR");
+  const usdPrice = row.product_prices.find((price) => price.market_code === null && price.currency_code === "USD");
 
   const marketPrices: NonNullable<Product["marketPrices"]> = {};
   row.product_prices.forEach((price) => {
-    if (price.market_code === "KR") return;
+    if (price.market_code === "KR" || price.market_code === null) return;
     marketPrices[price.market_code] = { salePrice: price.sale_price, originalPrice: price.original_price };
   });
 
@@ -68,6 +69,7 @@ export function mapProductRow(row: ProductJoinRow): Product {
     id: row.slug,
     dbId: row.id,
     name: row.name_ko,
+    nameEn: row.name_en ?? undefined,
     image: primaryImage?.image_url ?? "",
     images: sortedImages.length > 0 ? sortedImages.map((image) => image.image_url) : undefined,
     brand: row.brand ?? undefined,
@@ -81,9 +83,11 @@ export function mapProductRow(row: ProductJoinRow): Product {
     freeShipping: row.free_shipping,
     category: row.categories?.slug ?? "",
     description: row.description_ko ?? undefined,
+    descriptionEn: row.description_en ?? undefined,
     options: Array.isArray(row.option_groups) ? (row.option_groups as unknown as ProductOptionGroup[]) : undefined,
     stock: row.stock_type === "TRACKED" ? row.stock_quantity : undefined,
     marketPrices: Object.keys(marketPrices).length > 0 ? marketPrices : undefined,
+    globalPrice: usdPrice ? { salePrice: usdPrice.sale_price, originalPrice: usdPrice.original_price } : undefined,
     availableCountries: availableCountries.length > 0 ? availableCountries : undefined,
     originCountry: (row.origin_country as OriginCountryCode | null) ?? undefined,
     shippingFees: Object.keys(shippingFees).length > 0 ? shippingFees : undefined,

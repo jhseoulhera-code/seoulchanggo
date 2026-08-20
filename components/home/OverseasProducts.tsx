@@ -7,7 +7,7 @@ export async function OverseasProducts() {
 
   return (
     <section>
-      <SectionHeading title="해외 인기상품" showMore />
+      <SectionHeading titleKey="overseasProducts" showMore />
       <div className="mt-3">
         <ProductRow products={products} />
       </div>

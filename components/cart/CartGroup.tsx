@@ -49,10 +49,7 @@ export function CartGroup({
           onChange={(event) => onToggleGroup(availableIds, event.target.checked)}
           className="h-4 w-4 accent-primary disabled:opacity-40"
         />
-        <ShippingBadge
-          type={shippingType}
-          label={lines[0]?.product.shippingLabel ?? ""}
-        />
+        <ShippingBadge type={shippingType} label={groupLabel} />
         <span className="text-sm font-bold text-text-main">{groupLabel}</span>
       </div>
 

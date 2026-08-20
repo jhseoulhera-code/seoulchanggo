@@ -3,8 +3,10 @@
 import { Camera, ImagePlus, Loader2, UploadCloud, X } from "lucide-react";
 import { useRef, useState } from "react";
 import { ProductGrid } from "@/components/product/ProductGrid";
+import { useMarket } from "@/contexts/MarketContext";
 import { runImageSearchAction } from "@/lib/actions/imageSearch";
 import { validateSearchImageFile } from "@/lib/search/imageValidation";
+import { getMessages } from "@/messages";
 import type { ImageSearchResult } from "@/lib/imageSearch/types";
 
 /**
@@ -16,6 +18,8 @@ import type { ImageSearchResult } from "@/lib/imageSearch/types";
  * users see components/product/ImageSearchComingSoon.tsx instead.
  */
 export function ImageSearchClient() {
+  const { market } = useMarket();
+  const messages = getMessages(market.locale);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
 
@@ -30,7 +34,12 @@ export function ImageSearchClient() {
     if (!selected) return;
     const validation = validateSearchImageFile(selected);
     if (!validation.ok) {
-      setError(validation.error);
+      const errorByCode = {
+        INVALID_TYPE: messages.search.invalidImageType,
+        INVALID_EXTENSION: messages.search.invalidImageExtension,
+        TOO_LARGE: messages.search.imageTooLarge,
+      };
+      setError(errorByCode[validation.code]);
       return;
     }
     setError(null);
@@ -57,19 +66,17 @@ export function ImageSearchClient() {
     setPending(true);
     setError(null);
     try {
-      const searchResult = await runImageSearchAction({ fileName: file.name, fileSize: file.size, mimeType: file.type });
+      const searchResult = await runImageSearchAction({ fileName: file.name, fileSize: file.size, mimeType: file.type }, market.locale);
       setResult(searchResult);
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : "이미지 검색에 실패했습니다.");
+      setError(submitError instanceof Error ? submitError.message : messages.search.imageSearchFailed);
     }
     setPending(false);
   }
 
   return (
     <div className="flex flex-col gap-5 py-4">
-      <p className="rounded-lg bg-primary-light/40 px-3 py-2 text-xs text-text-secondary">
-        [개발 미리보기] 아직 실제 이미지 분석 없이 동작하는 기능입니다. 결과는 실제 이미지 매칭이 아닌 추천 상품입니다.
-      </p>
+      <p className="rounded-lg bg-primary-light/40 px-3 py-2 text-xs text-text-secondary">{messages.search.imageSearchDevNotice}</p>
 
       {!previewUrl ? (
         <div
@@ -88,21 +95,21 @@ export function ImageSearchClient() {
           }`}
         >
           <UploadCloud size={32} className="text-text-secondary" />
-          <p className="text-sm text-text-secondary">이미지를 드래그하거나 아래에서 선택하세요</p>
+          <p className="text-sm text-text-secondary">{messages.search.dragDropHint}</p>
           <div className="flex flex-wrap justify-center gap-2">
             <button
               type="button"
               onClick={() => cameraInputRef.current?.click()}
               className="flex items-center gap-1.5 rounded-full border border-border px-4 py-2 text-sm font-medium text-text-main"
             >
-              <Camera size={16} /> 사진 촬영
+              <Camera size={16} /> {messages.search.takePhoto}
             </button>
             <button
               type="button"
               onClick={() => galleryInputRef.current?.click()}
               className="flex items-center gap-1.5 rounded-full border border-border px-4 py-2 text-sm font-medium text-text-main"
             >
-              <ImagePlus size={16} /> 앨범에서 선택
+              <ImagePlus size={16} /> {messages.search.chooseFromGallery}
             </button>
           </div>
           <input
@@ -126,11 +133,11 @@ export function ImageSearchClient() {
           <div className="relative mx-auto aspect-square w-full max-w-xs overflow-hidden rounded-2xl border border-border">
             {/* Local blob preview — next/image's default loader doesn't handle blob: URLs. */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={previewUrl} alt="검색할 이미지 미리보기" className="h-full w-full object-cover" />
+            <img src={previewUrl} alt={messages.search.imagePreviewAlt} className="h-full w-full object-cover" />
             <button
               type="button"
               onClick={reset}
-              aria-label="이미지 지우기"
+              aria-label={messages.search.clearImage}
               className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-text-main"
             >
               <X size={16} />
@@ -142,7 +149,7 @@ export function ImageSearchClient() {
             disabled={pending}
             className="h-11 rounded-full bg-primary text-sm font-bold text-white disabled:bg-border"
           >
-            {pending ? <Loader2 size={16} className="mx-auto animate-spin" /> : "이 이미지로 검색"}
+            {pending ? <Loader2 size={16} className="mx-auto animate-spin" /> : messages.search.searchByImage}
           </button>
         </div>
       )}

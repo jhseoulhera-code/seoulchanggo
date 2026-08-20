@@ -2,7 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
-import type { CountryCode } from "@/types/market";
+import type { CountryCode, CurrencyCode } from "@/types/market";
 
 export type ApplyCouponResult =
   | { ok: true; couponId: string; discountAmount: number }
@@ -12,6 +12,11 @@ const ERROR_LABEL: Record<string, string> = {
   NOT_FOUND: "존재하지 않는 쿠폰 코드입니다.",
   USAGE_LIMIT_REACHED: "쿠폰 사용 한도가 모두 소진되었습니다.",
   PER_USER_LIMIT_REACHED: "이미 사용하신 쿠폰입니다.",
+  // STEP 13 currency addendum: a FIXED coupon's amount is denominated in its
+  // own market's currency (KRW/INR) and can't be discounted against an order
+  // placed in a different selected currency without a real exchange rate
+  // (see the 20260829000200 migration's _compute_coupon_discount).
+  CURRENCY_MISMATCH: "이 쿠폰은 현재 선택한 통화에서 사용할 수 없습니다. 통화를 변경한 후 다시 시도해주세요.",
 };
 
 /**
@@ -23,6 +28,7 @@ const ERROR_LABEL: Record<string, string> = {
 export async function applyCouponAction(
   code: string,
   marketCode: CountryCode,
+  currencyCode: CurrencyCode,
   subtotal: number,
   productSlugs: string[]
 ): Promise<ApplyCouponResult> {
@@ -45,6 +51,7 @@ export async function applyCouponAction(
   const { data, error } = await supabase.rpc("validate_coupon_code", {
     p_code: code.trim().toUpperCase(),
     p_market_code: marketCode,
+    p_currency_code: currencyCode,
     p_subtotal: subtotal,
     p_product_ids: productIds,
   } as never);

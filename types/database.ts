@@ -116,7 +116,8 @@ export type ProductRow = {
 export type ProductPriceRow = {
   id: string;
   product_id: string;
-  market_code: MarketCodeEnum;
+  /** null for a currency-only price not tied to a shipping Market (STEP 13 USD addendum) — see the 20260829000100 migration. */
+  market_code: MarketCodeEnum | null;
   currency_code: CurrencyCodeEnum;
   original_price: number;
   sale_price: number;

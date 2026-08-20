@@ -25,11 +25,25 @@ export function ProductForm({ initialDetail, categories }: ProductFormProps) {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ tone: "success" | "error"; text: string } | null>(null);
 
-  function updatePrice(marketCode: "KR" | "IN", field: "originalPrice" | "salePrice", value: number) {
-    setDetail((prev) => ({
-      ...prev,
-      prices: prev.prices.map((p) => (p.marketCode === marketCode ? { ...p, [field]: value } : p)),
-    }));
+  /**
+   * Matches/updates by currencyCode rather than marketCode: a product
+   * loaded from the DB may not have a USD row yet (STEP 13 addendum — USD
+   * pricing is opt-in, added after existing KR/IN-only products), so this
+   * upserts a new entry into local state on first edit instead of relying
+   * on an entry that's guaranteed to already exist the way KR/IN are.
+   */
+  function updatePrice(currencyCode: "KRW" | "INR" | "USD", field: "originalPrice" | "salePrice", value: number) {
+    setDetail((prev) => {
+      const exists = prev.prices.some((p) => p.currencyCode === currencyCode);
+      if (exists) {
+        return { ...prev, prices: prev.prices.map((p) => (p.currencyCode === currencyCode ? { ...p, [field]: value } : p)) };
+      }
+      const marketCode = currencyCode === "KRW" ? "KR" : currencyCode === "INR" ? "IN" : null;
+      return {
+        ...prev,
+        prices: [...prev.prices, { marketCode, currencyCode, originalPrice: 0, salePrice: 0, [field]: value }],
+      };
+    });
   }
 
   function updateShippingMarket(countryCode: "KR" | "IN", patch: Partial<AdminProductDetail["shippingMarkets"][number]>) {
@@ -73,8 +87,9 @@ export function ProductForm({ initialDetail, categories }: ProductFormProps) {
     }
   }
 
-  const krPrice = detail.prices.find((p) => p.marketCode === "KR");
-  const inPrice = detail.prices.find((p) => p.marketCode === "IN");
+  const krPrice = detail.prices.find((p) => p.currencyCode === "KRW");
+  const inPrice = detail.prices.find((p) => p.currencyCode === "INR");
+  const usdPrice = detail.prices.find((p) => p.currencyCode === "USD");
   const krMarket = detail.shippingMarkets.find((m) => m.countryCode === "KR");
   const inMarket = detail.shippingMarkets.find((m) => m.countryCode === "IN");
 
@@ -88,7 +103,11 @@ export function ProductForm({ initialDetail, categories }: ProductFormProps) {
             value={detail.nameKo}
             onChange={(v) => setDetail((prev) => ({ ...prev, nameKo: v, slug: prev.slug || slugify(v) }))}
           />
-          <FormField label="상품명 (영어)" value={detail.nameEn} onChange={(v) => setDetail((prev) => ({ ...prev, nameEn: v }))} />
+          <FormField
+            label={detail.nameEn.trim() ? "상품명 (영어)" : "상품명 (영어) · EN 번역 없음"}
+            value={detail.nameEn}
+            onChange={(v) => setDetail((prev) => ({ ...prev, nameEn: v }))}
+          />
           <FormField label="SKU" value={detail.sku} onChange={(v) => setDetail((prev) => ({ ...prev, sku: v }))} />
           <FormField label="Slug" value={detail.slug} onChange={(v) => setDetail((prev) => ({ ...prev, slug: v }))} />
           <FormField label="브랜드" value={detail.brand} onChange={(v) => setDetail((prev) => ({ ...prev, brand: v }))} />
@@ -114,7 +133,7 @@ export function ProductForm({ initialDetail, categories }: ProductFormProps) {
           onChange={(v) => setDetail((prev) => ({ ...prev, descriptionKo: v }))}
         />
         <FormField
-          label="설명 (영어)"
+          label={detail.descriptionEn.trim() ? "설명 (영어)" : "설명 (영어) · EN 번역 없음"}
           value={detail.descriptionEn}
           onChange={(v) => setDetail((prev) => ({ ...prev, descriptionEn: v }))}
         />
@@ -131,20 +150,20 @@ export function ProductForm({ initialDetail, categories }: ProductFormProps) {
           />
           판매중 (해제 시 고객 화면에서 숨김)
         </label>
-        <div className="grid gap-3 md:grid-cols-2">
+        <div className="grid gap-3 md:grid-cols-3">
           <div className="flex flex-col gap-2 border border-border p-3">
             <span className="text-xs font-bold text-text-secondary">KR (KRW)</span>
             <FormField
               label="정상가"
               type="number"
               value={String(krPrice?.originalPrice ?? 0)}
-              onChange={(v) => updatePrice("KR", "originalPrice", Number(v) || 0)}
+              onChange={(v) => updatePrice("KRW", "originalPrice", Number(v) || 0)}
             />
             <FormField
               label="판매가"
               type="number"
               value={String(krPrice?.salePrice ?? 0)}
-              onChange={(v) => updatePrice("KR", "salePrice", Number(v) || 0)}
+              onChange={(v) => updatePrice("KRW", "salePrice", Number(v) || 0)}
             />
           </div>
           <div className="flex flex-col gap-2 border border-border p-3">
@@ -153,14 +172,32 @@ export function ProductForm({ initialDetail, categories }: ProductFormProps) {
               label="정상가"
               type="number"
               value={String(inPrice?.originalPrice ?? 0)}
-              onChange={(v) => updatePrice("IN", "originalPrice", Number(v) || 0)}
+              onChange={(v) => updatePrice("INR", "originalPrice", Number(v) || 0)}
             />
             <FormField
               label="판매가"
               type="number"
               value={String(inPrice?.salePrice ?? 0)}
-              onChange={(v) => updatePrice("IN", "salePrice", Number(v) || 0)}
+              onChange={(v) => updatePrice("INR", "salePrice", Number(v) || 0)}
             />
+          </div>
+          <div className="flex flex-col gap-2 border border-border p-3">
+            <span className="text-xs font-bold text-text-secondary">Global (USD)</span>
+            <FormField
+              label="정상가"
+              type="number"
+              value={String(usdPrice?.originalPrice ?? 0)}
+              onChange={(v) => updatePrice("USD", "originalPrice", Number(v) || 0)}
+            />
+            <FormField
+              label="판매가"
+              type="number"
+              value={String(usdPrice?.salePrice ?? 0)}
+              onChange={(v) => updatePrice("USD", "salePrice", Number(v) || 0)}
+            />
+            <p className="text-[11px] leading-relaxed text-text-secondary">
+              미입력(0) 시 KRW 판매가 기준 개발용 환율 환산값이 표시됩니다.
+            </p>
           </div>
         </div>
         <FormField

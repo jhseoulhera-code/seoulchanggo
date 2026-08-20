@@ -4,6 +4,7 @@ import { Trash2 } from "lucide-react";
 import { ProductImagePlaceholder } from "@/components/product/ProductImagePlaceholder";
 import { QuantitySelector } from "@/components/product/QuantitySelector";
 import { formatCurrency } from "@/lib/currency";
+import { getLocalizedProductName } from "@/lib/productLocalization";
 import { getMessages, t } from "@/messages";
 import type { CartLineView } from "@/types/cart";
 import type { Market } from "@/types/market";
@@ -35,7 +36,7 @@ export function CartItemRow({ line, market, onToggle, onQuantityChange, onRemove
       </div>
 
       <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-        <p className="line-clamp-2 text-sm text-text-main">{product.name}</p>
+        <p className="line-clamp-2 text-sm text-text-main">{getLocalizedProductName(product, market.locale)}</p>
         {line.optionLabel && (
           <p className="text-xs text-text-secondary">{line.optionLabel}</p>
         )}

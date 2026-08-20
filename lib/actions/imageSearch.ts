@@ -1,7 +1,9 @@
 "use server";
 
 import { resolveImageSearchProvider } from "@/lib/imageSearch/registry";
+import { getMessages } from "@/messages";
 import type { ImageSearchFileMeta, ImageSearchResult } from "@/lib/imageSearch/types";
+import type { LocaleCode } from "@/types/market";
 
 /**
  * Server-side entry point for the dev-only Mock image search (STEP 12 spec
@@ -10,10 +12,10 @@ import type { ImageSearchFileMeta, ImageSearchResult } from "@/lib/imageSearch/t
  * production, this action refuses to run for real users too, so the Mock
  * can never "go live" just because a client somehow reaches it directly.
  */
-export async function runImageSearchAction(meta: ImageSearchFileMeta): Promise<ImageSearchResult> {
+export async function runImageSearchAction(meta: ImageSearchFileMeta, locale: LocaleCode): Promise<ImageSearchResult> {
   if (process.env.NODE_ENV === "production") {
-    throw new Error("이미지 검색 기능은 아직 제공되지 않습니다.");
+    throw new Error(getMessages(locale).search.imageSearchComingSoon);
   }
   const provider = resolveImageSearchProvider();
-  return provider.search({ meta });
+  return provider.search({ meta, locale });
 }

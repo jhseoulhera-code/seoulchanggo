@@ -4,9 +4,11 @@ import { useEffect, useState } from "react";
 import { applyCouponAction, listAvailableCouponsAction, type AvailableCoupon } from "@/lib/actions/coupon";
 import { getMyPointBalanceAction } from "@/lib/actions/points";
 import { formatCurrency } from "@/lib/currency";
+import { formatNumber } from "@/lib/intl";
 import { maxUsablePoints, POINTS_MIN_USE } from "@/lib/pointsPolicy";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
-import { getMessages } from "@/messages";
+import { MARKETS } from "@/data/markets";
+import { getMessages, t } from "@/messages";
 import type { Market } from "@/types/market";
 
 type AppliedCoupon = { id: string; code: string; discountAmount: number };
@@ -62,12 +64,12 @@ export function CouponPointsSection({ market, isAuthenticated, payableAmount, pr
 
   async function applyCode(code: string) {
     if (!code.trim()) {
-      setCouponError("쿠폰 코드를 입력해주세요.");
+      setCouponError(messages.coupon.codeRequired);
       return;
     }
     setCouponPending(true);
     setCouponError(null);
-    const result = await applyCouponAction(code, market.countryCode, payableAmount, productSlugs);
+    const result = await applyCouponAction(code, market.countryCode, market.currency, payableAmount, productSlugs);
     setCouponPending(false);
     if (!result.ok) {
       setCouponError(result.error);
@@ -90,11 +92,11 @@ export function CouponPointsSection({ market, isAuthenticated, payableAmount, pr
       return;
     }
     if (numeric < POINTS_MIN_USE) {
-      setPointsError(`최소 ${POINTS_MIN_USE.toLocaleString("ko-KR")}포인트부터 사용할 수 있습니다.`);
+      setPointsError(t(messages.points.minUse, { min: formatNumber(POINTS_MIN_USE, market.locale) }));
     } else if (numeric > pointBalance) {
-      setPointsError("보유 포인트를 초과했습니다.");
+      setPointsError(messages.points.exceedsBalance);
     } else if (numeric > maxUsable) {
-      setPointsError(`최대 ${maxUsable.toLocaleString("ko-KR")}포인트까지 사용할 수 있습니다.`);
+      setPointsError(t(messages.points.maxUse, { max: formatNumber(maxUsable, market.locale) }));
     } else {
       setPointsError(null);
     }
@@ -122,10 +124,10 @@ export function CouponPointsSection({ market, isAuthenticated, payableAmount, pr
         {appliedCoupon ? (
           <div className="flex items-center justify-between">
             <span className="text-primary">
-              {appliedCoupon.code} 적용됨 (-{formatCurrency(appliedCoupon.discountAmount, market.currency)})
+              {appliedCoupon.code} {messages.coupon.applied} (-{formatCurrency(appliedCoupon.discountAmount, market.currency)})
             </span>
             <button type="button" onClick={removeCoupon} className="text-xs text-text-secondary underline">
-              해제
+              {messages.coupon.remove}
             </button>
           </div>
         ) : (
@@ -134,7 +136,7 @@ export function CouponPointsSection({ market, isAuthenticated, payableAmount, pr
               <input
                 value={couponCodeInput}
                 onChange={(e) => setCouponCodeInput(e.target.value)}
-                placeholder="쿠폰 코드 입력"
+                placeholder={messages.coupon.codePlaceholder}
                 className="flex-1 border border-border px-2.5 py-1.5 text-sm outline-none"
               />
               <button
@@ -143,7 +145,7 @@ export function CouponPointsSection({ market, isAuthenticated, payableAmount, pr
                 disabled={couponPending}
                 className="border border-primary px-3 py-1.5 text-xs font-bold text-primary disabled:opacity-50"
               >
-                적용
+                {messages.coupon.apply}
               </button>
             </div>
             {isAuthenticated && availableCoupons.length > 0 && (
@@ -156,7 +158,11 @@ export function CouponPointsSection({ market, isAuthenticated, payableAmount, pr
                     className="flex items-center justify-between border border-border px-2.5 py-1.5 text-left text-xs text-text-secondary hover:border-primary hover:text-primary"
                   >
                     <span>{coupon.name}</span>
-                    <span>{coupon.discountType === "PERCENT" ? `${coupon.discountValue}%` : formatCurrency(coupon.discountValue, market.currency)}</span>
+                    <span>
+                      {coupon.discountType === "PERCENT"
+                        ? `${coupon.discountValue}%`
+                        : formatCurrency(coupon.discountValue, MARKETS[market.countryCode].currency)}
+                    </span>
                   </button>
                 ))}
               </div>
@@ -170,13 +176,13 @@ export function CouponPointsSection({ market, isAuthenticated, payableAmount, pr
         <span className="font-bold text-text-main">{messages.checkout.pointsLabel}</span>
         {isAuthenticated ? (
           <>
-            <p className="text-xs text-text-secondary">보유 {pointBalance.toLocaleString("ko-KR")}P</p>
+            <p className="text-xs text-text-secondary">{messages.points.balance} {formatNumber(pointBalance, market.locale)}P</p>
             <div className="flex gap-2">
               <input
                 type="number"
                 value={pointsInput}
                 onChange={(e) => handlePointsChange(e.target.value)}
-                placeholder="사용할 포인트"
+                placeholder={messages.points.usePlaceholder}
                 className="flex-1 border border-border px-2.5 py-1.5 text-sm outline-none"
               />
               <button
@@ -184,7 +190,7 @@ export function CouponPointsSection({ market, isAuthenticated, payableAmount, pr
                 onClick={() => handlePointsChange(String(maxUsable))}
                 className="border border-border px-3 py-1.5 text-xs font-bold text-text-secondary"
               >
-                전액사용
+                {messages.points.useAll}
               </button>
             </div>
             {pointsError && <p className="text-xs text-red-600">{pointsError}</p>}

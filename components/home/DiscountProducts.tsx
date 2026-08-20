@@ -7,7 +7,7 @@ export async function DiscountProducts() {
 
   return (
     <section>
-      <SectionHeading title="할인상품" showMore />
+      <SectionHeading titleKey="discountProducts" showMore />
       <div className="mt-3">
         <ProductRow products={products} />
       </div>

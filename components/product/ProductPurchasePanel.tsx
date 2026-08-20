@@ -15,7 +15,10 @@ import { useMarket } from "@/contexts/MarketContext";
 import { setBuyNowItem } from "@/lib/buyNow";
 import { createCartItemId } from "@/lib/cart";
 import { formatCurrency, getProductMarketPrice } from "@/lib/currency";
+import { formatNumber } from "@/lib/intl";
 import { isProductAvailableInMarket } from "@/lib/shipping";
+import { getLocalizedProductName } from "@/lib/productLocalization";
+import { shippingTypeLabel } from "@/lib/shippingLabels";
 import { getMessages } from "@/messages";
 import { categories } from "@/data/categories";
 import type { Product } from "@/types";
@@ -91,11 +94,11 @@ export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
     <div className="flex flex-col gap-5">
       <div>
         {eyebrow && <p className="text-xs font-medium text-text-secondary">{eyebrow}</p>}
-        <h1 className="mt-1 text-lg font-bold text-text-main md:text-xl">{product.name}</h1>
+        <h1 className="mt-1 text-lg font-bold text-text-main md:text-xl">{getLocalizedProductName(product, market.locale)}</h1>
         <div className="mt-2 flex items-center gap-1 text-sm text-text-secondary">
           <Star size={14} className="fill-primary text-primary" />
           <span className="font-medium text-text-main">{product.rating.toFixed(1)}</span>
-          <span>({product.reviewCount.toLocaleString("ko-KR")})</span>
+          <span>({formatNumber(product.reviewCount, market.locale)})</span>
         </div>
       </div>
 
@@ -117,11 +120,11 @@ export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <ShippingBadge
             type={product.shippingType}
-            label={product.shippingLabel}
+            label={shippingTypeLabel(product.shippingType, market.locale)}
             originCountry={product.originCountry}
           />
           {product.freeShipping && (
-            <span className="text-xs font-medium text-primary">무료배송</span>
+            <span className="text-xs font-medium text-primary">{messages.product.freeShipping}</span>
           )}
         </div>
       </div>

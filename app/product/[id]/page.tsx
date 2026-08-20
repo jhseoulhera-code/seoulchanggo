@@ -5,10 +5,22 @@ import { DetailTabs } from "@/components/product/DetailTabs";
 import { ProductGallery } from "@/components/product/ProductGallery";
 import { ProductPurchasePanel } from "@/components/product/ProductPurchasePanel";
 import { getAllProducts, getProductBySlug } from "@/lib/repositories/products";
+import type { Metadata } from "next";
 
 export async function generateStaticParams() {
   const products = await getAllProducts();
   return products.map((product) => ({ id: product.id }));
+}
+
+/** Server-rendered metadata always reflects the ko default (see lib/seo.ts) — the visible page itself is still locale-reactive client-side. */
+export async function generateMetadata(props: PageProps<"/product/[id]">): Promise<Metadata> {
+  const { id } = await props.params;
+  const product = await getProductBySlug(id);
+  if (!product) return { title: "상품을 찾을 수 없습니다" };
+  return {
+    title: `${product.name} | 서울창고`,
+    description: product.description ?? product.name,
+  };
 }
 
 export default async function ProductDetailPage(props: PageProps<"/product/[id]">) {

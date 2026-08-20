@@ -34,10 +34,10 @@ export function CheckoutItemGroup({ shippingType, items, market }: CheckoutItemG
   return (
     <section className="border-t border-border pt-4 first:border-t-0 first:pt-0">
       <div className="flex flex-wrap items-center gap-2">
-        <ShippingBadge type={shippingType} label={items[0]?.shippingLabel ?? ""} />
+        <ShippingBadge type={shippingType} label={groupLabel} />
         <span className="text-sm font-bold text-text-main">{groupLabel}</span>
         <span className="text-xs text-text-secondary">
-          · {info.eta}
+          · {info.eta[market.locale]}
           {methodLabel ? ` · ${methodLabel}` : ""}
         </span>
       </div>

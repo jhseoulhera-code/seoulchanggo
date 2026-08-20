@@ -16,6 +16,8 @@ export type QuickNavItem = {
 export type Category = {
   id: string;
   label: string;
+  /** English label, when set by admin/DB — see lib/productLocalization.ts for the ko-fallback resolver. */
+  labelEn?: string;
   icon: LucideIcon;
 };
 
@@ -36,6 +38,8 @@ export type Product = {
   /** Real DB UUID (STEP 10) — undefined for static mock products, since reviews/inquiries need Supabase. */
   dbId?: string;
   name: string;
+  /** English name, when set by admin/DB — see lib/productLocalization.ts for the ko-fallback resolver. */
+  nameEn?: string;
   image: string;
   images?: string[];
   brand?: string;
@@ -49,11 +53,15 @@ export type Product = {
   freeShipping: boolean;
   category: string;
   description?: string;
+  /** English description, when set by admin/DB — see lib/productLocalization.ts for the ko-fallback resolver. */
+  descriptionEn?: string;
   specifications?: ProductSpec[];
   options?: ProductOptionGroup[];
   stock?: number;
   /** Per-market authoritative price in that market's own currency. Falls back to a dev exchange-rate conversion of salePrice/originalPrice when absent for the current market. */
   marketPrices?: Partial<Record<CountryCode, { salePrice: number; originalPrice: number }>>;
+  /** Explicit USD price, independent of shipping Market (STEP 13 currency addendum — a KR or IN customer can select USD without changing their shipping country). Falls back to a dev exchange-rate conversion when absent; see lib/currency.ts's getProductMarketPrice. */
+  globalPrice?: { salePrice: number; originalPrice: number };
   /** Countries this product can be shipped to. Omitted/empty means it ships everywhere — avoids a magic "ALL" string. */
   availableCountries?: CountryCode[];
   /** Country the product physically ships from (distinct from shippingType). */

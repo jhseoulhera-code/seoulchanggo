@@ -9,9 +9,11 @@ import { ListHeader } from "@/components/layout/ListHeader";
 import { ProductImagePlaceholder } from "@/components/product/ProductImagePlaceholder";
 import { ShippingBadge } from "@/components/product/ShippingBadge";
 import { useAuth } from "@/contexts/AuthContext";
-import { MARKETS } from "@/data/markets";
-import { PAYMENT_METHODS_BY_MARKET } from "@/data/paymentMethods";
+import { useMarket } from "@/contexts/MarketContext";
 import { formatCurrency } from "@/lib/currency";
+import { formatDateTime, getMarketTimeZone } from "@/lib/intl";
+import { paymentMethodLabel } from "@/lib/paymentLabels";
+import { shippingTypeLabel } from "@/lib/shippingLabels";
 import { findGuestOrder } from "@/lib/order";
 import { getMessages } from "@/messages";
 import type { Order } from "@/types/order";
@@ -42,8 +44,7 @@ export default function OrderCompletePage() {
   const orderId = params.orderId;
   const order = useGuestOrder(orderId);
   const { isAuthenticated } = useAuth();
-
-  const market = order ? MARKETS[order.market] : MARKETS.KR;
+  const { market } = useMarket();
   const messages = getMessages(market.locale);
 
   if (!order) {
@@ -83,17 +84,15 @@ export default function OrderCompletePage() {
             </div>
             <div className="flex items-center justify-between">
               <span className="text-text-secondary">{messages.order.orderDate}</span>
-              <span className="text-text-main">{new Date(order.createdAt).toLocaleString(market.locale === "ko" ? "ko-KR" : "en-IN")}</span>
+              <span className="text-text-main">{formatDateTime(order.createdAt, market.locale, getMarketTimeZone(order.market))}</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-text-secondary">결제수단</span>
-              <span className="text-text-main">
-                {PAYMENT_METHODS_BY_MARKET[order.market].find((m) => m.id === order.paymentMethod)?.label ?? order.paymentMethod}
-              </span>
+              <span className="text-text-secondary">{messages.payment.methodLabel}</span>
+              <span className="text-text-main">{paymentMethodLabel(order.paymentMethod, market.locale)}</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-text-secondary">결제상태</span>
-              <span className="border border-primary px-2 py-0.5 text-xs font-bold text-primary">결제완료</span>
+              <span className="text-text-secondary">{messages.payment.statusLabel}</span>
+              <span className="border border-primary px-2 py-0.5 text-xs font-bold text-primary">{messages.payment.status.paid}</span>
             </div>
             <div className="flex items-center justify-between border-t border-border pt-3 text-base font-bold">
               <span className="text-text-main">{messages.order.total}</span>
@@ -105,8 +104,8 @@ export default function OrderCompletePage() {
             {order.shippingGroups.map((group) => (
               <section key={group.shippingType} className="border-t border-border pt-4 first:border-t-0 first:pt-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <ShippingBadge type={group.shippingType} label={group.items[0]?.shippingLabel ?? ""} />
-                  <span className="text-sm font-bold text-text-main">{group.status}</span>
+                  <ShippingBadge type={group.shippingType} label={shippingTypeLabel(group.shippingType, market.locale)} />
+                  <span className="text-sm font-bold text-text-main">{messages.shippingStatus[group.status]}</span>
                 </div>
                 <div className="mt-3 flex flex-col gap-3">
                   {group.items.map((item) => (

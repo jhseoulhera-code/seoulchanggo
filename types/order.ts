@@ -39,11 +39,6 @@ export type CustomsInfo = {
 
 export type PaymentMethodId = "card" | "easy_pay" | "bank_transfer" | "upi" | "net_banking" | "wallet";
 
-export type PaymentMethodOption = {
-  id: PaymentMethodId;
-  label: string;
-};
-
 export type OrderStatus =
   | "ORDER_CREATED"
   | "PAYMENT_PENDING"

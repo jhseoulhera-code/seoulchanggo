@@ -5,7 +5,10 @@ import { useEffect, useState } from "react";
 import { inquiries as mockInquiries } from "@/data/inquiries";
 import { getProductInquiriesAction, submitInquiryAction, type ProductInquiry } from "@/lib/actions/inquiries";
 import { useAuth } from "@/contexts/AuthContext";
+import { useMarket } from "@/contexts/MarketContext";
+import { formatDate } from "@/lib/intl";
 import { cn } from "@/lib/utils";
+import { getMessages, t } from "@/messages";
 import type { Product } from "@/types";
 
 function mockToProductInquiry(inquiry: (typeof mockInquiries)[number]): ProductInquiry {
@@ -21,6 +24,8 @@ function mockToProductInquiry(inquiry: (typeof mockInquiries)[number]): ProductI
 
 export function InquiryTab({ product }: { product: Product }) {
   const { isAuthenticated } = useAuth();
+  const { market } = useMarket();
+  const messages = getMessages(market.locale);
   const isReal = Boolean(product.dbId);
 
   const [inquiryList, setInquiryList] = useState<ProductInquiry[]>(() => (isReal ? [] : mockInquiries.map(mockToProductInquiry)));
@@ -63,20 +68,18 @@ export function InquiryTab({ product }: { product: Product }) {
   return (
     <div className="flex flex-col gap-4 py-5">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-text-main">
-          상품문의 <span className="font-bold text-primary">{inquiryList.length}</span>건
-        </p>
+        <p className="text-sm text-text-main">{t(messages.inquiry.countLabel, { count: inquiryList.length })}</p>
         {isReal ? (
           <button
             type="button"
             onClick={() => setShowForm((prev) => !prev)}
             className="border border-primary px-3 py-1.5 text-xs font-bold text-primary"
           >
-            상품문의 작성
+            {messages.inquiry.writeInquiry}
           </button>
         ) : (
           <button type="button" className="cursor-not-allowed border border-primary px-3 py-1.5 text-xs font-bold text-primary">
-            상품문의 작성
+            {messages.inquiry.writeInquiry}
           </button>
         )}
       </div>
@@ -89,7 +92,7 @@ export function InquiryTab({ product }: { product: Product }) {
                 value={question}
                 onChange={(e) => setQuestion(e.target.value)}
                 rows={3}
-                placeholder="상품에 대해 궁금한 점을 남겨주세요."
+                placeholder={messages.inquiry.writePlaceholder}
                 className="border border-border px-2.5 py-2 text-sm outline-none"
               />
               {error && <p className="text-xs text-red-600">{error}</p>}
@@ -100,23 +103,23 @@ export function InquiryTab({ product }: { product: Product }) {
                   disabled={submitting}
                   className="h-9 bg-primary px-4 text-xs font-bold text-white disabled:bg-border"
                 >
-                  {submitting ? "등록 중..." : "등록"}
+                  {submitting ? messages.review.submitting : messages.review.submit}
                 </button>
                 <button type="button" onClick={() => setShowForm(false)} className="h-9 border border-border px-4 text-xs text-text-secondary">
-                  취소
+                  {messages.review.cancel}
                 </button>
               </div>
             </>
           ) : (
-            <p className="text-xs text-text-secondary">로그인 후 문의를 작성할 수 있습니다.</p>
+            <p className="text-xs text-text-secondary">{messages.inquiry.loginRequired}</p>
           )}
         </div>
       )}
 
       <div className="flex flex-col">
-        {loading && <p className="py-10 text-center text-sm text-text-secondary">불러오는 중...</p>}
+        {loading && <p className="py-10 text-center text-sm text-text-secondary">{messages.common.loading}</p>}
         {!loading && inquiryList.length === 0 && (
-          <p className="py-10 text-center text-sm text-text-secondary">등록된 문의가 없습니다.</p>
+          <p className="py-10 text-center text-sm text-text-secondary">{messages.inquiry.empty}</p>
         )}
         {inquiryList.map((inquiry) => (
           <div key={inquiry.id} className="border-t border-border py-4 first:border-t-0">
@@ -127,10 +130,10 @@ export function InquiryTab({ product }: { product: Product }) {
                   inquiry.status === "ANSWERED" ? "border-primary bg-primary-light text-primary" : "border-border text-text-secondary"
                 )}
               >
-                {inquiry.status === "ANSWERED" ? "답변완료" : "답변대기"}
+                {inquiry.status === "ANSWERED" ? messages.inquiry.answered : messages.inquiry.waiting}
               </span>
               <span className="text-xs text-text-secondary">
-                {isReal ? new Date(inquiry.createdAt).toLocaleDateString("ko-KR") : inquiry.createdAt}
+                {isReal ? formatDate(inquiry.createdAt, market.locale) : inquiry.createdAt}
               </span>
             </div>
             <p className="mt-2 text-sm text-text-main">{inquiry.question}</p>

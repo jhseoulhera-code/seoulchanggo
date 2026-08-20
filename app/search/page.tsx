@@ -1,34 +1,30 @@
-import { PackageSearch, Search } from "lucide-react";
 import { PageContainer } from "@/components/common/PageContainer";
 import { BottomNav } from "@/components/layout/BottomNav";
-import { ListHeader } from "@/components/layout/ListHeader";
 import { SearchResultsClient } from "@/components/product/SearchResultsClient";
-import { ProductGrid } from "@/components/product/ProductGrid";
+import { SearchEmptyState } from "@/components/product/SearchEmptyState";
+import { SearchPromptState } from "@/components/product/SearchPromptState";
+import { SearchResultsHeader } from "@/components/product/SearchResultsHeader";
 import { parseSearchParams } from "@/lib/search/params";
 import { getBestProducts, searchProducts } from "@/lib/repositories/products";
+import type { Metadata } from "next";
 
 const SEARCH_FETCH_SIZE = 24;
 const MAX_PAGES = 5;
+
+/** See app/product/[id]/page.tsx for why this is always ko-default. */
+export async function generateMetadata(props: PageProps<"/search">): Promise<Metadata> {
+  const rawParams = await props.searchParams;
+  const queryState = parseSearchParams(rawParams);
+  if (!queryState.q) return { title: "검색 | 서울창고" };
+  return { title: `"${queryState.q}" 검색결과 | 서울창고` };
+}
 
 export default async function SearchPage(props: PageProps<"/search">) {
   const rawParams = await props.searchParams;
   const queryState = parseSearchParams(rawParams);
 
   if (!queryState.q) {
-    return (
-      <>
-        <ListHeader title="검색" />
-        <main className="pb-24 md:pb-10">
-          <PageContainer>
-            <div className="flex flex-col items-center gap-3 py-24 text-center">
-              <Search size={36} className="text-text-secondary" />
-              <p className="text-sm text-text-secondary">검색어를 입력해주세요.</p>
-            </div>
-          </PageContainer>
-        </main>
-        <BottomNav />
-      </>
-    );
+    return <SearchPromptState />;
   }
 
   const pageSize = SEARCH_FETCH_SIZE * Math.min(queryState.page, MAX_PAGES);
@@ -45,34 +41,12 @@ export default async function SearchPage(props: PageProps<"/search">) {
   ]);
 
   if (result.products.length === 0) {
-    return (
-      <>
-        <ListHeader title="검색결과" />
-        <main className="pb-24 md:pb-10">
-          <PageContainer className="flex flex-col">
-            <div className="flex flex-col items-center gap-2 py-16 text-center">
-              <PackageSearch size={36} className="text-text-secondary" />
-              <p className="text-sm text-text-main">
-                <strong>&quot;{queryState.q}&quot;</strong> 검색 결과가 없습니다.
-              </p>
-            </div>
-
-            {recommendedProducts.length > 0 && (
-              <section className="mt-4 border-t border-border pt-6">
-                <h2 className="mb-3 text-sm font-bold text-text-main">이런 상품은 어떠세요?</h2>
-                <ProductGrid products={recommendedProducts} />
-              </section>
-            )}
-          </PageContainer>
-        </main>
-        <BottomNav />
-      </>
-    );
+    return <SearchEmptyState query={queryState.q} recommendedProducts={recommendedProducts} />;
   }
 
   return (
     <>
-      <ListHeader title="검색결과" />
+      <SearchResultsHeader />
       <main className="pb-24 md:pb-10">
         <PageContainer className="flex flex-col">
           <SearchResultsClient products={result.products} queryState={queryState} recommendedProducts={recommendedProducts} />

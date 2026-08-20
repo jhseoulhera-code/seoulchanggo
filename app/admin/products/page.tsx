@@ -90,7 +90,14 @@ export default async function AdminProductsPage(props: { searchParams: Promise<S
                         </div>
                       </td>
                       <td className="px-3 py-2 text-text-secondary">{product.sku}</td>
-                      <td className="px-3 py-2 text-text-main">{product.nameKo}</td>
+                      <td className="px-3 py-2 text-text-main">
+                        {product.nameKo}
+                        {!product.hasEnglishName && (
+                          <span className="ml-1.5 border border-amber-400 bg-amber-50 px-1 py-0.5 text-[10px] font-bold text-amber-700">
+                            EN 번역 없음
+                          </span>
+                        )}
+                      </td>
                       <td className="px-3 py-2 text-text-secondary">{product.brand ?? "-"}</td>
                       <td className="px-3 py-2 text-text-secondary">{product.categoryName}</td>
                       <td className="px-3 py-2 text-text-secondary">{SUPPLY_TYPE_LABEL[product.supplyType]}</td>

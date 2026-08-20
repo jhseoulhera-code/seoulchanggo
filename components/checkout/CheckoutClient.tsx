@@ -156,33 +156,33 @@ export function CheckoutClient({ products }: CheckoutClientProps) {
   function validate(): boolean {
     const nextErrors: Record<string, string> = {};
 
-    if (!isNonEmpty(customer.name)) nextErrors.customerName = "이름을 입력해주세요.";
+    if (!isNonEmpty(customer.name)) nextErrors.customerName = messages.validation.required;
     const customerPhoneValid =
       market.countryCode === "KR" ? isValidKrPhone(customer.phone) : isValidInPhone(customer.phone);
-    if (!customerPhoneValid) nextErrors.customerPhone = "휴대폰 번호 형식을 확인해주세요.";
-    if (!isValidEmail(customer.email)) nextErrors.customerEmail = "이메일 형식을 확인해주세요.";
+    if (!customerPhoneValid) nextErrors.customerPhone = messages.validation.invalidPhone;
+    if (!isValidEmail(customer.email)) nextErrors.customerEmail = messages.auth.invalidEmail;
 
     if (address.country === "KR") {
-      if (!isNonEmpty(address.recipientName)) nextErrors.recipientName = "수령인 이름을 입력해주세요.";
-      if (!isValidKrPhone(address.phone)) nextErrors.phone = "휴대폰 번호 형식을 확인해주세요.";
-      if (!isValidKrPostcode(address.postcode)) nextErrors.postcode = "우편번호 5자리를 입력해주세요.";
-      if (!isNonEmpty(address.address)) nextErrors.address = "주소를 입력해주세요.";
-      if (!isNonEmpty(address.addressDetail)) nextErrors.addressDetail = "상세주소를 입력해주세요.";
+      if (!isNonEmpty(address.recipientName)) nextErrors.recipientName = messages.validation.required;
+      if (!isValidKrPhone(address.phone)) nextErrors.phone = messages.validation.invalidPhone;
+      if (!isValidKrPostcode(address.postcode)) nextErrors.postcode = messages.validation.invalidPostcode;
+      if (!isNonEmpty(address.address)) nextErrors.address = messages.validation.required;
+      if (!isNonEmpty(address.addressDetail)) nextErrors.addressDetail = messages.validation.required;
     } else {
-      if (!isNonEmpty(address.fullName)) nextErrors.fullName = "Please enter your full name.";
-      if (!isValidInPhone(address.mobileNumber)) nextErrors.mobileNumber = "Please check the mobile number.";
-      if (!isNonEmpty(address.addressLine1)) nextErrors.addressLine1 = "Please enter address line 1.";
-      if (!isNonEmpty(address.city)) nextErrors.city = "Please enter a city.";
-      if (!isNonEmpty(address.state)) nextErrors.state = "Please select a state.";
-      if (!isValidInPincode(address.pinCode)) nextErrors.pinCode = "Please check the PIN code.";
+      if (!isNonEmpty(address.fullName)) nextErrors.fullName = messages.validation.required;
+      if (!isValidInPhone(address.mobileNumber)) nextErrors.mobileNumber = messages.validation.invalidPhone;
+      if (!isNonEmpty(address.addressLine1)) nextErrors.addressLine1 = messages.validation.required;
+      if (!isNonEmpty(address.city)) nextErrors.city = messages.validation.required;
+      if (!isNonEmpty(address.state)) nextErrors.state = messages.validation.required;
+      if (!isValidInPincode(address.pinCode)) nextErrors.pinCode = messages.validation.invalidPostcode;
     }
 
     if (needsCustomsCode && !isValidCustomsCode(customsCode)) {
-      nextErrors.customsCode = "개인통관고유부호 형식을 확인해주세요. (예: P123456789012)";
+      nextErrors.customsCode = messages.validation.customsCodeInvalid;
     }
 
-    if (!paymentMethod) nextErrors.paymentMethod = "결제수단을 선택해주세요.";
-    if (!agreed) nextErrors.agreement = "필수 약관에 동의해주세요.";
+    if (!paymentMethod) nextErrors.paymentMethod = messages.validation.paymentMethodRequired;
+    if (!agreed) nextErrors.agreement = messages.auth.termsRequired;
 
     setErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
@@ -242,7 +242,7 @@ export function CheckoutClient({ products }: CheckoutClientProps) {
     const prepared = await prepareResponse.json();
     if (!prepared.ok) {
       setSubmitting(false);
-      setPaymentFailure({ orderId: dbOrderId, orderNumber, message: prepared.error ?? "결제를 준비하지 못했습니다." });
+      setPaymentFailure({ orderId: dbOrderId, orderNumber, message: prepared.error ?? messages.payment.prepareFailed });
       return;
     }
 
@@ -264,7 +264,7 @@ export function CheckoutClient({ products }: CheckoutClientProps) {
       setPaymentFailure({
         orderId: dbOrderId,
         orderNumber,
-        message: confirmed.failureMessage ?? confirmed.error ?? "결제에 실패했습니다.",
+        message: confirmed.failureMessage ?? confirmed.error ?? messages.payment.confirmFailed,
       });
       return;
     }
@@ -311,9 +311,9 @@ export function CheckoutClient({ products }: CheckoutClientProps) {
         setSubmitting(false);
         const message =
           result.error === "COUPON_INVALID"
-            ? "쿠폰을 적용할 수 없습니다. 다시 확인해주세요."
+            ? messages.coupon.applyFailed
             : result.error === "POINTS_INVALID"
-              ? "포인트 사용 조건을 확인해주세요."
+              ? messages.points.conditionError
               : messages.checkout.orderFailed;
         setToast({ message, tone: "error" });
         return;

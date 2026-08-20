@@ -13,25 +13,21 @@ type CustomerFormProps = {
 };
 
 export function CustomerForm({ market, customer, errors, onChange }: CustomerFormProps) {
-  const isKr = market.countryCode === "KR";
   const messages = getMessages(market.locale);
-  const labels = isKr
-    ? { name: "이름", phone: "휴대폰 번호", email: "이메일" }
-    : { name: "Full Name", phone: "Mobile Number", email: "Email" };
 
   return (
     <section className="flex flex-col gap-3">
       <h2 className="text-sm font-bold text-text-main">{messages.checkout.customerSection}</h2>
-      <FormField label={labels.name} value={customer.name} onChange={(v) => onChange("name", v)} error={errors.name} />
+      <FormField label={messages.customer.name} value={customer.name} onChange={(v) => onChange("name", v)} error={errors.name} />
       <FormField
-        label={labels.phone}
+        label={messages.customer.phone}
         value={customer.phone}
         onChange={(v) => onChange("phone", v)}
         error={errors.phone}
-        placeholder={isKr ? "010-1234-5678" : "98765 43210"}
+        placeholder={market.countryCode === "KR" ? "010-1234-5678" : "98765 43210"}
       />
       <FormField
-        label={labels.email}
+        label={messages.customer.email}
         value={customer.email}
         onChange={(v) => onChange("email", v)}
         error={errors.email}

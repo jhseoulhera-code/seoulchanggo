@@ -3,31 +3,14 @@
 import { Check, ChevronDown, SlidersHorizontal } from "lucide-react";
 import { useState } from "react";
 import { BottomSheet } from "@/components/common/BottomSheet";
+import { useMarket } from "@/contexts/MarketContext";
 import { cn } from "@/lib/utils";
+import { getMessages } from "@/messages";
 import type { PriceRangeId, ShippingType, SortOption } from "@/types";
 
-const SHIPPING_OPTIONS: { value: ShippingType; label: string }[] = [
-  { value: "domestic", label: "국내배송" },
-  { value: "overseas_direct", label: "해외직배송" },
-  { value: "overseas_agent", label: "해외구매대행" },
-];
-
-const PRICE_OPTIONS: { value: PriceRangeId; label: string }[] = [
-  { value: "under10k", label: "1만원 이하" },
-  { value: "10kTo30k", label: "1만~3만원" },
-  { value: "30kTo50k", label: "3만~5만원" },
-  { value: "over50k", label: "5만원 이상" },
-];
-
-const SORT_OPTIONS: { value: SortOption; label: string }[] = [
-  { value: "recommended", label: "추천순" },
-  { value: "popular", label: "인기순" },
-  { value: "priceLow", label: "낮은 가격순" },
-  { value: "priceHigh", label: "높은 가격순" },
-  { value: "reviews", label: "리뷰순" },
-];
-
 export function ListToolbar() {
+  const { market } = useMarket();
+  const messages = getMessages(market.locale);
   const [filterOpen, setFilterOpen] = useState(false);
   const [sortOpen, setSortOpen] = useState(false);
 
@@ -36,8 +19,29 @@ export function ListToolbar() {
   const [discountOnly, setDiscountOnly] = useState(false);
   const [sortOption, setSortOption] = useState<SortOption>("recommended");
 
+  const shippingOptions: { value: ShippingType; label: string }[] = [
+    { value: "domestic", label: messages.shipping.domestic },
+    { value: "overseas_direct", label: messages.shipping.overseasDirect },
+    { value: "overseas_agent", label: messages.shipping.overseasAgency },
+  ];
+
+  const priceOptions: { value: PriceRangeId; label: string }[] = [
+    { value: "under10k", label: messages.search.priceUnder10k },
+    { value: "10kTo30k", label: messages.search.price10kTo30k },
+    { value: "30kTo50k", label: messages.search.price30kTo50k },
+    { value: "over50k", label: messages.search.priceOver50k },
+  ];
+
+  const sortOptions: { value: SortOption; label: string }[] = [
+    { value: "recommended", label: messages.search.sortRecommended },
+    { value: "popular", label: messages.search.sortPopular },
+    { value: "priceLow", label: messages.search.sortPriceLow },
+    { value: "priceHigh", label: messages.search.sortPriceHigh },
+    { value: "reviews", label: messages.search.sortReviews },
+  ];
+
   const filterCount = shipping.size + (priceRange ? 1 : 0) + (discountOnly ? 1 : 0);
-  const sortLabel = SORT_OPTIONS.find((option) => option.value === sortOption)?.label;
+  const sortLabel = sortOptions.find((option) => option.value === sortOption)?.label;
 
   function toggleShipping(value: ShippingType) {
     setShipping((prev) => {
@@ -66,7 +70,7 @@ export function ListToolbar() {
           className="flex items-center gap-1.5 border border-border px-3 py-1.5 text-xs font-medium text-text-main"
         >
           <SlidersHorizontal size={13} />
-          필터
+          {messages.search.filter}
           {filterCount > 0 && (
             <span className="flex h-4 min-w-4 items-center justify-center bg-primary px-1 text-[10px] font-bold text-white">
               {filterCount}
@@ -83,12 +87,12 @@ export function ListToolbar() {
         </button>
       </div>
 
-      <BottomSheet open={filterOpen} title="필터" onClose={() => setFilterOpen(false)}>
+      <BottomSheet open={filterOpen} title={messages.search.filter} onClose={() => setFilterOpen(false)} closeLabel={messages.a11y.backButton}>
         <div className="flex flex-col gap-6">
           <div>
-            <h4 className="mb-3 text-xs font-bold text-text-secondary">배송방식</h4>
+            <h4 className="mb-3 text-xs font-bold text-text-secondary">{messages.search.shippingType}</h4>
             <div className="flex flex-col gap-3">
-              {SHIPPING_OPTIONS.map((option) => (
+              {shippingOptions.map((option) => (
                 <label
                   key={option.value}
                   className="flex items-center gap-2 text-sm text-text-main"
@@ -106,9 +110,9 @@ export function ListToolbar() {
           </div>
 
           <div className="border-t border-border pt-5">
-            <h4 className="mb-3 text-xs font-bold text-text-secondary">가격대</h4>
+            <h4 className="mb-3 text-xs font-bold text-text-secondary">{messages.search.priceRange}</h4>
             <div className="flex flex-col gap-3">
-              {PRICE_OPTIONS.map((option) => (
+              {priceOptions.map((option) => (
                 <label
                   key={option.value}
                   className="flex items-center gap-2 text-sm text-text-main"
@@ -134,7 +138,7 @@ export function ListToolbar() {
                 onChange={(event) => setDiscountOnly(event.target.checked)}
                 className="h-4 w-4 accent-primary"
               />
-              할인상품만 보기
+              {messages.search.discountOnly}
             </label>
           </div>
         </div>
@@ -145,21 +149,21 @@ export function ListToolbar() {
             onClick={resetFilters}
             className="flex-1 border border-border py-2.5 text-sm font-medium text-text-main"
           >
-            초기화
+            {messages.search.reset}
           </button>
           <button
             type="button"
             onClick={() => setFilterOpen(false)}
             className="flex-1 bg-primary py-2.5 text-sm font-bold text-white"
           >
-            적용
+            {messages.search.apply}
           </button>
         </div>
       </BottomSheet>
 
-      <BottomSheet open={sortOpen} title="정렬" onClose={() => setSortOpen(false)}>
+      <BottomSheet open={sortOpen} title={messages.search.sort} onClose={() => setSortOpen(false)} closeLabel={messages.a11y.backButton}>
         <div className="flex flex-col">
-          {SORT_OPTIONS.map((option) => {
+          {sortOptions.map((option) => {
             const isActive = option.value === sortOption;
             return (
               <button

@@ -6,12 +6,14 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useMarket } from "@/contexts/MarketContext";
 import { cn } from "@/lib/utils";
+import { getMessages, t } from "@/messages";
 import type { HeroSlide } from "@/types";
 
 const ICONS: Record<string, LucideIcon> = { House, Utensils, PawPrint, Car };
 
 export function MainBannerSlider({ slides }: { slides: HeroSlide[] }) {
   const { market } = useMarket();
+  const messages = getMessages(market.locale);
 
   const visibleSlides = useMemo(() => {
     const filtered = slides.filter(
@@ -87,7 +89,7 @@ export function MainBannerSlider({ slides }: { slides: HeroSlide[] }) {
           <button
             key={item.id}
             type="button"
-            aria-label={`${itemIndex + 1}번째 배너로 이동`}
+            aria-label={t(messages.a11y.goToBanner, { index: itemIndex + 1 })}
             onClick={(event) => {
               event.stopPropagation();
               setActiveIndex(itemIndex);

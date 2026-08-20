@@ -24,9 +24,9 @@ export function AddressForm({ market, address, errors, onChange }: AddressFormPr
     <section className="flex flex-col gap-3">
       <h2 className="text-sm font-bold text-text-main">{messages.checkout.addressSection}</h2>
       {address.country === "KR" ? (
-        <KoreaAddressForm value={address} errors={errors} onChange={onChange} />
+        <KoreaAddressForm value={address} errors={errors} onChange={onChange} locale={market.locale} />
       ) : (
-        <IndiaAddressForm value={address} errors={errors} onChange={onChange} />
+        <IndiaAddressForm value={address} errors={errors} onChange={onChange} locale={market.locale} />
       )}
     </section>
   );

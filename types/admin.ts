@@ -26,6 +26,7 @@ export type AdminProductListItem = {
   sku: string;
   slug: string;
   nameKo: string;
+  hasEnglishName: boolean;
   brand: string | null;
   categoryId: string;
   categoryName: string;
@@ -40,7 +41,8 @@ export type AdminProductListItem = {
 };
 
 export type AdminProductPrice = {
-  marketCode: MarketCodeEnum;
+  /** null for a currency-only price not tied to a shipping Market (STEP 13 USD addendum). */
+  marketCode: MarketCodeEnum | null;
   currencyCode: CurrencyCodeEnum;
   originalPrice: number;
   salePrice: number;

@@ -3,6 +3,8 @@ import { Noto_Sans_KR } from "next/font/google";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
 import { MarketProvider } from "@/contexts/MarketContext";
+import { HtmlLangSync } from "@/components/layout/HtmlLangSync";
+import { getSiteUrl } from "@/lib/seo";
 import "./globals.css";
 
 const notoSansKr = Noto_Sans_KR({
@@ -12,6 +14,7 @@ const notoSansKr = Noto_Sans_KR({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(getSiteUrl()),
   title: "서울창고",
   description: "모바일 퍼스트 공산품 종합 자사몰",
 };
@@ -21,6 +24,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html lang="ko" className={notoSansKr.variable}>
       <body className="font-sans antialiased">
         <MarketProvider>
+          <HtmlLangSync />
           <AuthProvider>
             <CartProvider>{children}</CartProvider>
           </AuthProvider>

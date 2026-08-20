@@ -5,23 +5,9 @@ import { useState } from "react";
 import { BottomSheet } from "@/components/common/BottomSheet";
 import { useMarket } from "@/contexts/MarketContext";
 import { cn } from "@/lib/utils";
+import { getMessages } from "@/messages";
 import type { SearchQueryState } from "@/lib/search/params";
 import type { ShippingType, SortOption } from "@/types";
-
-const SHIPPING_OPTIONS: { value: ShippingType; label: string }[] = [
-  { value: "domestic", label: "국내배송" },
-  { value: "overseas_direct", label: "해외직배송" },
-  { value: "overseas_agent", label: "해외구매대행" },
-];
-
-const SORT_OPTIONS: { value: SortOption; label: string }[] = [
-  { value: "recommended", label: "추천순" },
-  { value: "popular", label: "인기순" },
-  { value: "priceLow", label: "낮은 가격순" },
-  { value: "priceHigh", label: "높은 가격순" },
-  { value: "reviews", label: "리뷰 많은순" },
-  { value: "latest", label: "최신순" },
-];
 
 type SearchFilterSortBarProps = {
   state: SearchQueryState;
@@ -38,6 +24,7 @@ type SearchFilterSortBarProps = {
  */
 export function SearchFilterSortBar({ state, onApply }: SearchFilterSortBarProps) {
   const { market } = useMarket();
+  const messages = getMessages(market.locale);
   const [filterOpen, setFilterOpen] = useState(false);
   const [sortOpen, setSortOpen] = useState(false);
 
@@ -46,8 +33,23 @@ export function SearchFilterSortBar({ state, onApply }: SearchFilterSortBarProps
   const [maxPrice, setMaxPrice] = useState(state.maxPrice != null ? String(state.maxPrice) : "");
   const [discountOnly, setDiscountOnly] = useState(state.discount);
 
+  const shippingOptions: { value: ShippingType; label: string }[] = [
+    { value: "domestic", label: messages.shipping.domestic },
+    { value: "overseas_direct", label: messages.shipping.overseasDirect },
+    { value: "overseas_agent", label: messages.shipping.overseasAgency },
+  ];
+
+  const sortOptions: { value: SortOption; label: string }[] = [
+    { value: "recommended", label: messages.search.sortRecommended },
+    { value: "popular", label: messages.search.sortPopular },
+    { value: "priceLow", label: messages.search.sortPriceLow },
+    { value: "priceHigh", label: messages.search.sortPriceHigh },
+    { value: "reviews", label: messages.search.sortReviews },
+    { value: "latest", label: messages.search.sortLatest },
+  ];
+
   const filterCount = state.shipping.length + (state.minPrice != null || state.maxPrice != null ? 1 : 0) + (state.discount ? 1 : 0);
-  const sortLabel = SORT_OPTIONS.find((option) => option.value === state.sort)?.label;
+  const sortLabel = sortOptions.find((option) => option.value === state.sort)?.label;
 
   function toggleShipping(value: ShippingType) {
     setShipping((prev) => {
@@ -85,7 +87,7 @@ export function SearchFilterSortBar({ state, onApply }: SearchFilterSortBarProps
           className="flex items-center gap-1.5 border border-border px-3 py-1.5 text-xs font-medium text-text-main"
         >
           <SlidersHorizontal size={13} />
-          필터
+          {messages.search.filter}
           {filterCount > 0 && (
             <span className="flex h-4 min-w-4 items-center justify-center bg-primary px-1 text-[10px] font-bold text-white">
               {filterCount}
@@ -102,12 +104,12 @@ export function SearchFilterSortBar({ state, onApply }: SearchFilterSortBarProps
         </button>
       </div>
 
-      <BottomSheet open={filterOpen} title="필터" onClose={() => setFilterOpen(false)}>
+      <BottomSheet open={filterOpen} title={messages.search.filter} onClose={() => setFilterOpen(false)} closeLabel={messages.a11y.backButton}>
         <div className="flex flex-col gap-6">
           <div>
-            <h4 className="mb-3 text-xs font-bold text-text-secondary">배송방식</h4>
+            <h4 className="mb-3 text-xs font-bold text-text-secondary">{messages.search.shippingType}</h4>
             <div className="flex flex-col gap-3">
-              {SHIPPING_OPTIONS.map((option) => (
+              {shippingOptions.map((option) => (
                 <label key={option.value} className="flex items-center gap-2 text-sm text-text-main">
                   <input
                     type="checkbox"
@@ -122,7 +124,7 @@ export function SearchFilterSortBar({ state, onApply }: SearchFilterSortBarProps
           </div>
 
           <div className="border-t border-border pt-5">
-            <h4 className="mb-3 text-xs font-bold text-text-secondary">가격 ({market.currency})</h4>
+            <h4 className="mb-3 text-xs font-bold text-text-secondary">{messages.search.priceRange} ({market.currency})</h4>
             <div className="flex items-center gap-2">
               <input
                 type="number"
@@ -130,7 +132,7 @@ export function SearchFilterSortBar({ state, onApply }: SearchFilterSortBarProps
                 min={0}
                 value={minPrice}
                 onChange={(e) => setMinPrice(e.target.value)}
-                placeholder="최소"
+                placeholder={messages.search.minPrice}
                 className="w-full border border-border px-3 py-2 text-sm outline-none"
               />
               <span className="text-text-secondary">~</span>
@@ -140,7 +142,7 @@ export function SearchFilterSortBar({ state, onApply }: SearchFilterSortBarProps
                 min={0}
                 value={maxPrice}
                 onChange={(e) => setMaxPrice(e.target.value)}
-                placeholder="최대"
+                placeholder={messages.search.maxPrice}
                 className="w-full border border-border px-3 py-2 text-sm outline-none"
               />
             </div>
@@ -154,24 +156,24 @@ export function SearchFilterSortBar({ state, onApply }: SearchFilterSortBarProps
                 onChange={(e) => setDiscountOnly(e.target.checked)}
                 className="h-4 w-4 accent-primary"
               />
-              할인상품만 보기
+              {messages.search.discountOnly}
             </label>
           </div>
         </div>
 
         <div className="mt-6 flex gap-2">
           <button type="button" onClick={handleResetFilters} className="flex-1 border border-border py-2.5 text-sm font-medium text-text-main">
-            초기화
+            {messages.search.reset}
           </button>
           <button type="button" onClick={handleApplyFilters} className="flex-1 bg-primary py-2.5 text-sm font-bold text-white">
-            적용
+            {messages.search.apply}
           </button>
         </div>
       </BottomSheet>
 
-      <BottomSheet open={sortOpen} title="정렬" onClose={() => setSortOpen(false)}>
+      <BottomSheet open={sortOpen} title={messages.search.sort} onClose={() => setSortOpen(false)} closeLabel={messages.a11y.backButton}>
         <div className="flex flex-col">
-          {SORT_OPTIONS.map((option) => {
+          {sortOptions.map((option) => {
             const isActive = option.value === state.sort;
             return (
               <button

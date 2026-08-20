@@ -1,20 +1,22 @@
+"use client";
+
 import { SHIPPING_INFO } from "@/data/shippingInfo";
+import { useMarket } from "@/contexts/MarketContext";
+import { getMessages } from "@/messages";
 import type { Product } from "@/types";
 
-type ShippingExchangeTabProps = {
-  product: Product;
-};
-
-export function ShippingExchangeTab({ product }: ShippingExchangeTabProps) {
+export function ShippingExchangeTab({ product }: { product: Product }) {
+  const { market } = useMarket();
+  const messages = getMessages(market.locale);
   const info = SHIPPING_INFO[product.shippingType];
-  const feeLine = product.freeShipping ? "무료배송" : info.defaultFee;
+  const feeLine = product.freeShipping ? messages.product.freeShipping : info.defaultFee[market.locale];
 
   const rows = [
-    { label: "배송방식", value: `${info.title} · ${info.methodNote}` },
-    { label: "배송기간", value: info.eta },
-    { label: "배송비", value: feeLine },
-    { label: "교환 조건", value: "상품 수령 후 7일 이내, 미사용 상품에 한해 교환 가능합니다." },
-    { label: "반품 조건", value: "상품 수령 후 7일 이내 신청 가능하며, 왕복 배송비는 사유에 따라 상이합니다." },
+    { label: messages.shippingExchange.shippingMethod, value: `${info.title[market.locale]} · ${info.methodNote[market.locale]}` },
+    { label: messages.shippingExchange.shippingPeriod, value: info.eta[market.locale] },
+    { label: messages.shippingExchange.shippingFee, value: feeLine },
+    { label: messages.shippingExchange.exchangeCondition, value: messages.shippingExchange.exchangeConditionValue },
+    { label: messages.shippingExchange.returnCondition, value: messages.shippingExchange.returnConditionValue },
   ];
 
   return (
@@ -28,20 +30,16 @@ export function ShippingExchangeTab({ product }: ShippingExchangeTabProps) {
 
       {product.shippingType === "overseas_direct" && (
         <div className="border-t border-border py-3">
-          <p className="mb-1 text-xs font-bold text-text-secondary">해외직배송 주의사항</p>
-          <p className="text-xs leading-relaxed text-text-secondary">
-            해외 현지에서 직접 출고되는 상품으로 통관 절차에 따라 배송이 지연될 수 있으며, 관세가
-            발생할 수 있습니다. 단순 변심에 의한 반품 시 왕복 국제배송비가 발생합니다.
-          </p>
+          <p className="mb-1 text-xs font-bold text-text-secondary">{messages.shippingExchange.overseasDirectNoticeTitle}</p>
+          <p className="text-xs leading-relaxed text-text-secondary">{messages.shippingExchange.overseasDirectNoticeBody}</p>
         </div>
       )}
 
-      {product.shippingType === "overseas_agent" && (
+      {product.shippingType === "overseas_agent" && info.agencyNotice && (
         <div className="border-t border-border py-3">
-          <p className="mb-1 text-xs font-bold text-text-secondary">해외구매대행 주의사항</p>
+          <p className="mb-1 text-xs font-bold text-text-secondary">{messages.shippingExchange.overseasAgencyNoticeTitle}</p>
           <p className="text-xs leading-relaxed text-text-secondary">
-            {info.agencyNotice} 통관 시 개인통관고유부호가 필요하며, 주문 확정 후에는 현지 발주
-            특성상 취소·변경이 제한될 수 있습니다.
+            {info.agencyNotice[market.locale]} {messages.shippingExchange.overseasAgencyNoticeSuffix}
           </p>
         </div>
       )}

@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import { ProductImagePlaceholder } from "@/components/product/ProductImagePlaceholder";
+import { useMarket } from "@/contexts/MarketContext";
 import { cn } from "@/lib/utils";
+import { getMessages, t } from "@/messages";
 import type { Product } from "@/types";
 
 type ProductGalleryProps = {
@@ -17,6 +19,8 @@ export function ProductGallery({ product }: ProductGalleryProps) {
       ? product.images
       : Array.from({ length: DEFAULT_SLIDE_COUNT }, () => "");
   const [activeIndex, setActiveIndex] = useState(0);
+  const { market } = useMarket();
+  const messages = getMessages(market.locale);
 
   return (
     <div>
@@ -39,7 +43,7 @@ export function ProductGallery({ product }: ProductGalleryProps) {
               key={index}
               type="button"
               onClick={() => setActiveIndex(index)}
-              aria-label={`${index + 1}번째 이미지 보기`}
+              aria-label={t(messages.a11y.viewImageAt, { index: index + 1 })}
               className={cn(
                 "h-14 w-14 flex-shrink-0 overflow-hidden border",
                 index === activeIndex ? "border-primary" : "border-border"

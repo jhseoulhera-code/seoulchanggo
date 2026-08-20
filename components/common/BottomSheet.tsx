@@ -9,9 +9,10 @@ type BottomSheetProps = {
   title: string;
   onClose: () => void;
   children: ReactNode;
+  closeLabel?: string;
 };
 
-export function BottomSheet({ open, title, onClose, children }: BottomSheetProps) {
+export function BottomSheet({ open, title, onClose, children, closeLabel = "닫기" }: BottomSheetProps) {
   if (!open || typeof document === "undefined") return null;
 
   return createPortal(
@@ -26,7 +27,7 @@ export function BottomSheet({ open, title, onClose, children }: BottomSheetProps
           <h3 className="text-sm font-bold text-text-main">{title}</h3>
           <button
             type="button"
-            aria-label="닫기"
+            aria-label={closeLabel}
             onClick={onClose}
             className="text-text-secondary"
           >
