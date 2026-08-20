@@ -53,6 +53,7 @@ export type PaymentAttemptStatusEnum =
   | "PARTIALLY_REFUNDED"
   | "REFUNDED";
 export type PaymentProviderEnum = "KOREA_PG" | "INDIA_PG" | "GLOBAL_PG" | "MOCK";
+export type SearchKeywordTypeEnum = "POPULAR" | "RECOMMENDED";
 
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
@@ -426,6 +427,38 @@ export type PaymentRefundRow = {
   created_at: string;
 };
 
+export type SearchKeywordRow = {
+  id: string;
+  keyword: string;
+  type: SearchKeywordTypeEnum;
+  market_code: MarketCodeEnum | null;
+  locale: LocaleCodeEnum | null;
+  sort_order: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type SearchEventRow = {
+  id: string;
+  user_id: string | null;
+  session_id: string | null;
+  query: string;
+  normalized_query: string;
+  market_code: MarketCodeEnum;
+  locale: LocaleCodeEnum;
+  result_count: number;
+  created_at: string;
+};
+
+export type SearchClickEventRow = {
+  id: string;
+  search_event_id: string;
+  product_id: string;
+  position: number;
+  created_at: string;
+};
+
 export type Database = {
   public: {
     Tables: {
@@ -497,6 +530,17 @@ export type Database = {
       payments: Table<PaymentRow, never, never>;
       payment_events: Table<PaymentEventRow, never, never>;
       payment_refunds: Table<PaymentRefundRow, never, never>;
+      search_keywords: Table<
+        SearchKeywordRow,
+        Omit<SearchKeywordRow, "id" | "created_at" | "updated_at"> & { id?: string },
+        Partial<SearchKeywordRow>
+      >;
+      search_events: Table<SearchEventRow, Omit<SearchEventRow, "id" | "created_at"> & { id?: string }, never>;
+      search_click_events: Table<
+        SearchClickEventRow,
+        Omit<SearchClickEventRow, "id" | "created_at"> & { id?: string },
+        never
+      >;
     };
     Functions: {
       create_order: {

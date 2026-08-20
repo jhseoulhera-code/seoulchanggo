@@ -1,8 +1,9 @@
 "use client";
 
-import { Camera, Menu, Search, ShoppingCart, User } from "lucide-react";
+import { Camera, Menu, ShoppingCart, User } from "lucide-react";
 import Link from "next/link";
 import { PageContainer } from "@/components/common/PageContainer";
+import { HeaderSearchBox } from "@/components/layout/HeaderSearchBox";
 import { MarketSelector } from "@/components/layout/MarketSelector";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
@@ -47,20 +48,14 @@ export function Header() {
         </div>
 
         <div className="flex items-center gap-2 pb-3 md:max-w-xl">
+          <HeaderSearchBox />
           <Link
-            href="/search"
-            className="flex flex-1 items-center gap-2 rounded-full border border-border bg-white px-4 py-3"
-          >
-            <Search size={19} className="shrink-0 text-text-secondary" />
-            <span className="text-[15px] text-text-secondary">상품을 검색해보세요</span>
-          </Link>
-          <button
-            type="button"
+            href="/search/image"
             aria-label="이미지로 검색"
-            className="flex h-11 w-11 flex-shrink-0 cursor-not-allowed items-center justify-center rounded-full border border-border text-text-secondary"
+            className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full border border-border text-text-secondary"
           >
             <Camera size={19} />
-          </button>
+          </Link>
         </div>
       </PageContainer>
     </header>

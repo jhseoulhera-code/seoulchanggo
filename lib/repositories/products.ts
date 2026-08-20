@@ -7,6 +7,7 @@ import {
   overseasProducts as staticOverseasProducts,
   searchProducts as staticSearchProducts,
 } from "@/data/products";
+import { escapeIlikePattern, normalizeSearchQuery } from "@/lib/search/normalize";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import type {
@@ -16,7 +17,7 @@ import type {
   ProductShippingMarketRow,
   ShippingTypeEnum,
 } from "@/types/database";
-import type { Product, ProductOptionGroup, ShippingType } from "@/types";
+import type { Product, ProductOptionGroup, ShippingType, SortOption } from "@/types";
 import type { CountryCode, OriginCountryCode } from "@/types/market";
 
 const SHIPPING_LABEL: Record<ShippingType, string> = {
@@ -135,36 +136,106 @@ export async function getProductsByCategory(categoryId: string): Promise<Product
     .filter((product) => product.category === categoryId);
 }
 
-export async function searchProducts(query: string): Promise<Product[]> {
-  if (!isSupabaseConfigured()) return staticSearchProducts(query);
+const SHIPPING_TYPE_TO_DB: Record<ShippingType, ShippingTypeEnum> = {
+  domestic: "DOMESTIC",
+  overseas_direct: "OVERSEAS_DIRECT",
+  overseas_agent: "OVERSEAS_AGENCY",
+};
 
-  const normalized = query.trim();
-  const supabase = await createClient();
+const DEFAULT_SEARCH_PAGE_SIZE = 24;
+
+export type SearchFilters = {
+  q?: string;
+  category?: string;
+  shipping?: ShippingType[];
+  sort?: SortOption;
+  page?: number;
+  pageSize?: number;
+};
+
+export type SearchResult = {
+  products: Product[];
+  totalCount: number;
+  hasMore: boolean;
+};
+
+/**
+ * STEP 12: real DB text search + server-side filters/sort/pagination.
+ * Deliberately never falls back to showing unrelated products when nothing
+ * matches (the STEP 03 dummy fallback this replaced did exactly that) —
+ * an empty match is reported as zero results; app/search/page.tsx shows a
+ * clearly-separate "이런 상품은 어떠세요?" recommendation section instead
+ * (reusing getBestProducts(), not a second search implementation).
+ *
+ * minPrice/maxPrice/discount-only filtering and priceLow/priceHigh sorting
+ * are NOT done here — price is Market-dependent and Market has no
+ * server-side representation anywhere in this app (see
+ * contexts/MarketContext.tsx). Those are applied client-side in
+ * components/product/SearchResultsClient.tsx, same as every other listing
+ * page in this app already resolves market pricing client-side.
+ */
+export async function searchProducts(filters: SearchFilters = {}): Promise<SearchResult> {
+  const normalized = normalizeSearchQuery(filters.q ?? "");
+  const page = Math.max(1, filters.page ?? 1);
+  const pageSize = filters.pageSize ?? DEFAULT_SEARCH_PAGE_SIZE;
 
   if (!normalized) {
-    const { data, error } = await supabase.from("products").select(PRODUCT_SELECT).eq("is_active", true).limit(12);
-    if (error) fail("searchProducts", error);
-    return ((data ?? []) as unknown as ProductJoinRow[]).map(mapProductRow);
+    return { products: [], totalCount: 0, hasMore: false };
   }
 
-  // Basic name/brand search per STEP 08 scope — no search engine, no image search.
-  const { data, error } = await supabase
-    .from("products")
-    .select(PRODUCT_SELECT)
-    .eq("is_active", true)
-    .or(`name_ko.ilike.%${normalized}%,brand.ilike.%${normalized}%`);
+  if (!isSupabaseConfigured()) {
+    return staticSearchProducts({ ...filters, q: normalized, page, pageSize });
+  }
+
+  const supabase = await createClient();
+  let query = supabase.from("products").select(PRODUCT_SELECT, { count: "exact" }).eq("is_active", true);
+
+  const pattern = `%${escapeIlikePattern(normalized)}%`;
+  query = query.or(`name_ko.ilike.${pattern},name_en.ilike.${pattern},brand.ilike.${pattern},sku.ilike.${pattern}`);
+
+  if (filters.category) {
+    query = query.eq("categories.slug", filters.category);
+  }
+  if (filters.shipping && filters.shipping.length > 0) {
+    query = query.in(
+      "shipping_type",
+      filters.shipping.map((type) => SHIPPING_TYPE_TO_DB[type])
+    );
+  }
+
+  switch (filters.sort) {
+    case "popular":
+    case "reviews":
+      query = query.order("review_count", { ascending: false }).order("rating", { ascending: false });
+      break;
+    case "latest":
+      query = query.order("created_at", { ascending: false });
+      break;
+    case "priceLow":
+    case "priceHigh":
+      // Market-dependent — SearchResultsClient re-sorts by resolved price client-side;
+      // this keeps a stable, deterministic server order in the meantime.
+      query = query.order("created_at", { ascending: false });
+      break;
+    case "recommended":
+    default:
+      query = query
+        .order("discount_rate", { ascending: false, nullsFirst: false })
+        .order("review_count", { ascending: false });
+      break;
+  }
+
+  const from = (page - 1) * pageSize;
+  const { data, error, count } = await query.range(from, from + pageSize - 1);
   if (error) fail("searchProducts", error);
 
-  const matched = ((data ?? []) as unknown as ProductJoinRow[]).map(mapProductRow);
-  if (matched.length > 0) return matched;
+  // The nested categories.slug filter can still return a null-relation row on some
+  // PostgREST versions, so filter defensively client-side too (matches getProductsByCategory).
+  const rows = ((data ?? []) as unknown as ProductJoinRow[]).map(mapProductRow);
+  const products = filters.category ? rows.filter((product) => product.category === filters.category) : rows;
+  const totalCount = count ?? products.length;
 
-  const { data: fallbackData, error: fallbackError } = await supabase
-    .from("products")
-    .select(PRODUCT_SELECT)
-    .eq("is_active", true)
-    .limit(12);
-  if (fallbackError) fail("searchProducts fallback", fallbackError);
-  return ((fallbackData ?? []) as unknown as ProductJoinRow[]).map(mapProductRow);
+  return { products, totalCount, hasMore: from + products.length < totalCount };
 }
 
 /**

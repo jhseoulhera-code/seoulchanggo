@@ -12,6 +12,7 @@ import type {
   PaymentStatusEnum,
   PointTransactionTypeEnum,
   ReviewStatusEnum,
+  SearchKeywordTypeEnum,
   ShippingGroupStatusEnum,
   ShippingMethodEnum,
   ShippingTypeEnum,
@@ -361,6 +362,16 @@ export type AdminFaq = {
   questionEn: string;
   answerKo: string;
   answerEn: string;
+  sortOrder: number;
+  isActive: boolean;
+};
+
+export type AdminSearchKeyword = {
+  id: string;
+  keyword: string;
+  type: SearchKeywordTypeEnum;
+  marketCode: MarketCodeEnum | null;
+  locale: LocaleCodeEnum | null;
   sortOrder: number;
   isActive: boolean;
 };

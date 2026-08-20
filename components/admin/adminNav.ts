@@ -7,6 +7,7 @@ import {
   Megaphone,
   MessageCircleQuestion,
   Package,
+  Search,
   ShoppingBag,
   Star,
   Ticket,
@@ -53,6 +54,7 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
       { href: "/admin/coupons", label: "쿠폰관리", icon: Ticket },
       { href: "/admin/banners", label: "배너관리", icon: ImageIcon },
       { href: "/admin/promotions", label: "기획전", icon: Megaphone },
+      { href: "/admin/search-keywords", label: "검색어관리", icon: Search },
     ],
   },
   {

@@ -1,4 +1,4 @@
-import type { Product, ShippingType } from "@/types";
+import type { Product, ShippingType, SortOption } from "@/types";
 
 const SHIPPING_LABEL: Record<ShippingType, string> = {
   domestic: "국내출고",
@@ -705,12 +705,54 @@ export function getProductsByCategory(categoryId: string): Product[] {
   return allProducts.filter((product) => product.category === categoryId);
 }
 
-export function searchProducts(query: string): Product[] {
-  const normalized = query.trim().toLowerCase();
-  if (!normalized) return allProducts.slice(0, 12);
+export type SearchFilters = {
+  q: string;
+  category?: string;
+  shipping?: ShippingType[];
+  sort?: SortOption;
+  page?: number;
+  pageSize?: number;
+};
 
-  const matched = allProducts.filter((product) =>
-    product.name.toLowerCase().includes(normalized)
-  );
-  return matched.length > 0 ? matched : allProducts.slice(0, 12);
+export type SearchResult = { products: Product[]; totalCount: number; hasMore: boolean };
+
+/**
+ * Supabase-not-configured fallback. Never pads a non-match with unrelated
+ * products (the STEP 03 behavior this replaces did exactly that) — zero
+ * matches is reported as zero, honestly.
+ */
+export function searchProducts(filters: SearchFilters): SearchResult {
+  const { q, category, shipping, sort, page = 1, pageSize = 24 } = filters;
+  if (!q) return { products: [], totalCount: 0, hasMore: false };
+
+  let matched = allProducts.filter((product) => {
+    const haystack = `${product.name} ${product.brand ?? ""} ${product.category}`.toLowerCase();
+    return haystack.includes(q);
+  });
+
+  if (category) matched = matched.filter((product) => product.category === category);
+  if (shipping && shipping.length > 0) matched = matched.filter((product) => shipping.includes(product.shippingType));
+
+  switch (sort) {
+    case "popular":
+    case "reviews":
+      matched = [...matched].sort((a, b) => b.reviewCount - a.reviewCount || b.rating - a.rating);
+      break;
+    case "priceLow":
+      matched = [...matched].sort((a, b) => a.salePrice - b.salePrice);
+      break;
+    case "priceHigh":
+      matched = [...matched].sort((a, b) => b.salePrice - a.salePrice);
+      break;
+    case "latest":
+    case "recommended":
+    default:
+      matched = [...matched].sort((a, b) => (b.discountRate ?? 0) - (a.discountRate ?? 0) || b.reviewCount - a.reviewCount);
+      break;
+  }
+
+  const totalCount = matched.length;
+  const start = (page - 1) * pageSize;
+  const products = matched.slice(start, start + pageSize);
+  return { products, totalCount, hasMore: start + products.length < totalCount };
 }

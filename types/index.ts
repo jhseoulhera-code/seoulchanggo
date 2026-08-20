@@ -94,7 +94,8 @@ export type SortOption =
   | "popular"
   | "priceLow"
   | "priceHigh"
-  | "reviews";
+  | "reviews"
+  | "latest";
 
 export type PriceRangeId = "under10k" | "10kTo30k" | "30kTo50k" | "over50k";
 
