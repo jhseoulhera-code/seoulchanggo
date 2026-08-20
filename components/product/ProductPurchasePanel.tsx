@@ -84,7 +84,7 @@ export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
     if (!isAvailable || !validateOptions()) return;
 
     setBuyNowItem({ productId: product.id, selectedOptions, quantity });
-    router.push("/checkout");
+    router.push("/checkout?source=buynow");
   }
 
   return (

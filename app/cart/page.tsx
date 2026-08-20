@@ -32,7 +32,7 @@ export default function CartPage() {
     availableIds.every((id) => lines.find((line) => line.cartItem.cartItemId === id)?.cartItem.checked);
 
   function handleCheckout() {
-    router.push("/checkout");
+    router.push("/checkout?source=cart");
   }
 
   return (

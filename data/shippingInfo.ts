@@ -1,4 +1,5 @@
 import type { ShippingType } from "@/types";
+import type { InternationalShippingMethod } from "@/types/market";
 
 export type ShippingInfoConfig = {
   title: string;
@@ -43,4 +44,10 @@ export const ORIGIN_COUNTRY: Record<ShippingType, string> = {
   domestic: "대한민국",
   overseas_direct: "중국 등 해외",
   overseas_agent: "해외 판매처별 상이",
+};
+
+/** Customer-facing label for the international transport mode — never show the raw SEA/AIR code. */
+export const SHIPPING_METHOD_LABEL: Record<InternationalShippingMethod, { ko: string; en: string }> = {
+  SEA: { ko: "해외 일반배송", en: "Standard overseas shipping" },
+  AIR: { ko: "해외 항공배송", en: "Air overseas shipping" },
 };

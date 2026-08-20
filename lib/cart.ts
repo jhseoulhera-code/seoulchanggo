@@ -63,14 +63,23 @@ export function groupLinesByShippingType(
   })).filter((group) => group.lines.length > 0);
 }
 
-export function calculateCartSummary(lines: CartLineView[]): CartSummaryTotals {
-  const selected = lines.filter((line) => line.cartItem.checked && line.isAvailable);
+export type PricedLine = {
+  subtotal: number;
+  discountAmount: number;
+  shippingFee: number;
+};
 
+/** Shared totals arithmetic for anything shaped like a priced line — cart lines and checkout items alike. */
+export function summarizeLines(lines: PricedLine[]): CartSummaryTotals {
   return {
-    itemsTotal: selected.reduce((sum, line) => sum + line.subtotal, 0),
-    discountTotal: selected.reduce((sum, line) => sum + line.discountAmount, 0),
-    shippingTotal: selected.reduce((sum, line) => sum + line.shippingFee, 0),
-    grandTotal: selected.reduce((sum, line) => sum + line.subtotal + line.shippingFee, 0),
-    selectedCount: selected.length,
+    itemsTotal: lines.reduce((sum, line) => sum + line.subtotal, 0),
+    discountTotal: lines.reduce((sum, line) => sum + line.discountAmount, 0),
+    shippingTotal: lines.reduce((sum, line) => sum + line.shippingFee, 0),
+    grandTotal: lines.reduce((sum, line) => sum + line.subtotal + line.shippingFee, 0),
+    selectedCount: lines.length,
   };
+}
+
+export function calculateCartSummary(lines: CartLineView[]): CartSummaryTotals {
+  return summarizeLines(lines.filter((line) => line.cartItem.checked && line.isAvailable));
 }

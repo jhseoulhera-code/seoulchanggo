@@ -1,6 +1,7 @@
 import { ChevronLeft, Heart, Share2 } from "lucide-react";
 import Link from "next/link";
 import { PageContainer } from "@/components/common/PageContainer";
+import { MarketSelector } from "@/components/layout/MarketSelector";
 
 export function DetailHeader() {
   return (
@@ -10,7 +11,8 @@ export function DetailHeader() {
           <Link href="/" aria-label="홈으로" className="text-text-main">
             <ChevronLeft size={22} />
           </Link>
-          <div className="flex items-center gap-4 text-text-main">
+          <div className="flex items-center gap-3 text-text-main">
+            <MarketSelector />
             <button type="button" aria-label="공유하기" className="cursor-not-allowed">
               <Share2 size={19} />
             </button>

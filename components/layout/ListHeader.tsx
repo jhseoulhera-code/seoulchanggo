@@ -3,6 +3,7 @@
 import { ChevronLeft, ShoppingCart } from "lucide-react";
 import Link from "next/link";
 import { PageContainer } from "@/components/common/PageContainer";
+import { MarketSelector } from "@/components/layout/MarketSelector";
 import { useCart } from "@/contexts/CartContext";
 
 type ListHeaderProps = {
@@ -23,16 +24,19 @@ export function ListHeader({ title, hideCartIcon }: ListHeaderProps) {
             </Link>
             <h1 className="text-base font-bold text-text-main">{title}</h1>
           </div>
-          {!hideCartIcon && (
-            <Link href="/cart" aria-label="장바구니" className="relative text-text-main">
-              <ShoppingCart size={21} />
-              {totalQuantity > 0 && (
-                <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-white">
-                  {totalQuantity}
-                </span>
-              )}
-            </Link>
-          )}
+          <div className="flex items-center gap-3">
+            <MarketSelector />
+            {!hideCartIcon && (
+              <Link href="/cart" aria-label="장바구니" className="relative text-text-main">
+                <ShoppingCart size={21} />
+                {totalQuantity > 0 && (
+                  <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-white">
+                    {totalQuantity}
+                  </span>
+                )}
+              </Link>
+            )}
+          </div>
         </div>
       </PageContainer>
     </header>

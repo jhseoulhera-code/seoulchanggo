@@ -37,6 +37,41 @@ export type Messages = {
     checkoutButton: string;
     checkoutPlaceholder: string;
   };
+  checkout: {
+    pageTitle: string;
+    itemsSection: string;
+    customerSection: string;
+    addressSection: string;
+    customsSection: string;
+    customsNotice: string;
+    customsCodeLabel: string;
+    paymentSection: string;
+    agreementText: string;
+    submitButton: string;
+    total: string;
+    blockedTitle: string;
+    backToCart: string;
+    marketChangedNotice: string;
+    emptyTitle: string;
+    couponLabel: string;
+    couponEmpty: string;
+    pointsLabel: string;
+    pointsLoginRequired: string;
+    optionalTag: string;
+  };
+  order: {
+    completeTitle: string;
+    completeMessage: string;
+    orderNumber: string;
+    orderDate: string;
+    total: string;
+    viewOrders: string;
+    lookupTitle: string;
+    lookupOrderId: string;
+    lookupContact: string;
+    lookupSubmit: string;
+    lookupNotFound: string;
+  };
 };
 
 const MESSAGES: Record<LocaleCode, Messages> = { ko, en };

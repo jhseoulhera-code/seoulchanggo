@@ -18,3 +18,8 @@ export function getBuyNowItem(): BuyNowItem | null {
     return null;
   }
 }
+
+export function clearBuyNowItem(): void {
+  if (typeof window === "undefined") return;
+  window.sessionStorage.removeItem(BUY_NOW_STORAGE_KEY);
+}
