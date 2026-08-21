@@ -1,5 +1,6 @@
 import "server-only";
 
+import { escapeIlikePattern, sanitizeForOrFilter } from "@/lib/search/normalize";
 import { createClient } from "@/lib/supabase/server";
 import type {
   ProductImageRow,
@@ -28,7 +29,7 @@ const LOW_STOCK_THRESHOLD = 5;
 
 type ProductListRow = ProductRow & {
   categories: { name_ko: string } | null;
-  product_prices: Pick<ProductPriceRow, "market_code" | "sale_price">[];
+  product_prices: Pick<ProductPriceRow, "market_code" | "currency_code" | "sale_price">[];
   product_images: Pick<ProductImageRow, "image_url" | "is_primary" | "sort_order">[];
 };
 
@@ -36,11 +37,14 @@ export async function listAdminProducts(filters: AdminProductFilters = {}): Prom
   const supabase = await createClient();
   let query = supabase
     .from("products")
-    .select("*, categories(name_ko), product_prices(market_code, sale_price), product_images(image_url, is_primary, sort_order)")
+    .select(
+      "*, categories(name_ko), product_prices(market_code, currency_code, sale_price), product_images(image_url, is_primary, sort_order)"
+    )
     .order("created_at", { ascending: false });
 
   if (filters.q) {
-    query = query.or(`name_ko.ilike.%${filters.q}%,sku.ilike.%${filters.q}%,brand.ilike.%${filters.q}%`);
+    const pattern = `%${escapeIlikePattern(sanitizeForOrFilter(filters.q))}%`;
+    query = query.or(`name_ko.ilike.${pattern},sku.ilike.${pattern},brand.ilike.${pattern}`);
   }
   if (filters.categoryId) query = query.eq("category_id", filters.categoryId);
   if (filters.supplyType) query = query.eq("supply_type", filters.supplyType);
@@ -63,6 +67,7 @@ export async function listAdminProducts(filters: AdminProductFilters = {}): Prom
   return rows.map((row) => {
     const krPrice = row.product_prices.find((p) => p.market_code === "KR");
     const inPrice = row.product_prices.find((p) => p.market_code === "IN");
+    const usdPrice = row.product_prices.find((p) => p.market_code === null && p.currency_code === "USD");
     const sortedImages = [...row.product_images].sort((a, b) => a.sort_order - b.sort_order);
     const primary = sortedImages.find((image) => image.is_primary) ?? sortedImages[0];
     return {
@@ -71,6 +76,7 @@ export async function listAdminProducts(filters: AdminProductFilters = {}): Prom
       slug: row.slug,
       nameKo: row.name_ko,
       hasEnglishName: Boolean(row.name_en?.trim()),
+      hasUsdPrice: Boolean(usdPrice && usdPrice.sale_price > 0),
       brand: row.brand,
       categoryId: row.category_id,
       categoryName: row.categories?.name_ko ?? "-",
@@ -91,10 +97,11 @@ export type AdminProductPickerItem = { id: string; nameKo: string; sku: string }
 export async function searchAdminProductsForPicker(query: string): Promise<AdminProductPickerItem[]> {
   if (!query.trim()) return [];
   const supabase = await createClient();
+  const pattern = `%${escapeIlikePattern(sanitizeForOrFilter(query))}%`;
   const { data, error } = await supabase
     .from("products")
     .select("id, name_ko, sku")
-    .or(`name_ko.ilike.%${query}%,sku.ilike.%${query}%`)
+    .or(`name_ko.ilike.${pattern},sku.ilike.${pattern}`)
     .limit(10);
   if (error) fail("searchAdminProductsForPicker", error);
   return ((data ?? []) as unknown as { id: string; name_ko: string; sku: string }[]).map((row) => ({

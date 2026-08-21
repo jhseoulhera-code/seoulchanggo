@@ -4,6 +4,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
 import { MarketProvider } from "@/contexts/MarketContext";
 import { HtmlLangSync } from "@/components/layout/HtmlLangSync";
+import { ProductionConfigBanner } from "@/components/layout/ProductionConfigBanner";
 import { getSiteUrl } from "@/lib/seo";
 import "./globals.css";
 
@@ -23,6 +24,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="ko" className={notoSansKr.variable}>
       <body className="font-sans antialiased">
+        <ProductionConfigBanner />
         <MarketProvider>
           <HtmlLangSync />
           <AuthProvider>

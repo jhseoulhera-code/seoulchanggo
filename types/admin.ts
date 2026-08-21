@@ -27,6 +27,7 @@ export type AdminProductListItem = {
   slug: string;
   nameKo: string;
   hasEnglishName: boolean;
+  hasUsdPrice: boolean;
   brand: string | null;
   categoryId: string;
   categoryName: string;

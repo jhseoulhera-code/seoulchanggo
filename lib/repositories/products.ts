@@ -7,7 +7,7 @@ import {
   overseasProducts as staticOverseasProducts,
   searchProducts as staticSearchProducts,
 } from "@/data/products";
-import { escapeIlikePattern, normalizeSearchQuery } from "@/lib/search/normalize";
+import { escapeIlikePattern, normalizeSearchQuery, sanitizeForOrFilter } from "@/lib/search/normalize";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import type {
@@ -194,7 +194,7 @@ export async function searchProducts(filters: SearchFilters = {}): Promise<Searc
   const supabase = await createClient();
   let query = supabase.from("products").select(PRODUCT_SELECT, { count: "exact" }).eq("is_active", true);
 
-  const pattern = `%${escapeIlikePattern(normalized)}%`;
+  const pattern = `%${escapeIlikePattern(sanitizeForOrFilter(normalized))}%`;
   query = query.or(`name_ko.ilike.${pattern},name_en.ilike.${pattern},brand.ilike.${pattern},sku.ilike.${pattern}`);
 
   if (filters.category) {

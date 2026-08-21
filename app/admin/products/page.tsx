@@ -107,6 +107,11 @@ export default async function AdminProductsPage(props: { searchParams: Promise<S
                       </td>
                       <td className="px-3 py-2 text-text-main">
                         {product.inPrice !== null ? formatCurrency(product.inPrice, "INR") : "-"}
+                        {!product.hasUsdPrice && (
+                          <span className="ml-1.5 border border-amber-400 bg-amber-50 px-1 py-0.5 text-[10px] font-bold text-amber-700">
+                            USD 가격 미설정
+                          </span>
+                        )}
                       </td>
                       <td className="px-3 py-2 text-text-main">
                         {product.stockType === "TRACKED" ? `${product.stockQuantity}개` : "재고 무제한"}

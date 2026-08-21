@@ -6,6 +6,13 @@ export const ko: Messages = {
     backToHome: "홈으로",
     loading: "불러오는 중...",
   },
+  footer: {
+    terms: "이용약관",
+    privacy: "개인정보처리방침",
+    shippingPolicy: "배송정책",
+    returnPolicy: "교환/반품정책",
+    businessInfoPlaceholder: "사업자 정보는 아직 등록되지 않았습니다. (실서비스 오픈 전 운영자 입력 필요)",
+  },
   home: {
     bestProducts: "베스트 상품",
     discountProducts: "할인상품",
@@ -108,6 +115,7 @@ export const ko: Messages = {
     loginHint: "로그인하면 정보를 더 편리하게 관리할 수 있습니다.",
     loginLink: "로그인",
     orderFailed: "주문 처리 중 오류가 발생했습니다. 다시 시도해주세요.",
+    priceNotReady: "선택하신 통화의 가격이 아직 준비되지 않았습니다. 다른 통화를 선택하거나 잠시 후 다시 시도해주세요.",
   },
   order: {
     completeTitle: "주문이 완료되었습니다",

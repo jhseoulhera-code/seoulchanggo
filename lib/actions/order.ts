@@ -35,7 +35,7 @@ export type CreateOrderActionInput = {
 
 export type CreateOrderActionResult =
   | { ok: true; orderId: string }
-  | { ok: false; error: "PRICE_MISMATCH" | "COUPON_INVALID" | "POINTS_INVALID" | "UNKNOWN" };
+  | { ok: false; error: "PRICE_MISMATCH" | "PRICE_NOT_READY" | "COUPON_INVALID" | "POINTS_INVALID" | "UNKNOWN" };
 
 const PRICE_TOLERANCE = 1;
 
@@ -105,6 +105,16 @@ export async function createOrderAction(input: CreateOrderActionInput): Promise<
       Math.abs(expectedShippingFee - item.shippingFee) > PRICE_TOLERANCE
     ) {
       return { ok: false, error: "PRICE_MISMATCH" };
+    }
+
+    // STEP 14 production policy: DEV_EXCHANGE_RATES (lib/currency.ts) is a
+    // placeholder for a real exchange-rate source and must never be the
+    // basis of a real charge — only an admin-entered price for the order's
+    // own currency (product_prices.currency_code) may be sold in
+    // production. Development/preview keeps allowing the dev-rate
+    // conversion so currencies without an explicit price stay testable.
+    if (!expectedPrice.isExplicit && process.env.NODE_ENV === "production") {
+      return { ok: false, error: "PRICE_NOT_READY" };
     }
 
     rpcItems.push({

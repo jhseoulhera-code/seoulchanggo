@@ -1,6 +1,7 @@
 import { Header } from "@/components/layout/Header";
 import { QuickNav } from "@/components/layout/QuickNav";
 import { BottomNav } from "@/components/layout/BottomNav";
+import { Footer } from "@/components/layout/Footer";
 import { PageContainer } from "@/components/common/PageContainer";
 import { MainBanner } from "@/components/home/MainBanner";
 import { CategorySection } from "@/components/home/CategorySection";
@@ -25,6 +26,7 @@ export default function Home() {
           <DiscountProducts />
           <PromotionSection />
         </PageContainer>
+        <Footer />
       </main>
       <BottomNav />
     </>

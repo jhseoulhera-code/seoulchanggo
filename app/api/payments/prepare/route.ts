@@ -36,6 +36,10 @@ export async function POST(request: Request) {
 
   const supabase = await createClient();
   const provider = resolveProviderForMarket(body.marketCode);
+  if (!provider) {
+    console.error("[payments/prepare] no payment provider configured for production");
+    return NextResponse.json({ ok: false, error: "결제 서비스가 아직 준비되지 않았습니다." }, { status: 503 });
+  }
 
   const { data, error } = await supabase.rpc("prepare_payment", {
     p_order_id: body.orderId,

@@ -1,5 +1,6 @@
 import "server-only";
 
+import { escapeIlikePattern, sanitizeForOrFilter } from "@/lib/search/normalize";
 import { createClient } from "@/lib/supabase/server";
 import type { OrderItemRow, OrderRow, PaymentRow, ShippingGroupItemRow, ShippingGroupRow } from "@/types/database";
 import type { AdminOrderDetail, AdminOrderListItem } from "@/types/admin";
@@ -32,7 +33,8 @@ export async function listAdminOrders(filters: AdminOrderFilters = {}): Promise<
     .order("created_at", { ascending: false });
 
   if (filters.q) {
-    query = query.or(`order_number.ilike.%${filters.q}%,guest_email.ilike.%${filters.q}%,guest_phone.ilike.%${filters.q}%`);
+    const pattern = `%${escapeIlikePattern(sanitizeForOrFilter(filters.q))}%`;
+    query = query.or(`order_number.ilike.${pattern},guest_email.ilike.${pattern},guest_phone.ilike.${pattern}`);
   }
   if (filters.marketCode) query = query.eq("market_code", filters.marketCode);
   if (filters.paymentStatus) query = query.eq("payment_status", filters.paymentStatus);

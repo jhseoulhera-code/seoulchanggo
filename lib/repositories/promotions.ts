@@ -64,3 +64,19 @@ export async function getPromotionBySlug(slug: string): Promise<PromotionDetail 
     products,
   };
 }
+
+/** Slugs of currently-active, in-window promotions — used by app/sitemap.ts. */
+export async function getActivePromotionSlugs(): Promise<string[]> {
+  if (!isSupabaseConfigured()) return [];
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("promotions").select("slug, starts_at, ends_at").eq("is_active", true);
+  if (error) {
+    console.error("[promotions] getActivePromotionSlugs failed:", error.message);
+    return [];
+  }
+
+  return ((data ?? []) as unknown as Pick<PromotionRow, "slug" | "starts_at" | "ends_at">[])
+    .filter((row) => isWithinWindow(row as PromotionRow))
+    .map((row) => row.slug);
+}

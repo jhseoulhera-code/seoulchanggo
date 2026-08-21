@@ -182,7 +182,9 @@ export function ProductForm({ initialDetail, categories }: ProductFormProps) {
             />
           </div>
           <div className="flex flex-col gap-2 border border-border p-3">
-            <span className="text-xs font-bold text-text-secondary">Global (USD)</span>
+            <span className="text-xs font-bold text-text-secondary">
+              Global (USD){!(usdPrice && usdPrice.salePrice > 0) && " · USD 가격 미설정"}
+            </span>
             <FormField
               label="정상가"
               type="number"
@@ -196,7 +198,7 @@ export function ProductForm({ initialDetail, categories }: ProductFormProps) {
               onChange={(v) => updatePrice("USD", "salePrice", Number(v) || 0)}
             />
             <p className="text-[11px] leading-relaxed text-text-secondary">
-              미입력(0) 시 KRW 판매가 기준 개발용 환율 환산값이 표시됩니다.
+              미입력(0) 시 개발/프리뷰 환경에서는 KRW 판매가 기준 개발용 환율 환산값이 표시되지만, 프로덕션에서는 USD 결제가 차단됩니다. 실서비스 USD 판매 전 반드시 입력하세요.
             </p>
           </div>
         </div>

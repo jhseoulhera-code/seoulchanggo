@@ -2,7 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
-import { escapeIlikePattern, normalizeSearchQuery } from "@/lib/search/normalize";
+import { escapeIlikePattern, normalizeSearchQuery, sanitizeForOrFilter } from "@/lib/search/normalize";
 import { allProducts as staticAllProducts } from "@/data/products";
 import { categories as staticCategories } from "@/data/categories";
 import { staticSearchKeywords } from "@/data/searchKeywords";
@@ -38,7 +38,7 @@ export async function getSearchSuggestionsAction(rawQuery: string): Promise<Sear
   if (!isSupabaseConfigured()) return staticSuggestions(query);
 
   const supabase = await createClient();
-  const pattern = `%${escapeIlikePattern(query)}%`;
+  const pattern = `%${escapeIlikePattern(sanitizeForOrFilter(query))}%`;
 
   const [productResult, categoryResult, keywordResult] = await Promise.all([
     supabase

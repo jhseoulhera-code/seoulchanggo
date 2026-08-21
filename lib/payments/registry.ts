@@ -9,16 +9,19 @@ import type { CountryCode } from "@/types/market";
 
 /**
  * Picks the real provider for a market only once its credentials actually
- * exist; otherwise falls back to MOCK (STEP 11 spec section 33 — never a
- * silent production fallback in intent, but there is no environment
- * distinction to gate on here since no real credentials exist anywhere yet).
- * Once KOREA_PG_CLIENT_KEY/SECRET (etc.) are set, this starts resolving to
- * the real stub automatically — no code change needed here.
+ * exist; otherwise falls back to MOCK in development/preview so checkout
+ * stays testable without real PG credentials. STEP 14 production hardening:
+ * MOCK must never be reachable in a production deployment — a real charge
+ * screen silently "succeeding" against a fake provider is a trust/financial
+ * bug, not a convenience. Once KOREA_PG_CLIENT_KEY/SECRET (etc.) are set,
+ * this starts resolving to the real stub automatically — no code change
+ * needed here.
  */
-export function resolveProviderForMarket(market: CountryCode): PaymentProvider {
+export function resolveProviderForMarket(market: CountryCode): PaymentProvider | null {
   if (market === "KR" && isKoreaPgConfigured()) return "KOREA_PG";
   if (market === "IN" && isIndiaPgConfigured()) return "INDIA_PG";
   if (isGlobalPgConfigured()) return "GLOBAL_PG";
+  if (process.env.NODE_ENV === "production") return null;
   return "MOCK";
 }
 

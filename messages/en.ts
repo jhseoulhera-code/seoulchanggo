@@ -6,6 +6,13 @@ export const en: Messages = {
     backToHome: "Back to home",
     loading: "Loading...",
   },
+  footer: {
+    terms: "Terms of Service",
+    privacy: "Privacy Policy",
+    shippingPolicy: "Shipping Policy",
+    returnPolicy: "Exchange/Return Policy",
+    businessInfoPlaceholder: "Business registration details have not been entered yet. (operator input required before launch)",
+  },
   home: {
     bestProducts: "Best products",
     discountProducts: "Discounted products",
@@ -108,6 +115,7 @@ export const en: Messages = {
     loginHint: "Sign in to manage your information more easily.",
     loginLink: "Sign in",
     orderFailed: "There was a problem placing your order. Please try again.",
+    priceNotReady: "Pricing for the selected currency isn't ready yet. Please choose a different currency or try again later.",
   },
   order: {
     completeTitle: "Your order is complete",

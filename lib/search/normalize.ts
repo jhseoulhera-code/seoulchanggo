@@ -21,3 +21,18 @@ export function isValidSearchQuery(raw: string): boolean {
 export function escapeIlikePattern(value: string): string {
   return value.replace(/[%_]/g, (match) => `\\${match}`);
 }
+
+/**
+ * STEP 14 security audit finding — a raw `.or("col.ilike.PATTERN,col2...")`
+ * string is built by hand wherever this is used (lib/repositories/products.ts,
+ * lib/repositories/admin/orders.ts): `,` separates OR conditions and `(`/`)`
+ * group them in PostgREST's filter-list syntax, so a search term containing
+ * those characters could prematurely close the intended clause and append an
+ * attacker-controlled condition. escapeIlikePattern only escapes ILIKE's own
+ * wildcards (%, _), which is a different layer — this strips PostgREST's
+ * filter-list metacharacters instead of trying to quote/escape them, since a
+ * product-name search has no legitimate need for literal commas/parens.
+ */
+export function sanitizeForOrFilter(value: string): string {
+  return value.replace(/[,()]/g, " ").replace(/\s+/g, " ").trim();
+}

@@ -8,6 +8,13 @@ export type Messages = {
     backToHome: string;
     loading: string;
   };
+  footer: {
+    terms: string;
+    privacy: string;
+    shippingPolicy: string;
+    returnPolicy: string;
+    businessInfoPlaceholder: string;
+  };
   home: {
     bestProducts: string;
     discountProducts: string;
@@ -106,6 +113,7 @@ export type Messages = {
     loginHint: string;
     loginLink: string;
     orderFailed: string;
+    priceNotReady: string;
   };
   order: {
     completeTitle: string;

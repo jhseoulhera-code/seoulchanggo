@@ -314,7 +314,9 @@ export function CheckoutClient({ products }: CheckoutClientProps) {
             ? messages.coupon.applyFailed
             : result.error === "POINTS_INVALID"
               ? messages.points.conditionError
-              : messages.checkout.orderFailed;
+              : result.error === "PRICE_NOT_READY"
+                ? messages.checkout.priceNotReady
+                : messages.checkout.orderFailed;
         setToast({ message, tone: "error" });
         return;
       }
