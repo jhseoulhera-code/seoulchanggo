@@ -109,7 +109,7 @@ begin
         v_item ->> 'origin_country',
         p_market_code,
         coalesce((v_item ->> 'group_shipping_fee')::numeric, 0),
-        case when (v_item ->> 'shipping_type') = 'OVERSEAS_AGENCY' then 'PURCHASING' else 'PREPARING' end
+        (case when (v_item ->> 'shipping_type') = 'OVERSEAS_AGENCY' then 'PURCHASING' else 'PREPARING' end)::public.shipping_group_status_enum
       )
       returning id into v_group_id;
 

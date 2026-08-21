@@ -3,6 +3,21 @@
 -- `create or replace function public.create_order(...)` with two new
 -- trailing optional parameters (defaulted), which is additive: any existing
 -- caller that omits them keeps getting exactly STEP 08's behavior.
+--
+-- STEP 15 fresh-migration fix: even though the new parameters are
+-- defaulted, PostgreSQL still identifies a function by name+parameter
+-- TYPES — a longer parameter list is a distinct overload, not a
+-- replacement, so without an explicit drop of the STEP 08 14-parameter
+-- signature, both versions of create_order() coexist and the unqualified
+-- `grant execute on function public.create_order ...` below becomes
+-- ambiguous ("function name is not unique"), which fails a fresh database
+-- bootstrap outright. Confirmed by actually applying every migration from
+-- scratch against a clean database for the first time in this project's
+-- history (STEP 15) — this had never been exercised end-to-end before.
+drop function if exists public.create_order(
+  text, uuid, text, text, public.market_code_enum, public.currency_code_enum,
+  numeric, numeric, numeric, numeric, public.payment_method_enum, jsonb, jsonb, jsonb
+);
 
 -- ---------------------------------------------------------------------------
 -- _compute_coupon_discount — shared math for validate_coupon_code() (preview)
@@ -45,7 +60,7 @@ begin
   from (
     select product_id from public.coupon_products where coupon_id = p_coupon.id
     union
-    select cp.product_id from public.coupon_categories cc
+    select cp.id from public.coupon_categories cc
       join public.products cp on cp.category_id = cc.category_id
      where cc.coupon_id = p_coupon.id
   ) scoped;
@@ -56,7 +71,7 @@ begin
     where pid in (
       select product_id from public.coupon_products where coupon_id = p_coupon.id
       union
-      select cp.product_id from public.coupon_categories cc
+      select cp.id from public.coupon_categories cc
         join public.products cp on cp.category_id = cc.category_id
        where cc.coupon_id = p_coupon.id
     );
@@ -420,7 +435,7 @@ begin
         v_item ->> 'origin_country',
         p_market_code,
         coalesce((v_item ->> 'group_shipping_fee')::numeric, 0),
-        case when (v_item ->> 'shipping_type') = 'OVERSEAS_AGENCY' then 'PURCHASING' else 'PREPARING' end
+        (case when (v_item ->> 'shipping_type') = 'OVERSEAS_AGENCY' then 'PURCHASING' else 'PREPARING' end)::public.shipping_group_status_enum
       )
       returning id into v_group_id;
 

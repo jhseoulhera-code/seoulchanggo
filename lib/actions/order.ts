@@ -134,6 +134,18 @@ export async function createOrderAction(input: CreateOrderActionInput): Promise<
     });
   }
 
+  // STEP 15: create_order() no longer accepts p_subtotal/p_discount_amount/
+  // p_shipping_amount/p_total_amount at all — it recomputes every amount
+  // itself from product_prices/product_shipping_markets/products, so those
+  // client-declared numbers (and unit_price/original_price/shipping_type/
+  // origin_country/product_name_snapshot/sku_snapshot inside each item)
+  // are no longer even read as the source of truth; the RPC is. This
+  // Server Action's own pre-check above still runs first, purely so a
+  // forged/stale client price fails fast with a friendly error instead of
+  // reaching the RPC's own rejection — it is no longer the actual security
+  // boundary. p_is_production is set from this trusted server process's own
+  // NODE_ENV, never from client input, so production can't be spoofed into
+  // allowing a DEV_EXCHANGE_RATES-based charge from the RPC side either.
   const { data: orderId, error: rpcError } = await supabase.rpc("create_order", {
     p_order_number: input.orderNumber,
     p_user_id: user?.id ?? null,
@@ -141,23 +153,24 @@ export async function createOrderAction(input: CreateOrderActionInput): Promise<
     p_guest_phone: user ? null : input.customer.phone,
     p_market_code: input.market,
     p_currency_code: input.currency,
-    p_subtotal: input.subtotal,
-    p_discount_amount: input.discount,
-    p_shipping_amount: input.shippingFee,
-    p_total_amount: input.total,
     p_payment_method: input.paymentMethod,
     p_shipping_address: input.shippingAddress,
     p_customs_info: input.customsInfo ?? null,
     p_items: rpcItems,
     p_coupon_code: input.couponCode ?? null,
     p_points_used: input.pointsUsed ?? 0,
+    p_is_production: process.env.NODE_ENV === "production",
   } as never);
 
   if (rpcError || !orderId) {
     console.error("[order] create_order RPC failed:", rpcError?.message);
     const message = rpcError?.message ?? "";
+    if (message.includes("PRICE_NOT_READY")) return { ok: false, error: "PRICE_NOT_READY" };
     if (message.includes("coupon")) return { ok: false, error: "COUPON_INVALID" };
     if (message.includes("point")) return { ok: false, error: "POINTS_INVALID" };
+    if (message.includes("not available in market") || message.includes("not found or inactive")) {
+      return { ok: false, error: "PRICE_MISMATCH" };
+    }
     return { ok: false, error: "UNKNOWN" };
   }
 
