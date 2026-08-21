@@ -392,6 +392,7 @@ export const en: Messages = {
     minUse: "You can use at least {min} points.",
     maxUse: "You can use up to {max} points.",
     conditionError: "Please check the points usage conditions.",
+    krwOnly: "Points can only be used when paying in KRW.",
   },
   a11y: {
     cart: "Cart",

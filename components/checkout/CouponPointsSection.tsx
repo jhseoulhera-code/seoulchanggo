@@ -48,7 +48,8 @@ export function CouponPointsSection({ market, isAuthenticated, payableAmount, pr
     getMyPointBalanceAction().then(setPointBalance);
   }, [configured, isAuthenticated, market.countryCode]);
 
-  const pointsUsed = Number(pointsInput) || 0;
+  const pointsUsable = market.currency === "KRW";
+  const pointsUsed = pointsUsable ? Number(pointsInput) || 0 : 0;
   const remainingAfterCoupon = Math.max(0, payableAmount - (appliedCoupon?.discountAmount ?? 0));
   const maxUsable = maxUsablePoints(remainingAfterCoupon, pointBalance);
 
@@ -177,23 +178,29 @@ export function CouponPointsSection({ market, isAuthenticated, payableAmount, pr
         {isAuthenticated ? (
           <>
             <p className="text-xs text-text-secondary">{messages.points.balance} {formatNumber(pointBalance, market.locale)}P</p>
-            <div className="flex gap-2">
-              <input
-                type="number"
-                value={pointsInput}
-                onChange={(e) => handlePointsChange(e.target.value)}
-                placeholder={messages.points.usePlaceholder}
-                className="flex-1 border border-border px-2.5 py-1.5 text-sm outline-none"
-              />
-              <button
-                type="button"
-                onClick={() => handlePointsChange(String(maxUsable))}
-                className="border border-border px-3 py-1.5 text-xs font-bold text-text-secondary"
-              >
-                {messages.points.useAll}
-              </button>
-            </div>
-            {pointsError && <p className="text-xs text-red-600">{pointsError}</p>}
+            {pointsUsable ? (
+              <>
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    value={pointsInput}
+                    onChange={(e) => handlePointsChange(e.target.value)}
+                    placeholder={messages.points.usePlaceholder}
+                    className="flex-1 border border-border px-2.5 py-1.5 text-sm outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handlePointsChange(String(maxUsable))}
+                    className="border border-border px-3 py-1.5 text-xs font-bold text-text-secondary"
+                  >
+                    {messages.points.useAll}
+                  </button>
+                </div>
+                {pointsError && <p className="text-xs text-red-600">{pointsError}</p>}
+              </>
+            ) : (
+              <span className="text-xs text-text-secondary">{messages.points.krwOnly}</span>
+            )}
           </>
         ) : (
           <span className="text-xs text-text-secondary">{messages.checkout.pointsLoginRequired}</span>

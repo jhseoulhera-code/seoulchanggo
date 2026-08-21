@@ -392,6 +392,7 @@ export const ko: Messages = {
     minUse: "최소 {min}포인트부터 사용할 수 있습니다.",
     maxUse: "최대 {max}포인트까지 사용할 수 있습니다.",
     conditionError: "포인트 사용 조건을 확인해주세요.",
+    krwOnly: "포인트는 KRW 결제에서만 사용할 수 있습니다.",
   },
   a11y: {
     cart: "장바구니",

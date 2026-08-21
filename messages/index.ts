@@ -385,6 +385,7 @@ export type Messages = {
     minUse: string;
     maxUse: string;
     conditionError: string;
+    krwOnly: string;
   };
   a11y: {
     cart: string;
