@@ -11,6 +11,7 @@ import type {
   PaymentProviderEnum,
   PaymentStatusEnum,
   PointTransactionTypeEnum,
+  ProductStatusEnum,
   ReviewStatusEnum,
   SearchKeywordTypeEnum,
   ShippingGroupStatusEnum,
@@ -38,7 +39,9 @@ export type AdminProductListItem = {
   stockQuantity: number;
   stockType: StockTypeEnum;
   isActive: boolean;
+  status: ProductStatusEnum;
   primaryImageUrl: string | null;
+  imageCount: number;
 };
 
 export type AdminProductPrice = {
@@ -98,8 +101,13 @@ export type AdminProductDetail = {
   stockQuantity: number;
   optionGroups: AdminOptionGroup[];
   isActive: boolean;
+  status: ProductStatusEnum;
   freeShipping: boolean;
   discountRate: number | null;
+  shortDescriptionKo: string;
+  seoTitle: string;
+  seoDescription: string;
+  searchTags: string[];
   prices: AdminProductPrice[];
   shippingMarkets: AdminProductShippingMarket[];
   variants: AdminProductVariant[];

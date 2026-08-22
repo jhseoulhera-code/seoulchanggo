@@ -23,6 +23,12 @@ export type AdminProductFilters = {
   shippingType?: string;
   status?: "active" | "inactive";
   stockStatus?: "low" | "out";
+  /** Independent of `status` above (which is_active-based) — filters on the newer workflow `status` column (STEP 16). */
+  productStatus?: "DRAFT" | "ACTIVE" | "INACTIVE";
+  /** true = missing a usable (>0) sale price for at least one of KRW/INR/USD. */
+  priceMissing?: boolean;
+  /** true = no product_images row at all. */
+  imageMissing?: boolean;
 };
 
 const LOW_STOCK_THRESHOLD = 5;
@@ -50,6 +56,7 @@ export async function listAdminProducts(filters: AdminProductFilters = {}): Prom
   if (filters.supplyType) query = query.eq("supply_type", filters.supplyType);
   if (filters.shippingType) query = query.eq("shipping_type", filters.shippingType);
   if (filters.status) query = query.eq("is_active", filters.status === "active");
+  if (filters.productStatus) query = query.eq("status", filters.productStatus);
 
   const { data, error } = await query.limit(200);
   if (error) fail("listAdminProducts", error);
@@ -62,6 +69,17 @@ export async function listAdminProducts(filters: AdminProductFilters = {}): Prom
     rows = rows.filter(
       (row) => row.stock_type === "TRACKED" && row.stock_quantity > 0 && row.stock_quantity <= LOW_STOCK_THRESHOLD
     );
+  }
+  if (filters.imageMissing) {
+    rows = rows.filter((row) => row.product_images.length === 0);
+  }
+  if (filters.priceMissing) {
+    rows = rows.filter((row) => {
+      const hasKrw = row.product_prices.some((p) => p.currency_code === "KRW" && p.sale_price > 0);
+      const hasInr = row.product_prices.some((p) => p.currency_code === "INR" && p.sale_price > 0);
+      const hasUsd = row.product_prices.some((p) => p.currency_code === "USD" && p.sale_price > 0);
+      return !hasKrw || !hasInr || !hasUsd;
+    });
   }
 
   return rows.map((row) => {
@@ -87,7 +105,9 @@ export async function listAdminProducts(filters: AdminProductFilters = {}): Prom
       stockQuantity: row.stock_quantity,
       stockType: row.stock_type,
       isActive: row.is_active,
+      status: row.status,
       primaryImageUrl: primary?.image_url ?? null,
+      imageCount: row.product_images.length,
     };
   });
 }
@@ -138,8 +158,17 @@ export function emptyAdminProductDraft(): AdminProductDetail {
     stockQuantity: 0,
     optionGroups: [],
     isActive: true,
+    // New products created through the Wizard start as DRAFT until the
+    // admin explicitly registers them (Step 5) — see the migration comment
+    // for why this is independent of isActive above, which the older
+    // single-page ProductForm still drives directly and unchanged.
+    status: "DRAFT",
     freeShipping: false,
     discountRate: null,
+    shortDescriptionKo: "",
+    seoTitle: "",
+    seoDescription: "",
+    searchTags: [],
     prices: [
       { marketCode: "KR", currencyCode: "KRW", originalPrice: 0, salePrice: 0 },
       { marketCode: "IN", currencyCode: "INR", originalPrice: 0, salePrice: 0 },
@@ -190,8 +219,13 @@ export async function getAdminProductDetail(id: string): Promise<AdminProductDet
     stockQuantity: row.stock_quantity,
     optionGroups: Array.isArray(row.option_groups) ? (row.option_groups as unknown as AdminProductDetail["optionGroups"]) : [],
     isActive: row.is_active,
+    status: row.status,
     freeShipping: row.free_shipping,
     discountRate: row.discount_rate,
+    shortDescriptionKo: row.short_description_ko ?? "",
+    seoTitle: row.seo_title ?? "",
+    seoDescription: row.seo_description ?? "",
+    searchTags: row.search_tags ?? [],
     prices: row.product_prices.map((p) => ({
       marketCode: p.market_code,
       currencyCode: p.currency_code,
@@ -264,6 +298,11 @@ export async function upsertAdminProduct(detail: AdminProductDetail): Promise<Up
       estimated_max_days: m.estimatedMaxDays,
       shipping_method: m.shippingMethod,
     })),
+    p_status: detail.status,
+    p_short_description_ko: detail.shortDescriptionKo || null,
+    p_seo_title: detail.seoTitle || null,
+    p_seo_description: detail.seoDescription || null,
+    p_search_tags: detail.searchTags,
   } as never);
 
   if (error) {
@@ -276,16 +315,29 @@ export async function upsertAdminProduct(detail: AdminProductDetail): Promise<Up
 export async function addAdminProductVariant(
   productId: string,
   input: { sku: string; optionValues: Record<string, string>; additionalPrice: number; stockQuantity: number }
-): Promise<void> {
+): Promise<{ id: string; sku: string; optionValues: Record<string, string>; additionalPrice: number; stockQuantity: number; isActive: boolean }> {
   const supabase = await createClient();
-  const { error } = await supabase.from("product_variants").insert({
-    product_id: productId,
-    sku: input.sku,
-    option_values: input.optionValues,
-    additional_price: input.additionalPrice,
-    stock_quantity: input.stockQuantity,
-  } as never);
+  const { data, error } = await supabase
+    .from("product_variants")
+    .insert({
+      product_id: productId,
+      sku: input.sku,
+      option_values: input.optionValues,
+      additional_price: input.additionalPrice,
+      stock_quantity: input.stockQuantity,
+    } as never)
+    .select()
+    .single();
   if (error) fail("addAdminProductVariant", error);
+  const row = data as unknown as ProductVariantRow;
+  return {
+    id: row.id,
+    sku: row.sku,
+    optionValues: (row.option_values as unknown as Record<string, string>) ?? {},
+    additionalPrice: row.additional_price,
+    stockQuantity: row.stock_quantity,
+    isActive: row.is_active,
+  };
 }
 
 export async function updateAdminProductVariant(
@@ -311,16 +363,22 @@ export async function deleteAdminProductVariant(variantId: string): Promise<void
 export async function addAdminProductImage(
   productId: string,
   input: { imageUrl: string; altKo: string; sortOrder: number; isPrimary: boolean }
-): Promise<void> {
+): Promise<{ id: string; imageUrl: string; altKo: string | null; sortOrder: number; isPrimary: boolean }> {
   const supabase = await createClient();
-  const { error } = await supabase.from("product_images").insert({
-    product_id: productId,
-    image_url: input.imageUrl,
-    alt_ko: input.altKo || null,
-    sort_order: input.sortOrder,
-    is_primary: input.isPrimary,
-  } as never);
+  const { data, error } = await supabase
+    .from("product_images")
+    .insert({
+      product_id: productId,
+      image_url: input.imageUrl,
+      alt_ko: input.altKo || null,
+      sort_order: input.sortOrder,
+      is_primary: input.isPrimary,
+    } as never)
+    .select()
+    .single();
   if (error) fail("addAdminProductImage", error);
+  const row = data as unknown as ProductImageRow;
+  return { id: row.id, imageUrl: row.image_url, altKo: row.alt_ko, sortOrder: row.sort_order, isPrimary: row.is_primary };
 }
 
 export async function deleteAdminProductImage(imageId: string): Promise<void> {
@@ -336,4 +394,63 @@ export async function setAdminProductPrimaryImage(productId: string, imageId: st
     p_image_id: imageId,
   } as never);
   if (error) fail("setAdminProductPrimaryImage", error);
+}
+
+/** Wizard Step 4's reorder control — one round trip via admin_reorder_product_images (STEP 16). */
+export async function reorderAdminProductImages(productId: string, orderedImageIds: string[]): Promise<void> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("admin_reorder_product_images", {
+    p_product_id: productId,
+    p_image_ids: orderedImageIds,
+  } as never);
+  if (error) fail("reorderAdminProductImages", error);
+}
+
+/**
+ * Admin product list "복제" (STEP 16 spec section 2) — copies core fields,
+ * prices, shipping markets (via admin_upsert_product, id:null), then images
+ * and variants (which admin_upsert_product deliberately doesn't touch — see
+ * that RPC's own comment) via the same plain insert helpers the UI already
+ * uses one row at a time. The new product always starts as DRAFT regardless
+ * of the source product's status, and gets a fresh sku/slug so the unique
+ * constraints on both never collide with the original.
+ */
+export async function duplicateAdminProduct(sourceId: string): Promise<UpsertProductResult> {
+  const source = await getAdminProductDetail(sourceId);
+  if (!source) return { ok: false, error: "복제할 상품을 찾을 수 없습니다." };
+
+  const suffix = Date.now().toString(36).toUpperCase();
+  const duplicate: AdminProductDetail = {
+    ...source,
+    id: null,
+    sku: `${source.sku}-COPY-${suffix}`,
+    slug: `${source.slug}-copy-${suffix.toLowerCase()}`,
+    nameKo: `${source.nameKo} (복사본)`,
+    status: "DRAFT",
+    isActive: false,
+    variants: [],
+    images: [],
+  };
+
+  const result = await upsertAdminProduct(duplicate);
+  if (!result.ok) return result;
+
+  for (const image of source.images) {
+    await addAdminProductImage(result.id, {
+      imageUrl: image.imageUrl,
+      altKo: image.altKo ?? "",
+      sortOrder: image.sortOrder,
+      isPrimary: image.isPrimary,
+    });
+  }
+  for (const variant of source.variants) {
+    await addAdminProductVariant(result.id, {
+      sku: `${variant.sku}-COPY-${suffix}`,
+      optionValues: variant.optionValues,
+      additionalPrice: variant.additionalPrice,
+      stockQuantity: variant.stockQuantity,
+    });
+  }
+
+  return result;
 }

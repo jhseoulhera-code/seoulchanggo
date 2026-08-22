@@ -9,6 +9,9 @@ type ProductFilterBarProps = {
     shippingType?: string;
     status?: string;
     stockStatus?: string;
+    productStatus?: string;
+    priceMissing?: string;
+    imageMissing?: string;
   };
 };
 
@@ -69,6 +72,23 @@ export function ProductFilterBar({ categories, current }: ProductFilterBarProps)
           <option value="low">재고 부족</option>
           <option value="out">품절</option>
         </select>
+      </label>
+      <label className="flex flex-col gap-1 text-xs text-text-secondary">
+        등록상태
+        <select name="productStatus" defaultValue={current.productStatus ?? ""} className="border border-border px-2 py-1.5 text-sm text-text-main">
+          <option value="">전체</option>
+          <option value="DRAFT">임시저장(DRAFT)</option>
+          <option value="ACTIVE">등록됨(ACTIVE)</option>
+          <option value="INACTIVE">비활성(INACTIVE)</option>
+        </select>
+      </label>
+      <label className="flex items-center gap-1.5 self-end pb-2 text-xs text-text-secondary">
+        <input type="checkbox" name="priceMissing" value="1" defaultChecked={current.priceMissing === "1"} className="h-4 w-4 accent-primary" />
+        가격 미설정만
+      </label>
+      <label className="flex items-center gap-1.5 self-end pb-2 text-xs text-text-secondary">
+        <input type="checkbox" name="imageMissing" value="1" defaultChecked={current.imageMissing === "1"} className="h-4 w-4 accent-primary" />
+        이미지 미등록만
       </label>
       <button type="submit" className="h-[34px] bg-primary px-4 text-sm font-bold text-white">
         검색

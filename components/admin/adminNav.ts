@@ -1,5 +1,6 @@
 import {
   FileText,
+  FileUp,
   HelpCircle,
   Image as ImageIcon,
   LayoutDashboard,
@@ -35,6 +36,7 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
     label: "상품",
     items: [
       { href: "/admin/products", label: "상품관리", icon: ShoppingBag },
+      { href: "/admin/products/import", label: "상품 CSV 일괄등록", icon: FileUp },
       { href: "/admin/inventory", label: "재고관리", icon: Warehouse },
       { href: "/admin/categories", label: "카테고리", icon: ListTree },
     ],

@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "check-i18n": "node --experimental-strip-types scripts/check-i18n.mts"
+    "check-i18n": "node --experimental-strip-types scripts/check-i18n.mts",
+    "test:admin-product-wizard": "node --experimental-strip-types scripts/test-admin-product-wizard.mts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",

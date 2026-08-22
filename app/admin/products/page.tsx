@@ -1,6 +1,7 @@
 import { Plus } from "lucide-react";
 import Link from "next/link";
 import { AdminErrorScreen } from "@/components/admin/AdminBlockerScreen";
+import { DuplicateProductButton } from "@/components/admin/products/DuplicateProductButton";
 import { ProductFilterBar } from "@/components/admin/products/ProductFilterBar";
 import { ProductImagePlaceholder } from "@/components/product/ProductImagePlaceholder";
 import { StatusBadge } from "@/components/admin/StatusBadge";
@@ -8,6 +9,8 @@ import { listAdminCategories } from "@/lib/repositories/admin/categories";
 import { listAdminProducts } from "@/lib/repositories/admin/products";
 import { SHIPPING_TYPE_LABEL, SUPPLY_TYPE_LABEL } from "@/lib/adminLabels";
 import { formatCurrency } from "@/lib/currency";
+
+const PRODUCT_STATUS_LABEL: Record<string, string> = { DRAFT: "임시저장", ACTIVE: "등록됨", INACTIVE: "비활성" };
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
@@ -24,6 +27,9 @@ export default async function AdminProductsPage(props: { searchParams: Promise<S
     shippingType: toStr(searchParams.shippingType),
     status: toStr(searchParams.status) as "active" | "inactive" | undefined,
     stockStatus: toStr(searchParams.stockStatus) as "low" | "out" | undefined,
+    productStatus: toStr(searchParams.productStatus) as "DRAFT" | "ACTIVE" | "INACTIVE" | undefined,
+    priceMissing: toStr(searchParams.priceMissing) === "1",
+    imageMissing: toStr(searchParams.imageMissing) === "1",
   };
 
   let products: Awaited<ReturnType<typeof listAdminProducts>> | null = null;
@@ -49,7 +55,14 @@ export default async function AdminProductsPage(props: { searchParams: Promise<S
           </Link>
         </div>
 
-        <ProductFilterBar categories={categories} current={filters} />
+        <ProductFilterBar
+          categories={categories}
+          current={{
+            ...filters,
+            priceMissing: filters.priceMissing ? "1" : undefined,
+            imageMissing: filters.imageMissing ? "1" : undefined,
+          }}
+        />
 
         <p className="text-xs text-text-secondary">총 {products.length}개</p>
 
@@ -57,7 +70,7 @@ export default async function AdminProductsPage(props: { searchParams: Promise<S
           <p className="border border-border p-6 text-center text-sm text-text-secondary">조건에 맞는 상품이 없습니다.</p>
         ) : (
           <div className="overflow-x-auto border border-border">
-            <table className="w-full min-w-[960px] text-left text-sm">
+            <table className="w-full min-w-[1120px] text-left text-sm">
               <thead className="border-b border-border bg-primary-light/40 text-xs text-text-secondary">
                 <tr>
                   <th className="px-3 py-2">이미지</th>
@@ -71,7 +84,9 @@ export default async function AdminProductsPage(props: { searchParams: Promise<S
                   <th className="px-3 py-2">IN 가격</th>
                   <th className="px-3 py-2">재고</th>
                   <th className="px-3 py-2">판매상태</th>
+                  <th className="px-3 py-2">등록상태</th>
                   <th className="px-3 py-2">수정</th>
+                  <th className="px-3 py-2">복제</th>
                 </tr>
               </thead>
               <tbody>
@@ -126,9 +141,15 @@ export default async function AdminProductsPage(props: { searchParams: Promise<S
                         )}
                       </td>
                       <td className="px-3 py-2">
-                        <Link href={`/admin/products/${product.id}`} className="text-primary underline">
+                        <StatusBadge label={PRODUCT_STATUS_LABEL[product.status]} tone={product.status === "DRAFT" ? "warning" : "default"} />
+                      </td>
+                      <td className="px-3 py-2">
+                        <Link href={`/admin/products/${product.id}/edit`} className="text-primary underline">
                           수정
                         </Link>
+                      </td>
+                      <td className="px-3 py-2">
+                        <DuplicateProductButton productId={product.id} />
                       </td>
                     </tr>
                   );

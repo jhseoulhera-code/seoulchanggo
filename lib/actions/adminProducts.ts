@@ -7,6 +7,8 @@ import {
   addAdminProductVariant,
   deleteAdminProductImage,
   deleteAdminProductVariant,
+  duplicateAdminProduct,
+  reorderAdminProductImages,
   setAdminProductPrimaryImage,
   updateAdminProductVariant,
   upsertAdminProduct,
@@ -32,23 +34,26 @@ export async function saveProductAction(detail: AdminProductDetail): Promise<Act
 
   revalidatePath("/admin/products");
   revalidatePath(`/admin/products/${result.id}`);
+  revalidatePath(`/admin/products/${result.id}/edit`);
   return { ok: true, data: { id: result.id } };
 }
 
 export async function addVariantAction(
   productId: string,
   input: { sku: string; optionValues: Record<string, string>; additionalPrice: number; stockQuantity: number }
-): Promise<ActionResult> {
+): Promise<ActionResult<Awaited<ReturnType<typeof addAdminProductVariant>>>> {
   const guardError = await requireAdmin();
-  if (guardError) return guardError;
+  if (guardError) return guardError as ActionResult<Awaited<ReturnType<typeof addAdminProductVariant>>>;
 
+  let created: Awaited<ReturnType<typeof addAdminProductVariant>>;
   try {
-    await addAdminProductVariant(productId, input);
+    created = await addAdminProductVariant(productId, input);
   } catch (error) {
     return { ok: false, error: error instanceof Error ? error.message : "옵션을 추가하지 못했습니다." };
   }
   revalidatePath(`/admin/products/${productId}`);
-  return { ok: true, data: undefined };
+  revalidatePath(`/admin/products/${productId}/edit`);
+  return { ok: true, data: created };
 }
 
 export async function updateVariantAction(
@@ -84,17 +89,19 @@ export async function deleteVariantAction(productId: string, variantId: string):
 export async function addImageAction(
   productId: string,
   input: { imageUrl: string; altKo: string; sortOrder: number; isPrimary: boolean }
-): Promise<ActionResult> {
+): Promise<ActionResult<Awaited<ReturnType<typeof addAdminProductImage>>>> {
   const guardError = await requireAdmin();
-  if (guardError) return guardError;
+  if (guardError) return guardError as ActionResult<Awaited<ReturnType<typeof addAdminProductImage>>>;
 
+  let created: Awaited<ReturnType<typeof addAdminProductImage>>;
   try {
-    await addAdminProductImage(productId, input);
+    created = await addAdminProductImage(productId, input);
   } catch (error) {
     return { ok: false, error: error instanceof Error ? error.message : "이미지를 추가하지 못했습니다." };
   }
   revalidatePath(`/admin/products/${productId}`);
-  return { ok: true, data: undefined };
+  revalidatePath(`/admin/products/${productId}/edit`);
+  return { ok: true, data: created };
 }
 
 export async function deleteImageAction(productId: string, imageId: string): Promise<ActionResult> {
@@ -121,4 +128,29 @@ export async function setPrimaryImageAction(productId: string, imageId: string):
   }
   revalidatePath(`/admin/products/${productId}`);
   return { ok: true, data: undefined };
+}
+
+export async function reorderImagesAction(productId: string, orderedImageIds: string[]): Promise<ActionResult> {
+  const guardError = await requireAdmin();
+  if (guardError) return guardError;
+
+  try {
+    await reorderAdminProductImages(productId, orderedImageIds);
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "이미지 순서를 변경하지 못했습니다." };
+  }
+  revalidatePath(`/admin/products/${productId}`);
+  revalidatePath(`/admin/products/${productId}/edit`);
+  return { ok: true, data: undefined };
+}
+
+export async function duplicateProductAction(productId: string): Promise<ActionResult<{ id: string }>> {
+  const guardError = await requireAdmin();
+  if (guardError) return guardError as ActionResult<{ id: string }>;
+
+  const result = await duplicateAdminProduct(productId);
+  if (!result.ok) return { ok: false, error: result.error };
+
+  revalidatePath("/admin/products");
+  return { ok: true, data: { id: result.id } };
 }

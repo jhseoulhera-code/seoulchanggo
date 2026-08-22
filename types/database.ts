@@ -37,6 +37,7 @@ export type ShippingGroupStatusEnum =
 export type PaymentMethodEnum = "card" | "easy_pay" | "bank_transfer" | "upi" | "net_banking" | "wallet";
 export type PaymentStatusEnum = "UNPAID" | "PAID";
 export type StockTypeEnum = "TRACKED" | "UNLIMITED";
+export type ProductStatusEnum = "DRAFT" | "ACTIVE" | "INACTIVE";
 export type UserRoleEnum = "CUSTOMER" | "ADMIN" | "SUPER_ADMIN";
 export type CouponDiscountTypeEnum = "FIXED" | "PERCENT";
 export type PointTransactionTypeEnum = "EARN" | "USE" | "CANCEL_EARN" | "REFUND" | "ADMIN_ADJUST";
@@ -109,6 +110,11 @@ export type ProductRow = {
   review_count: number;
   free_shipping: boolean;
   discount_rate: number | null;
+  status: ProductStatusEnum;
+  short_description_ko: string | null;
+  seo_title: string | null;
+  seo_description: string | null;
+  search_tags: string[];
   created_at: string;
   updated_at: string;
 };
