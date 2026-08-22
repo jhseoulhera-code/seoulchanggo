@@ -3,15 +3,18 @@
  * 추가") — this repo has no test framework installed (see package.json),
  * so this follows the exact same framework-free convention as
  * scripts/check-i18n.mts: plain assertions, non-zero exit on failure.
- * Covers the two riskiest pure-logic pieces added in this step — the
- * Step 5 registration gate and CSV bulk-import row validation — since
- * both run ahead of a real DB write and a bug here would either block a
- * legitimate product or (worse) silently let an invalid one through.
+ * Covers the riskiest pure-logic pieces added in this step — the Step 5
+ * registration gate, CSV bulk-import row validation, and (added after a
+ * real products_discount_rate_check violation in production use)
+ * discount-rate derivation — since all three run ahead of a real DB write
+ * and a bug here would either block a legitimate product or (worse)
+ * silently let an invalid one through.
  *
  * Run with: node --experimental-strip-types scripts/test-admin-product-wizard.mts
  */
 import { validateProductForRegistration, hasNoPrimaryImage } from "../components/admin/products/wizard/validation.ts";
 import { parseCsv, validateCsvRows, buildCsvTemplate } from "../lib/admin/csvImport.ts";
+import { computeSafeDiscountRate } from "../lib/admin/productPricing.ts";
 
 let failures = 0;
 function assert(condition: boolean, message: string): void {
@@ -135,8 +138,48 @@ function baseDetail() {
   assert(validRow[0].parsed?.shipping.defaultShippingMethod === "SEA", "OVERSEAS_SEA should resolve to defaultShippingMethod SEA");
 }
 
+// --- computeSafeDiscountRate ------------------------------------------------
+{
+  const noOriginal = computeSafeDiscountRate([{ currencyCode: "KRW", originalPrice: 0, salePrice: 7000 }]);
+  assert(noOriginal === 0, `no/zero original_price must yield 0, got ${noOriginal}`);
+}
+{
+  const equal = computeSafeDiscountRate([{ currencyCode: "KRW", originalPrice: 7000, salePrice: 7000 }]);
+  assert(equal === 0, `original_price == sale_price must yield 0, got ${equal}`);
+}
+{
+  const lower = computeSafeDiscountRate([{ currencyCode: "KRW", originalPrice: 5000, salePrice: 7000 }]);
+  assert(lower === 0, `original_price < sale_price must yield 0 (never negative), got ${lower}`);
+}
+{
+  // Matches supabase/seed.sql's best-1 row exactly: 38900/29900 KRW seeds discount_rate=23.
+  const normal = computeSafeDiscountRate([{ currencyCode: "KRW", originalPrice: 38900, salePrice: 29900 }]);
+  assert(normal === 23, `original_price > sale_price should compute the real percentage, got ${normal} (expected 23)`);
+}
+{
+  const noKrwRow = computeSafeDiscountRate([{ currencyCode: "USD", originalPrice: 100, salePrice: 50 }]);
+  assert(noKrwRow === 0, `no KRW price row at all must yield 0, got ${noKrwRow}`);
+}
+{
+  const nanInput = computeSafeDiscountRate([{ currencyCode: "KRW", originalPrice: NaN, salePrice: 7000 }]);
+  assert(nanInput === 0, `NaN originalPrice must not reach the DB — expected 0, got ${nanInput}`);
+  const infinityInput = computeSafeDiscountRate([{ currencyCode: "KRW", originalPrice: Infinity, salePrice: 7000 }]);
+  assert(infinityInput === 0, `Infinity originalPrice must not reach the DB — expected 0, got ${infinityInput}`);
+  const negativeSale = computeSafeDiscountRate([{ currencyCode: "KRW", originalPrice: 10000, salePrice: -5000 }]);
+  assert(negativeSale >= 0 && negativeSale <= 100, `a negative sale price must still clamp into [0,100], got ${negativeSale}`);
+}
+{
+  // A pathological gap (sale price far below original) must still clamp to 100, never overshoot.
+  const extreme = computeSafeDiscountRate([{ currencyCode: "KRW", originalPrice: 1000000, salePrice: 1 }]);
+  assert(extreme === 100, `an extreme discount must clamp to 100, got ${extreme}`);
+}
+{
+  const empty = computeSafeDiscountRate([]);
+  assert(empty === 0, `an empty prices array must yield 0, got ${empty}`);
+}
+
 if (failures > 0) {
   console.error(`\n${failures} assertion(s) failed.`);
   process.exit(1);
 }
-console.log("OK — admin product wizard validation + CSV import validation checks passed.");
+console.log("OK — admin product wizard validation + CSV import validation + discount-rate checks passed.");

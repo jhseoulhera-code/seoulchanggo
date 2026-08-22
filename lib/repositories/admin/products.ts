@@ -1,5 +1,6 @@
 import "server-only";
 
+import { computeSafeDiscountRate } from "@/lib/admin/productPricing";
 import { escapeIlikePattern, sanitizeForOrFilter } from "@/lib/search/normalize";
 import { createClient } from "@/lib/supabase/server";
 import type {
@@ -283,7 +284,9 @@ export async function upsertAdminProduct(detail: AdminProductDetail): Promise<Up
     p_option_groups: detail.optionGroups,
     p_is_active: detail.isActive,
     p_free_shipping: detail.freeShipping,
-    p_discount_rate: detail.discountRate,
+    // Never trust detail.discountRate directly — see computeSafeDiscountRate's
+    // own comment for the real check-constraint violation this replaced.
+    p_discount_rate: computeSafeDiscountRate(detail.prices),
     p_prices: detail.prices.map((p) => ({
       market_code: p.marketCode,
       currency_code: p.currencyCode,

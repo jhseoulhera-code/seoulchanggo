@@ -1,6 +1,7 @@
 "use client";
 
 import { FormField } from "@/components/common/FormField";
+import { computeSafeDiscountRate } from "@/lib/admin/productPricing";
 import type { AdminProductDetail } from "@/types/admin";
 
 type StepPricingProps = {
@@ -71,13 +72,10 @@ export function StepPricing({ detail, onChange }: StepPricingProps) {
           );
         })}
       </div>
-      <FormField
-        label="할인율(%)"
-        type="number"
-        optionalTag="(선택)"
-        value={detail.discountRate !== null ? String(detail.discountRate) : ""}
-        onChange={(v) => onChange({ discountRate: v ? Number(v) : null })}
-      />
+      <p className="text-xs text-text-secondary">
+        할인율(뱃지 표시용): <span className="font-bold text-primary">{computeSafeDiscountRate(detail.prices)}%</span> — KRW 정상가/판매가
+        기준으로 자동 계산됩니다. 정상가가 없거나 판매가보다 낮거나 같으면 0%로 저장됩니다.
+      </p>
     </section>
   );
 }
