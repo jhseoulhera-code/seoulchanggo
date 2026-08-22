@@ -111,18 +111,41 @@ function shipping(name, country) {
 }
 
 /**
+ * Never prints the credential itself — only whether each var was present
+ * and how long it was — so a login failure can be diagnosed (blank var,
+ * stray CRLF from an env file saved on Windows, wrong var name reaching
+ * this call) without the credential ever hitting stdout.
+ */
+function credentialDebug(email, password) {
+  return `email_present=${Boolean(email)} email_len=${email?.length ?? 0} password_present=${Boolean(password)} password_len=${password?.length ?? 0}`;
+}
+
+/**
  * Resolves one test member: prefers an existing account (env email+password,
  * signed in), else derives a "+"-tagged address on the ADMIN email's own
  * domain and signs up fresh, else reports why it can't proceed.
+ *
+ * The env branch below returns unconditionally (success or failure) the
+ * moment both env vars are present — the derived-account fallback further
+ * down is structurally unreachable whenever explicit credentials were
+ * given, on purpose, so a typo'd password can never silently fall through
+ * to a freshly created account instead of surfacing as a login failure.
+ *
+ * Only the email is trimmed (a stray trailing newline from an env file is
+ * never a meaningful part of an address); the password is used exactly as
+ * read, since leading/trailing whitespace could be part of the real value.
  */
 async function resolveMember(label, envEmail, envPassword) {
   const c = client();
   if (envEmail && envPassword) {
-    const { data, error } = await c.auth.signInWithPassword({ email: envEmail, password: envPassword });
-    if (error) return { client: c, id: null, error: `sign-in failed: ${error.message}` };
+    const email = envEmail.trim();
+    console.log(`[setup] member ${label.toUpperCase()}: signing in with STEP15_5_MEMBER_${label.toUpperCase()}_EMAIL/PASSWORD (${credentialDebug(email, envPassword)})`);
+    const { data, error } = await c.auth.signInWithPassword({ email, password: envPassword });
+    if (error) return { client: c, id: null, error: `sign-in failed (${credentialDebug(email, envPassword)}): ${error.message}` };
     return { client: c, id: data.user.id };
   }
 
+  console.log(`[setup] member ${label.toUpperCase()}: no STEP15_5_MEMBER_${label.toUpperCase()}_EMAIL/PASSWORD set, falling back to a derived account`);
   if (!ADMIN_EMAIL || !ADMIN_EMAIL.includes("@")) {
     return {
       client: c,
@@ -130,7 +153,7 @@ async function resolveMember(label, envEmail, envPassword) {
       error: `no STEP15_5_MEMBER_${label.toUpperCase()}_EMAIL/PASSWORD and no STEP15_5_ADMIN_EMAIL to derive a domain from — cannot safely construct a test address`,
     };
   }
-  const [localPart, domain] = ADMIN_EMAIL.split("@");
+  const [localPart, domain] = ADMIN_EMAIL.trim().split("@");
   const derivedEmail = `${localPart}+step1555-${label}-${Date.now()}-${Math.floor(Math.random() * 1e6)}@${domain}`;
   const password = `TestPass!${randomUUID().slice(0, 8)}`;
   const { data, error } = await c.auth.signUp({ email: derivedEmail, password });
@@ -139,6 +162,25 @@ async function resolveMember(label, envEmail, envPassword) {
     return { client: c, id: null, error: "sign-up succeeded but returned NO_SESSION — turn off 'Confirm email' for this project" };
   }
   return { client: c, id: data.user.id };
+}
+
+/**
+ * Deletes only this script's own known probe rows — scoped to member A's
+ * own account (RLS-enforced regardless) and the exact seed product IDs +
+ * option signatures this script itself writes — so repeat runs start from
+ * the same state instead of accumulating (merge_guest_cart adds to an
+ * UNLIMITED product's existing quantity rather than replacing it, so a
+ * stale row from a prior run silently inflates the expected total).
+ * Never touches any other product, option signature, or account.
+ */
+async function cleanupMemberACartProbes(a) {
+  if (!a?.id) return;
+  await a.client.from("cart_items").delete()
+    .eq("user_id", a.id).eq("product_id", P.best1.id).eq("selected_options", JSON.stringify({ probe: "rls-a" }));
+  await a.client.from("cart_items").delete()
+    .eq("user_id", a.id).eq("product_id", P.best1.id).eq("selected_options", JSON.stringify({ merge: "probe" }));
+  await a.client.from("cart_items").delete()
+    .eq("user_id", a.id).eq("product_id", P.best3.id).eq("selected_options", "{}");
 }
 
 async function main() {
@@ -158,9 +200,10 @@ async function main() {
   let admin = null;
   if (ADMIN_EMAIL && ADMIN_PASSWORD) {
     const c = client();
-    const { data, error } = await c.auth.signInWithPassword({ email: ADMIN_EMAIL, password: ADMIN_PASSWORD });
+    const email = ADMIN_EMAIL.trim();
+    const { data, error } = await c.auth.signInWithPassword({ email, password: ADMIN_PASSWORD });
     if (error) {
-      record("setup", "admin sign-in", "FAIL", error.message);
+      record("setup", "admin sign-in", "FAIL", `${error.message} (${credentialDebug(email, ADMIN_PASSWORD)})`);
     } else {
       admin = { client: c, id: data.user.id };
       record("setup", "admin sign-in", "PASS", data.user.id);
@@ -168,6 +211,12 @@ async function main() {
   } else {
     blocked("setup", "admin credentials", "STEP15_5_ADMIN_EMAIL/PASSWORD not set");
   }
+
+  // Clean up this script's own leftover probe rows from any previous run
+  // before anything else touches member A's cart, so every check below
+  // starts from the same known state regardless of how many times this
+  // has run before.
+  await cleanupMemberACartProbes(a);
 
   // ---------------------------------------------------------------------
   // Section: 일반회원 RLS
@@ -544,6 +593,10 @@ async function main() {
   // Section: Storage 권한
   // ---------------------------------------------------------------------
   const probeFile = () => new Blob(["step15-5 probe"], { type: "text/plain" });
+  // Uploads that succeed are removed again at the end of this run (best
+  // effort) so repeat runs don't pile up test files in either bucket.
+  const reviewImageProbesToClean = [];
+  const productImageProbesToClean = [];
 
   if (memberAOk) {
     await check("Storage", "member A cannot upload to product-images (admin-only bucket)", async () => {
@@ -552,7 +605,9 @@ async function main() {
     });
 
     await check("Storage", "member A can upload a review-image under their own uid folder", async () => {
-      const { error } = await a.client.storage.from("review-images").upload(`${a.id}/probe-${Date.now()}.txt`, probeFile());
+      const path = `${a.id}/probe-${Date.now()}.txt`;
+      const { error } = await a.client.storage.from("review-images").upload(path, probeFile());
+      if (!error) reviewImageProbesToClean.push(path);
       return { status: error ? "FAIL" : "PASS", detail: error?.message };
     });
   } else {
@@ -573,6 +628,7 @@ async function main() {
     await check("Storage", "admin can upload to product-images", async () => {
       const path = `step15-5-probe-${Date.now()}.txt`;
       const { error } = await admin.client.storage.from("product-images").upload(path, probeFile());
+      if (!error) productImageProbesToClean.push(path);
       return { status: error ? "FAIL" : "PASS", detail: error?.message };
     });
   } else {
@@ -627,6 +683,19 @@ async function main() {
   // Section: Payment Prepare
   // ---------------------------------------------------------------------
   blocked("Payment-Prepare", "/api/payments/prepare route", "this is a Next.js Route Handler, not Supabase — verify separately with `npm run dev` running locally and a curl/browser check (see report)");
+
+  // ---------------------------------------------------------------------
+  // Cleanup — best effort, never affects whether a check above already
+  // recorded PASS/FAIL/BLOCKED. Removes only the exact probe rows/files
+  // this run itself created or could have left from a prior run.
+  // ---------------------------------------------------------------------
+  await cleanupMemberACartProbes(a);
+  if (memberAOk && reviewImageProbesToClean.length > 0) {
+    await a.client.storage.from("review-images").remove(reviewImageProbesToClean).catch(() => {});
+  }
+  if (admin && productImageProbesToClean.length > 0) {
+    await admin.client.storage.from("product-images").remove(productImageProbesToClean).catch(() => {});
+  }
 
   // ---------------------------------------------------------------------
   // Summary
