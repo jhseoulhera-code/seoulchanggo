@@ -19,8 +19,17 @@ create type public.product_status_enum as enum ('DRAFT', 'ACTIVE', 'INACTIVE');
 alter table public.products
   add column status public.product_status_enum not null default 'ACTIVE';
 
+-- A bare CASE with only string-literal branches resolves to `text`
+-- (no other typed operand inside the CASE to infer from), and Postgres
+-- enums never accept an implicit text -> enum cast — the same class of
+-- bug already fixed once for shipping_group_status_enum in STEP 15
+-- (20260902000100_step15_create_order_price_integrity.sql). Explicit
+-- casts on both branches close it here too.
 update public.products
-set status = case when is_active then 'ACTIVE' else 'INACTIVE' end;
+set status = case
+  when is_active then 'ACTIVE'::public.product_status_enum
+  else 'INACTIVE'::public.product_status_enum
+end;
 
 -- Wizard Step 1 ("짧은 설명", "검색 키워드/tag") and the AI SEO assist feature
 -- (Step 1 panel) need fields the schema never had — customer-facing pages
@@ -96,7 +105,7 @@ begin
       p_sku, p_category_id, p_slug, p_brand, p_name_ko, p_name_en, p_description_ko, p_description_en,
       p_origin_country, p_supply_type, p_shipping_type, p_default_shipping_method, p_stock_type,
       p_stock_quantity, coalesce(p_option_groups, '[]'::jsonb), p_is_active, p_free_shipping, p_discount_rate,
-      coalesce(p_status, 'ACTIVE'), p_short_description_ko, p_seo_title, p_seo_description, coalesce(p_search_tags, '{}')
+      coalesce(p_status, 'ACTIVE'::public.product_status_enum), p_short_description_ko, p_seo_title, p_seo_description, coalesce(p_search_tags, '{}')
     )
     returning id into v_product_id;
   else
