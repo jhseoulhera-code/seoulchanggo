@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { categories as staticCategories } from "@/data/categories";
-import { createClient } from "@/lib/supabase/server";
+import { createStaticClient as createClient } from "@/lib/supabase/static";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import type { CategoryRow } from "@/types/database";
 import type { Category } from "@/types";

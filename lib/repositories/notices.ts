@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createStaticClient as createClient } from "@/lib/supabase/static";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import type { NoticeRow } from "@/types/database";
 

@@ -8,7 +8,7 @@ import {
   searchProducts as staticSearchProducts,
 } from "@/data/products";
 import { escapeIlikePattern, normalizeSearchQuery, sanitizeForOrFilter } from "@/lib/search/normalize";
-import { createClient } from "@/lib/supabase/server";
+import { createStaticClient as createClient } from "@/lib/supabase/static";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import type {
   ProductImageRow,

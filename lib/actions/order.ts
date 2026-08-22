@@ -143,9 +143,14 @@ export async function createOrderAction(input: CreateOrderActionInput): Promise<
   // Server Action's own pre-check above still runs first, purely so a
   // forged/stale client price fails fast with a friendly error instead of
   // reaching the RPC's own rejection — it is no longer the actual security
-  // boundary. p_is_production is set from this trusted server process's own
-  // NODE_ENV, never from client input, so production can't be spoofed into
-  // allowing a DEV_EXCHANGE_RATES-based charge from the RPC side either.
+  // boundary.
+  //
+  // STEP 15.5: create_order() also no longer takes a p_is_production
+  // parameter at all — a value the caller supplies can never be the trust
+  // boundary for "is this database production", since create_order is
+  // GRANTed to anon and anyone with the public anon key could call it
+  // directly with that flag forced false. The RPC now reads
+  // app_settings.'orders.is_production' itself instead.
   const { data: orderId, error: rpcError } = await supabase.rpc("create_order", {
     p_order_number: input.orderNumber,
     p_user_id: user?.id ?? null,
@@ -159,7 +164,6 @@ export async function createOrderAction(input: CreateOrderActionInput): Promise<
     p_items: rpcItems,
     p_coupon_code: input.couponCode ?? null,
     p_points_used: input.pointsUsed ?? 0,
-    p_is_production: process.env.NODE_ENV === "production",
   } as never);
 
   if (rpcError || !orderId) {

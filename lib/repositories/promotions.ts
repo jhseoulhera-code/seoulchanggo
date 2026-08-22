@@ -1,5 +1,5 @@
 import { mapProductRow, PRODUCT_SELECT, type ProductJoinRow } from "@/lib/repositories/products";
-import { createClient } from "@/lib/supabase/server";
+import { createStaticClient as createClient } from "@/lib/supabase/static";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import type { PromotionRow } from "@/types/database";
 import type { Product } from "@/types";
