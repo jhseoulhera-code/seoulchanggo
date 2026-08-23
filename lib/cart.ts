@@ -4,9 +4,10 @@
 // registry.ts for the original precedent). Every other caller in the app
 // still imports these via "@/lib/..." as usual; only this file's own
 // references changed.
-import { convertFromKrw, getProductMarketPrice } from "./currency.ts";
+import { convertFromKrw } from "./currency.ts";
 import { hasPriceChanged } from "./cart/cartLogic.ts";
-import { calculateVariantPrice, getEffectiveStock, isProductSoldOut } from "./storefront/productVariants.ts";
+import { resolveSellPrice } from "./checkout/normalize.ts";
+import { getEffectiveStock, isProductSoldOut } from "./storefront/productVariants.ts";
 import { getShippingFeeForMarket, isProductAvailableInMarket } from "./shipping.ts";
 import type { Product, ShippingType } from "@/types";
 import type { CartItem, CartLineView, CartSummaryTotals } from "@/types/cart";
@@ -57,17 +58,7 @@ export function enrichCartItem(item: CartItem, products: Product[], market: Mark
     };
   }
 
-  const { salePrice: baseSale, originalPrice: baseOriginal } = getProductMarketPrice(product, market);
-  // additional_price is a raw KRW delta with no per-market override (STEP
-  // 18/19's documented limitation) — converted the same way the base price
-  // already is for a non-KRW market, so the two stay comparable.
-  const additionalConverted = variant
-    ? market.currency === "KRW"
-      ? variant.additionalPrice
-      : convertFromKrw(variant.additionalPrice, market.currency)
-    : 0;
-  const unitPrice = variant ? calculateVariantPrice(baseSale, additionalConverted) : baseSale;
-  const unitOriginalPrice = variant ? calculateVariantPrice(baseOriginal, additionalConverted) : baseOriginal;
+  const { salePrice: unitPrice, originalPrice: unitOriginalPrice } = resolveSellPrice({ product, variant, market });
 
   const rawStock = hasOptions ? getEffectiveStock(true, variant, product.stock) : getEffectiveStock(false, null, product.stock);
   const currentStock = Number.isFinite(rawStock) ? rawStock : null;

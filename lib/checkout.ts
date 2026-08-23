@@ -1,5 +1,6 @@
 import { enrichCartItem, summarizeLines } from "@/lib/cart";
 import { calculateVariantPrice } from "@/lib/storefront/productVariants";
+import { deriveUnavailableReason } from "@/lib/checkout/normalize";
 import type { Product, ShippingType } from "@/types";
 import type { BuyNowItem, CartItem, CartLineView, CartSummaryTotals } from "@/types/cart";
 import type { Market } from "@/types/market";
@@ -9,6 +10,7 @@ function checkoutItemFromLine(line: CartLineView): CheckoutItem {
   return {
     cartItemId: line.cartItem.cartItemId,
     productId: line.product.id,
+    variantId: line.cartItem.variantId,
     productName: line.product.name,
     image: line.product.image,
     category: line.product.category,
@@ -25,10 +27,21 @@ function checkoutItemFromLine(line: CartLineView): CheckoutItem {
     internationalShippingMethod: line.product.internationalShippingMethod,
     shippingFee: line.shippingFee,
     isAvailable: line.isAvailable,
+    isPurchasable: line.isPurchasable,
+    priceChanged: line.priceChanged,
+    unavailableReason: deriveUnavailableReason(line.isAvailable, line.isPurchasable) ?? undefined,
   };
 }
 
-/** Only the checked, purchasable cart lines become checkout items — unselected or no-longer-sellable items stay behind in the cart (STEP 20 spec section 17/34). */
+/**
+ * Every checked cart line becomes a checkout item, INCLUDING one that's no
+ * longer purchasable (sold out, deactivated variant, etc.) — STEP 21 spec
+ * section 33/36 needs those visible so CheckoutClient's existing "some
+ * items can't be ordered" screen can show them, not silently vanish them
+ * from the list (which is what STEP 20's filter here used to do). Only a
+ * line whose product no longer exists in the fetched catalog at all is
+ * dropped, since there's nothing left to render for it.
+ */
 export function buildCheckoutItemsFromCart(
   cartItems: CartItem[],
   products: Product[],
@@ -37,7 +50,7 @@ export function buildCheckoutItemsFromCart(
   return cartItems
     .filter((item) => item.checked)
     .map((item) => enrichCartItem(item, products, market))
-    .filter((line): line is CartLineView => line !== null && line.isPurchasable)
+    .filter((line): line is CartLineView => line !== null)
     .map(checkoutItemFromLine);
 }
 
@@ -97,5 +110,5 @@ export function buildOrderShippingGroups(items: CheckoutItem[]): OrderShippingGr
 }
 
 export function calculateCheckoutSummary(items: CheckoutItem[]): CartSummaryTotals {
-  return summarizeLines(items.filter((item) => item.isAvailable));
+  return summarizeLines(items.filter((item) => item.isAvailable && item.isPurchasable));
 }

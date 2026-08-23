@@ -9,6 +9,7 @@ import { getMessages, t } from "@/messages";
 import type { ShippingType } from "@/types";
 import type { Market } from "@/types/market";
 import type { CheckoutItem } from "@/types/order";
+import type { ShippingQuote } from "@/lib/shipping/quote";
 
 const GROUP_LABEL_KEY: Record<ShippingType, "groupDomestic" | "groupOverseasDirect" | "groupOverseasAgency"> = {
   domestic: "groupDomestic",
@@ -20,9 +21,28 @@ type CheckoutItemGroupProps = {
   shippingType: ShippingType;
   items: CheckoutItem[];
   market: Market;
+  /** STEP 21 — omitted on the "blocked" screen, where a shared quote across mixed-state items wouldn't mean anything. */
+  quote?: ShippingQuote;
 };
 
-export function CheckoutItemGroup({ shippingType, items, market }: CheckoutItemGroupProps) {
+function shippingQuoteText(
+  quote: ShippingQuote,
+  market: Market,
+  messages: ReturnType<typeof getMessages>
+): string {
+  switch (quote.status) {
+    case "FREE":
+      return messages.checkout.shippingFree;
+    case "CALCULATED":
+      return formatCurrency(quote.amount ?? 0, market.currency);
+    case "UNAVAILABLE":
+      return messages.checkout.shippingUnavailable;
+    case "PENDING":
+      return messages.checkout.shippingPending;
+  }
+}
+
+export function CheckoutItemGroup({ shippingType, items, market, quote }: CheckoutItemGroupProps) {
   const messages = getMessages(market.locale);
   const groupLabel = messages.cart[GROUP_LABEL_KEY[shippingType]];
   const info = SHIPPING_INFO[shippingType];
@@ -40,6 +60,15 @@ export function CheckoutItemGroup({ shippingType, items, market }: CheckoutItemG
           · {info.eta[market.locale]}
           {methodLabel ? ` · ${methodLabel}` : ""}
         </span>
+        {quote && (
+          <span
+            className={`ml-auto text-xs font-bold ${
+              quote.status === "UNAVAILABLE" ? "text-red-600" : quote.status === "PENDING" ? "text-amber-600" : "text-text-main"
+            }`}
+          >
+            {shippingQuoteText(quote, market, messages)}
+          </span>
+        )}
       </div>
 
       <div className="mt-3 flex flex-col gap-3">
@@ -50,22 +79,36 @@ export function CheckoutItemGroup({ shippingType, items, market }: CheckoutItemG
             </div>
             <div className="flex min-w-0 flex-1 flex-col gap-1">
               <p className="line-clamp-2 text-sm text-text-main">{item.productName}</p>
-              {item.optionLabel && <p className="text-xs text-text-secondary">{item.optionLabel}</p>}
+              {item.optionLabel && (
+                <p className="text-xs text-text-secondary">
+                  {messages.checkout.optionSectionLabel}: {item.optionLabel}
+                </p>
+              )}
 
-              {item.isAvailable ? (
+              {!item.isAvailable ? (
+                <p className="flex items-center gap-1.5 text-xs font-medium text-red-600">
+                  <AlertTriangle size={12} className="shrink-0" />
+                  {t(messages.cart.unavailableInMarket, { country: market.countryName })}
+                </p>
+              ) : !item.isPurchasable ? (
+                <p className="flex items-center gap-1.5 text-xs font-medium text-red-600">
+                  <AlertTriangle size={12} className="shrink-0" />
+                  {messages.checkout.unavailableBadge}
+                </p>
+              ) : (
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-text-secondary">
+                  <span className="flex items-center gap-1.5 text-text-secondary">
                     {formatCurrency(item.unitPrice, market.currency)} × {item.quantity}
+                    {item.priceChanged && (
+                      <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-700">
+                        {messages.checkout.priceChangedBadge}
+                      </span>
+                    )}
                   </span>
                   <span className="font-bold text-text-main">
                     {formatCurrency(item.subtotal, market.currency)}
                   </span>
                 </div>
-              ) : (
-                <p className="flex items-center gap-1.5 text-xs font-medium text-red-600">
-                  <AlertTriangle size={12} className="shrink-0" />
-                  {t(messages.cart.unavailableInMarket, { country: market.countryName })}
-                </p>
               )}
             </div>
           </div>

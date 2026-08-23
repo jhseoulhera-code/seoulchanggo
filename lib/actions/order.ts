@@ -1,9 +1,10 @@
 "use server";
 
 import { MARKETS } from "@/data/markets";
-import { getProductMarketPrice } from "@/lib/currency";
+import { resolveSellPrice } from "@/lib/checkout/normalize";
 import { mapProductRow, PRODUCT_SELECT } from "@/lib/repositories/products";
 import { getShippingFeeForMarket } from "@/lib/shipping";
+import { getEffectiveStock } from "@/lib/storefront/productVariants";
 import { createClient } from "@/lib/supabase/server";
 import type { ProductJoinRow } from "@/lib/repositories/products";
 import type { ShippingTypeEnum } from "@/types/database";
@@ -35,7 +36,7 @@ export type CreateOrderActionInput = {
 
 export type CreateOrderActionResult =
   | { ok: true; orderId: string }
-  | { ok: false; error: "PRICE_MISMATCH" | "PRICE_NOT_READY" | "COUPON_INVALID" | "POINTS_INVALID" | "UNKNOWN" };
+  | { ok: false; error: "PRICE_MISMATCH" | "PRICE_NOT_READY" | "STOCK_CHANGED" | "COUPON_INVALID" | "POINTS_INVALID" | "UNKNOWN" };
 
 const PRICE_TOLERANCE = 1;
 
@@ -97,7 +98,21 @@ export async function createOrderAction(input: CreateOrderActionInput): Promise<
     const product = productsBySlug.get(item.productId);
     if (!product || !product.dbId) return { ok: false, error: "PRICE_MISMATCH" };
 
-    const expectedPrice = getProductMarketPrice(product, validationMarket);
+    // STEP 21 — resolve the variant (if any) the same way the storefront/cart
+    // already did, so this pre-check's expected price actually includes the
+    // option's additional_price instead of only ever comparing the base
+    // price and false-rejecting every real variant order as a mismatch.
+    const variant = item.variantId ? (product.variants ?? []).find((v) => v.id === item.variantId) ?? null : null;
+    if (item.variantId && !variant) return { ok: false, error: "PRICE_MISMATCH" };
+    if (variant && !variant.isActive) return { ok: false, error: "STOCK_CHANGED" };
+
+    const hasOptions = Boolean(product.options && product.options.length > 0);
+    const currentStock = hasOptions ? getEffectiveStock(true, variant, product.stock) : getEffectiveStock(false, null, product.stock);
+    if (Number.isFinite(currentStock) && item.quantity > currentStock) {
+      return { ok: false, error: "STOCK_CHANGED" };
+    }
+
+    const expectedPrice = resolveSellPrice({ product, variant, market: validationMarket });
     const expectedShippingFee = getShippingFeeForMarket(product, validationMarket);
     if (
       Math.abs(expectedPrice.salePrice - item.unitPrice) > PRICE_TOLERANCE ||
@@ -119,7 +134,7 @@ export async function createOrderAction(input: CreateOrderActionInput): Promise<
 
     rpcItems.push({
       product_id: product.dbId,
-      variant_id: null,
+      variant_id: variant?.id ?? null,
       product_name_snapshot: item.productName,
       sku_snapshot: item.productId,
       option_snapshot: item.selectedOptions,
@@ -170,6 +185,7 @@ export async function createOrderAction(input: CreateOrderActionInput): Promise<
     console.error("[order] create_order RPC failed:", rpcError?.message);
     const message = rpcError?.message ?? "";
     if (message.includes("PRICE_NOT_READY")) return { ok: false, error: "PRICE_NOT_READY" };
+    if (message.includes("STOCK_CHANGED")) return { ok: false, error: "STOCK_CHANGED" };
     if (message.includes("coupon")) return { ok: false, error: "COUPON_INVALID" };
     if (message.includes("point")) return { ok: false, error: "POINTS_INVALID" };
     if (message.includes("not available in market") || message.includes("not found or inactive")) {

@@ -35,17 +35,7 @@ export function CartPageClient({ products }: CartPageClientProps) {
     availableIds.length > 0 &&
     availableIds.every((id) => lines.find((line) => line.cartItem.cartItemId === id)?.cartItem.checked);
 
-  // STEP 20 spec section 33/38 — /checkout (STEP 11) still prices every
-  // line off the product's own base price only; it doesn't yet resolve a
-  // selected variant's additional_price, so checking out with one selected
-  // would silently charge the wrong amount. Blocked here rather than
-  // touched in checkout itself, which is explicitly out of this step's
-  // scope — see the STEP 20 report's known limitations.
-  const hasSelectedVariantLine = lines.some((line) => line.cartItem.checked && line.cartItem.variantId);
-  const blockedReason = hasSelectedVariantLine ? messages.cart.checkoutPlaceholder : undefined;
-
   function handleCheckout() {
-    if (hasSelectedVariantLine) return;
     router.push("/checkout?source=cart");
   }
 
@@ -87,7 +77,7 @@ export function CartPageClient({ products }: CartPageClientProps) {
 
               <div className="hidden md:block md:w-80 md:shrink-0">
                 <div className="sticky top-20">
-                  <CartSummary totals={totals} market={market} variant="card" onCheckout={handleCheckout} blockedReason={blockedReason} />
+                  <CartSummary totals={totals} market={market} variant="card" onCheckout={handleCheckout} />
                 </div>
               </div>
             </div>
@@ -96,7 +86,7 @@ export function CartPageClient({ products }: CartPageClientProps) {
       </main>
 
       {lines.length > 0 && (
-        <CartSummary totals={totals} market={market} variant="fixed" onCheckout={handleCheckout} blockedReason={blockedReason} />
+        <CartSummary totals={totals} market={market} variant="fixed" onCheckout={handleCheckout} />
       )}
     </>
   );

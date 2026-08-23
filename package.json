@@ -12,7 +12,8 @@
     "test:ai-product-assistant": "node --experimental-strip-types scripts/test-ai-product-assistant.mts",
     "test:admin-product-variants": "node --experimental-strip-types scripts/test-admin-product-variants.mts",
     "test:storefront-product-detail": "node --experimental-strip-types scripts/test-storefront-product-detail.mts",
-    "test:cart": "node --experimental-strip-types scripts/test-cart.mts"
+    "test:cart": "node --experimental-strip-types scripts/test-cart.mts",
+    "test:checkout-shipping": "node --experimental-strip-types scripts/test-checkout-shipping.mts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",

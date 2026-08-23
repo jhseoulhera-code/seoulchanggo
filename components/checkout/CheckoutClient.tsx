@@ -28,6 +28,7 @@ import {
   calculateCheckoutSummary,
   groupCheckoutItemsByShippingType,
 } from "@/lib/checkout";
+import { computeGroupShippingQuote, isGrandTotalDetermined } from "@/lib/shipping/quote";
 import { clearBuyNowItem, getBuyNowItem } from "@/lib/buyNow";
 import { generateOrderId, saveGuestOrder } from "@/lib/order";
 import { createOrderAction } from "@/lib/actions/order";
@@ -95,10 +96,30 @@ export function CheckoutClient({ products }: CheckoutClientProps) {
     return buildCheckoutItemsFromCart(cart.items, products, market);
   }, [source, cart.items, products, market]);
 
-  const unavailableItems = checkoutItems.filter((item) => !item.isAvailable);
-  const availableItems = checkoutItems.filter((item) => item.isAvailable);
+  // STEP 21 — an item that's sold out or lost its variant/active status
+  // (isPurchasable false) is exactly as much a blocker as one that isn't
+  // shippable to this market (isAvailable false): both make the whole
+  // checkout attempt unsafe to submit, same all-or-nothing gate as before.
+  const unavailableItems = checkoutItems.filter((item) => !item.isAvailable || !item.isPurchasable);
+  const availableItems = checkoutItems.filter((item) => item.isAvailable && item.isPurchasable);
   const groups = useMemo(() => groupCheckoutItemsByShippingType(availableItems), [availableItems]);
   const totals = useMemo(() => calculateCheckoutSummary(checkoutItems), [checkoutItems]);
+  // STEP 21 — each shipping group (domestic/overseas_direct/overseas_agent) gets its own
+  // independent quote instead of one shared shipping fee, so a mixed cart's three
+  // fulfillment paths never collapse into a single number. Every item reaching this point
+  // already passed the isAvailable gate above, so isShippable is trivially true here — the
+  // false branch exists for honesty/forward-compatibility (see computeGroupShippingQuote).
+  const shippingQuotes = useMemo(
+    () =>
+      new Map(
+        groups.map((group) => [
+          group.shippingType,
+          computeGroupShippingQuote(group.shippingType, group.items, market.currency, true),
+        ])
+      ),
+    [groups, market.currency]
+  );
+  const isTotalPending = !isGrandTotalDetermined(Array.from(shippingQuotes.values()));
   const hasOverseasItem = availableItems.some((item) => item.shippingType !== "domestic");
   const needsCustomsCode = market.countryCode === "KR" && hasOverseasItem;
   const paymentOptions = PAYMENT_METHODS_BY_MARKET[market.countryCode];
@@ -316,7 +337,11 @@ export function CheckoutClient({ products }: CheckoutClientProps) {
               ? messages.points.conditionError
               : result.error === "PRICE_NOT_READY"
                 ? messages.checkout.priceNotReady
-                : messages.checkout.orderFailed;
+                : result.error === "STOCK_CHANGED"
+                  ? messages.checkout.stockChanged
+                  : result.error === "PRICE_MISMATCH"
+                    ? messages.checkout.priceMismatch
+                    : messages.checkout.orderFailed;
         setToast({ message, tone: "error" });
         return;
       }
@@ -403,6 +428,7 @@ export function CheckoutClient({ products }: CheckoutClientProps) {
                       shippingType={group.shippingType}
                       items={group.items}
                       market={market}
+                      quote={shippingQuotes.get(group.shippingType)}
                     />
                   ))}
                 </div>
@@ -500,7 +526,8 @@ export function CheckoutClient({ products }: CheckoutClientProps) {
                   market={market}
                   variant="card"
                   onSubmit={handleSubmit}
-                  disabled={submitting}
+                  disabled={submitting || isTotalPending}
+                  isTotalPending={isTotalPending}
                 />
               </div>
             </div>
@@ -514,6 +541,7 @@ export function CheckoutClient({ products }: CheckoutClientProps) {
         variant="fixed"
         onSubmit={handleSubmit}
         disabled={submitting}
+        isTotalPending={isTotalPending}
       />
 
       <Toast toast={toast} />

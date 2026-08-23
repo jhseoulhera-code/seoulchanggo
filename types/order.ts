@@ -69,6 +69,8 @@ export type ShippingGroupStatus =
 export type CheckoutItem = {
   cartItemId?: string;
   productId: string;
+  /** STEP 21 — the real DB variant id (null for an option-less item), threaded through to create_order's p_items so order_items.variant_id is never dropped on the way from cart to order. */
+  variantId: string | null;
   productName: string;
   image: string;
   category: string;
@@ -84,7 +86,14 @@ export type CheckoutItem = {
   originCountry?: OriginCountryCode;
   internationalShippingMethod?: InternationalShippingMethod;
   shippingFee: number;
+  /** Shippable to the customer's current market — unrelated to stock/sale status (unchanged meaning). */
   isAvailable: boolean;
+  /** STEP 21 — active, in stock, priceable right now (mirrors CartLineView.isPurchasable). A sold-out or deactivated-variant item stays in the list with this false, rather than disappearing. */
+  isPurchasable: boolean;
+  /** STEP 21 — unitPrice differs from what this line's cart snapshot recorded at add-to-cart time. */
+  priceChanged: boolean;
+  /** Set only when isAvailable/isPurchasable is false — lets the UI show the right message without re-deriving it. */
+  unavailableReason?: "market" | "soldOut";
 };
 
 export type OrderShippingGroup = {

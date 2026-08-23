@@ -127,6 +127,16 @@ export type Messages = {
     loginLink: string;
     orderFailed: string;
     priceNotReady: string;
+    stockChanged: string;
+    priceMismatch: string;
+    optionSectionLabel: string;
+    priceChangedBadge: string;
+    unavailableBadge: string;
+    shippingCalculated: string;
+    shippingFree: string;
+    shippingUnavailable: string;
+    shippingPending: string;
+    totalPending: string;
   };
   order: {
     completeTitle: string;
