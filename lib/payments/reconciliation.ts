@@ -21,7 +21,19 @@ export type PaymentReconciliationIssue =
   | "LOCAL_PAID_PROVIDER_UNKNOWN"
   | "AMOUNT_MISMATCH"
   | "CURRENCY_MISMATCH"
-  | "PROVIDER_UNAVAILABLE";
+  | "PROVIDER_UNAVAILABLE"
+  /**
+   * STEP 26 spec section 24/25 — a refund stuck in PENDING past
+   * STALE_REFUND_PENDING_THRESHOLD_MINUTES: admin_finalize_refund never
+   * completed, so the provider MAY have already refunded the money while our
+   * own record still shows the request in flight. Distinct from
+   * STALE_PENDING (which is about an unresolved PAYMENT, not a refund).
+   */
+  | "PROVIDER_REFUNDED_LOCAL_PENDING"
+  /** A refund we believe COMPLETED locally with no way (yet) to confirm the provider agrees — every real adapter's getPaymentStatus is still NOT_CONFIGURED, same limitation STEP 24 already documented for payments. */
+  | "LOCAL_REFUNDED_PROVIDER_UNKNOWN"
+  /** admin_finalize_refund rejected a provider result whose amount didn't match the reserved refund amount — the refund stayed FAILED rather than being silently marked complete. */
+  | "REFUND_AMOUNT_MISMATCH";
 
 export type ReconciliationResult = {
   paymentId: string;
@@ -51,6 +63,26 @@ export function isStalePendingPayment(
 ): boolean {
   if (!NON_TERMINAL_STATUSES.has(paymentStatus)) return false;
   const ageMinutes = (now.getTime() - new Date(paymentCreatedAt).getTime()) / 60000;
+  return ageMinutes >= thresholdMinutes;
+}
+
+/** STEP 26 spec section 24 — same threshold value as payment pending-staleness, kept as its own named constant since a refund and a payment are different domain concepts even though they share a number today. */
+export const STALE_REFUND_PENDING_THRESHOLD_MINUTES = 30;
+
+/**
+ * A refund is "stale pending" purely by elapsed time — mirrors
+ * isStalePendingPayment's own reasoning: this never concludes the refund
+ * failed, only that it's worth a human re-checking against the provider
+ * (STEP 26 spec section 24).
+ */
+export function isStalePendingRefund(
+  refundStatus: string,
+  refundCreatedAt: string,
+  now: Date = new Date(),
+  thresholdMinutes: number = STALE_REFUND_PENDING_THRESHOLD_MINUTES
+): boolean {
+  if (refundStatus !== "PENDING") return false;
+  const ageMinutes = (now.getTime() - new Date(refundCreatedAt).getTime()) / 60000;
   return ageMinutes >= thresholdMinutes;
 }
 

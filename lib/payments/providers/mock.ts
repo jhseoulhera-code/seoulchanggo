@@ -11,6 +11,7 @@ import type {
   ParsedWebhookEvent,
   PaymentProviderAdapter,
   PaymentStatusLookupResult,
+  RefundPaymentInput,
   RefundPaymentResult,
   WebhookVerifyInput,
 } from "@/lib/payments/types";
@@ -59,8 +60,17 @@ export const mockPaymentProvider: PaymentProviderAdapter = {
     return { ok: true };
   },
 
-  async refundPayment(): Promise<RefundPaymentResult> {
-    return { ok: true, providerRefundId: `mock_refund_${Date.now()}` };
+  // STEP 26 — deterministic providerRefundId derived from OUR refund row id,
+  // never Date.now(): a retry of the same refundId must resolve to the same
+  // provider-side refund rather than creating a second one.
+  async refundPayment(input: RefundPaymentInput): Promise<RefundPaymentResult> {
+    return {
+      ok: true,
+      providerRefundId: `mock_refund_${input.refundId}`,
+      amount: input.amount,
+      currencyCode: input.currencyCode,
+      status: "COMPLETED",
+    };
   },
 
   verifyWebhook(input: WebhookVerifyInput): boolean {

@@ -9,6 +9,7 @@ import type {
   PaymentAttemptStatusEnum,
   PaymentMethodEnum,
   PaymentProviderEnum,
+  PaymentRefundRow,
   PaymentRow,
   PaymentStatusEnum,
   ShippingGroupItemRow,
@@ -182,12 +183,18 @@ export type MyOrderDetail = {
   latestPayment: MyOrderDetailPayment | null;
   /** STEP 23 section 38 — a failed/abandoned attempt can still be retried against the same order; a PAID or CANCELLED order cannot. */
   canRetryPayment: boolean;
+  /** STEP 26 spec section 3 — an unpaid, not-already-cancelled order can be self-cancelled; kept as its own field even though its condition matches canRetryPayment today, since "retry" and "cancel" are distinct customer actions. */
+  canCancel: boolean;
+  /** STEP 26 spec section 31 — sum of COMPLETED refund amounts for this order; never derived from a raw provider/internal code. */
+  refundedAmount: number;
+  refundStatus: "NONE" | "PENDING" | "PARTIAL" | "COMPLETED";
 };
 
 type OrderDetailRow = OrderRow & {
   order_items: OrderItemRow[];
   shipping_groups: (ShippingGroupRow & { shipping_group_items: ShippingGroupItemRow[] })[];
   payments: PaymentRow[];
+  payment_refunds: PaymentRefundRow[];
 };
 
 /**
@@ -210,7 +217,7 @@ export async function getMyOrderDetailAction(orderId: string): Promise<MyOrderDe
 
   const { data, error } = await supabase
     .from("orders")
-    .select("*, order_items(*), shipping_groups(*, shipping_group_items(*)), payments(*)")
+    .select("*, order_items(*), shipping_groups(*, shipping_group_items(*)), payments(*), payment_refunds(*)")
     .eq("id", orderId)
     .eq("user_id", user.id)
     .maybeSingle();
@@ -224,6 +231,18 @@ export async function getMyOrderDetailAction(orderId: string): Promise<MyOrderDe
   const latestPaymentRow = [...row.payments].sort(
     (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
   )[0];
+
+  // STEP 26 spec section 31 — customer sees only a coarse refund state
+  // (never a raw internal status code or reconciliation issue).
+  const refundedAmount = row.payment_refunds.filter((refund) => refund.status === "COMPLETED").reduce((sum, refund) => sum + refund.amount, 0);
+  const hasPendingRefund = row.payment_refunds.some((refund) => refund.status === "PENDING");
+  const refundStatus: MyOrderDetail["refundStatus"] = hasPendingRefund
+    ? "PENDING"
+    : latestPaymentRow?.status === "REFUNDED"
+      ? "COMPLETED"
+      : latestPaymentRow?.status === "PARTIALLY_REFUNDED"
+        ? "PARTIAL"
+        : "NONE";
 
   return {
     id: row.id,
@@ -275,5 +294,39 @@ export async function getMyOrderDetailAction(orderId: string): Promise<MyOrderDe
         }
       : null,
     canRetryPayment: row.payment_status !== "PAID" && row.order_status !== "CANCELLED",
+    canCancel: row.payment_status !== "PAID" && row.order_status !== "CANCELLED",
+    refundedAmount,
+    refundStatus,
   };
+}
+
+export type CancelMyOrderResult = { ok: true } | { ok: false; error: string };
+
+/**
+ * STEP 26 spec section 3/37 — customer-initiated cancel for an order that
+ * was never paid. Never calls anything refund-related: an unpaid order was
+ * never charged, so there is nothing for a payment provider to reverse.
+ * cancel_own_unpaid_order re-verifies ownership itself (the same
+ * _check_order_access used by prepare_payment/confirm_payment) — this
+ * action's own auth.getUser() check is only a fail-fast UX guard, not the
+ * real boundary.
+ */
+export async function cancelMyUnpaidOrderAction(orderId: string): Promise<CancelMyOrderResult> {
+  if (!isSupabaseConfigured()) return { ok: false, error: "Supabase가 연결되어 있지 않습니다." };
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "로그인이 필요합니다." };
+
+  const { error } = await supabase.rpc("cancel_own_unpaid_order", { p_order_id: orderId } as never);
+  if (error) {
+    console.error("[mypage] cancelMyUnpaidOrderAction failed:", error.message);
+    if (error.message.includes("paid order")) return { ok: false, error: "이미 결제완료된 주문은 취소할 수 없습니다." };
+    if (error.message.includes("access denied") || error.message.includes("not found")) {
+      return { ok: false, error: "주문을 찾을 수 없습니다." };
+    }
+    return { ok: false, error: "주문을 취소하지 못했습니다." };
+  }
+  return { ok: true };
 }

@@ -53,8 +53,29 @@ export type ConfirmPaymentResult =
 export type CancelPaymentInput = { providerPaymentId: string };
 export type CancelPaymentResult = { ok: true } | { ok: false; error: string };
 
-export type RefundPaymentInput = { providerPaymentId: string; amount: number; reason: string };
-export type RefundPaymentResult = { ok: true; providerRefundId: string } | { ok: false; error: string };
+/**
+ * STEP 26 spec section 13/14 — refundId is OUR OWN payment_refunds row id,
+ * passed through so an adapter can build a deterministic provider-side
+ * idempotency key (a retry with the same refundId must never create two
+ * separate provider-side refunds).
+ */
+export type RefundPaymentInput = {
+  refundId: string;
+  providerPaymentId: string;
+  amount: number;
+  currencyCode: CurrencyCode;
+  reason: string;
+};
+
+/**
+ * STEP 26 spec section 14/15 — a normalized result; the caller (
+ * admin_finalize_refund) verifies amount/currencyCode against what it
+ * actually reserved before ever treating this as complete. Raw provider
+ * response shapes never reach the UI.
+ */
+export type RefundPaymentResult =
+  | { ok: true; providerRefundId: string; amount: number; currencyCode: CurrencyCode; status: "COMPLETED" | "PENDING" }
+  | { ok: false; error: string; failureCode?: string };
 
 export type WebhookVerifyInput = { headers: Record<string, string>; rawBody: string };
 

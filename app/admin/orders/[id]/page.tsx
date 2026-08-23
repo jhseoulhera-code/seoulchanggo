@@ -3,16 +3,26 @@ import { notFound } from "next/navigation";
 import { AdminErrorScreen } from "@/components/admin/AdminBlockerScreen";
 import { AdminNoteEditor } from "@/components/admin/orders/AdminNoteEditor";
 import { PaymentHistoryPanel } from "@/components/admin/orders/PaymentHistoryPanel";
+import { RefundPanel } from "@/components/admin/orders/RefundPanel";
 import { ShippingGroupEditor } from "@/components/admin/orders/ShippingGroupEditor";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { getAdminOrderDetail } from "@/lib/repositories/admin/orders";
 import { ORDER_STATUS_LABEL, PAYMENT_STATUS_LABEL } from "@/lib/adminLabels";
 import { formatCurrency } from "@/lib/currency";
+import { REFUND_REASON_LABEL } from "@/lib/refunds/types";
 
 const RECONCILIATION_ISSUE_LABEL: Record<string, string> = {
   PROVIDER_PAID_LOCAL_STOCK_FAILURE: "결제는 승인되었으나 재고 부족으로 확정 실패 — 결제/이행 상태 확인 필요",
   AMOUNT_MISMATCH: "결제 금액 불일치 감지 — 확인 필요",
   CURRENCY_MISMATCH: "결제 통화 불일치 감지 — 확인 필요",
+  PROVIDER_REFUNDED_LOCAL_PENDING: "환불 요청이 오래 처리 중입니다 — provider에서 실제로 환불되었는지 확인 필요",
+  REFUND_AMOUNT_MISMATCH: "환불 금액/통화 불일치로 실패한 환불 건이 있습니다 — 확인 필요",
+};
+
+const REFUND_STATUS_LABEL: Record<string, string> = {
+  PENDING: "처리중",
+  COMPLETED: "완료",
+  FAILED: "실패",
 };
 
 function InfoRow({ label, value }: { label: string; value: string }) {
@@ -151,6 +161,54 @@ export default async function AdminOrderDetailPage(props: { params: Promise<{ id
       )}
 
       <PaymentHistoryPanel orderId={order.id} paymentStatus={order.paymentStatus} payments={order.payments} />
+
+      {order.paymentStatus === "PAID" && (
+        <RefundPanel
+          orderId={order.id}
+          payments={order.payments}
+          items={order.items}
+          shippingGroups={order.shippingGroups}
+          shippingAmount={order.shippingAmount}
+          alreadyRefundedShippingAmount={order.refunds
+            .filter((refund) => refund.status === "PENDING" || refund.status === "COMPLETED")
+            .reduce((sum, refund) => sum + refund.refundShippingAmount, 0)}
+        />
+      )}
+
+      {order.refunds.length > 0 && (
+        <section className="flex flex-col gap-2 border border-border p-3">
+          <h2 className="text-sm font-bold text-text-main">환불 이력</h2>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[640px] text-left text-xs">
+              <thead className="border-b border-border text-text-secondary">
+                <tr>
+                  <th className="px-2 py-1.5">요청일시</th>
+                  <th className="px-2 py-1.5">상태</th>
+                  <th className="px-2 py-1.5">금액</th>
+                  <th className="px-2 py-1.5">사유</th>
+                  <th className="px-2 py-1.5">완료일시</th>
+                </tr>
+              </thead>
+              <tbody>
+                {order.refunds.map((refund) => (
+                  <tr key={refund.id} className="border-b border-border last:border-b-0">
+                    <td className="px-2 py-1.5 text-text-secondary">{new Date(refund.createdAt).toLocaleString("ko-KR")}</td>
+                    <td className="px-2 py-1.5 text-text-main">{REFUND_STATUS_LABEL[refund.status] ?? refund.status}</td>
+                    <td className="px-2 py-1.5 text-text-main">{formatCurrency(refund.amount, refund.currencyCode)}</td>
+                    <td className="px-2 py-1.5 text-text-secondary">
+                      {REFUND_REASON_LABEL[refund.reasonCode]}
+                      {refund.reason ? ` · ${refund.reason}` : ""}
+                    </td>
+                    <td className="px-2 py-1.5 text-text-secondary">
+                      {refund.completedAt ? new Date(refund.completedAt).toLocaleString("ko-KR") : "-"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
 
       <section className="flex flex-col gap-3">
         <h2 className="text-sm font-bold text-text-main">배송그룹</h2>

@@ -17,7 +17,7 @@ import { paymentMethodLabel } from "@/lib/paymentLabels";
 import { attemptPayment } from "@/lib/paymentRetry";
 import { carrierLabel } from "@/lib/shipping/carriers";
 import { shippingTypeLabel } from "@/lib/shippingLabels";
-import { getMyOrderDetailAction } from "@/lib/actions/mypage";
+import { cancelMyUnpaidOrderAction, getMyOrderDetailAction } from "@/lib/actions/mypage";
 import type { MyOrderDetail } from "@/lib/actions/mypage";
 import { getMessages } from "@/messages";
 import type { ShippingType } from "@/types";
@@ -86,6 +86,7 @@ export default function MyOrderDetailPage() {
 
   const [order, setOrder] = useState<MyOrderDetail | null | undefined>(undefined);
   const [retrying, setRetrying] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
   const [toast, setToast] = useState<ToastState | null>(null);
 
   useEffect(() => {
@@ -138,6 +139,24 @@ export default function MyOrderDetailPage() {
     const refreshed = await getMyOrderDetailAction(params.orderId);
     setOrder(refreshed);
     setToast({ message: "결제가 완료되었습니다.", tone: "success" });
+  }
+
+  /** STEP 26 spec section 3/37 — an unpaid order only; never calls anything refund-related (nothing was ever charged). */
+  async function handleCancelOrder() {
+    if (!order || cancelling) return;
+    if (!window.confirm("주문을 취소하시겠습니까?")) return;
+
+    setCancelling(true);
+    const result = await cancelMyUnpaidOrderAction(order.id);
+    setCancelling(false);
+
+    if (!result.ok) {
+      setToast({ message: result.error, tone: "error" });
+      return;
+    }
+    const refreshed = await getMyOrderDetailAction(params.orderId);
+    setOrder(refreshed);
+    setToast({ message: "주문이 취소되었습니다.", tone: "success" });
   }
 
   if (order === undefined) {
@@ -201,6 +220,22 @@ export default function MyOrderDetailPage() {
                 <span className="text-text-main">{formatDateTime(order.latestPayment.paidAt, market.locale, getMarketTimeZone(order.marketCode))}</span>
               </div>
             )}
+            {order.refundStatus !== "NONE" && (
+              <div className="flex items-center justify-between">
+                <span className="text-text-secondary">환불상태</span>
+                <span className="text-text-main">
+                  {order.refundStatus === "PENDING" && messages.payment.refundStatus.pending}
+                  {order.refundStatus === "PARTIAL" && messages.payment.refundStatus.partial}
+                  {order.refundStatus === "COMPLETED" && messages.payment.refundStatus.completed}
+                </span>
+              </div>
+            )}
+            {order.refundedAmount > 0 && (
+              <div className="flex items-center justify-between">
+                <span className="text-text-secondary">환불금액</span>
+                <span className="text-text-main">{formatCurrency(order.refundedAmount, order.currencyCode)}</span>
+              </div>
+            )}
             {!isPaid && order.canRetryPayment && (
               <button
                 type="button"
@@ -209,6 +244,16 @@ export default function MyOrderDetailPage() {
                 className="mt-1 h-11 w-full bg-primary text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {retrying ? messages.common.loading : "다시 결제하기"}
+              </button>
+            )}
+            {!isPaid && order.canCancel && (
+              <button
+                type="button"
+                onClick={handleCancelOrder}
+                disabled={cancelling}
+                className="h-11 w-full border border-border text-sm font-bold text-text-main disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {cancelling ? messages.common.loading : "주문 취소"}
               </button>
             )}
           </div>

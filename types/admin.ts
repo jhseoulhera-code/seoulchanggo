@@ -12,6 +12,8 @@ import type {
   PaymentStatusEnum,
   PointTransactionTypeEnum,
   ProductStatusEnum,
+  RefundReasonCodeEnum,
+  RefundStatusEnum,
   ReviewStatusEnum,
   SearchKeywordTypeEnum,
   ShippingGroupStatusEnum,
@@ -188,6 +190,8 @@ export type AdminOrderItem = {
   quantity: number;
   shippingType: ShippingTypeEnum;
   originCountry: string | null;
+  /** STEP 26 spec section 8 — sum of PENDING+COMPLETED payment_refund_items quantities for this item; remaining refundable = quantity - refundedQuantity. */
+  refundedQuantity: number;
 };
 
 export type AdminShippingGroup = {
@@ -212,15 +216,22 @@ export type AdminOrderStatusHistoryEntry = {
   createdAt: string;
 };
 
-/** STEP 25 spec section 34/35 — reused from lib/payments/reconciliation.ts's own taxonomy so admin and STEP 24's reconciliation share one vocabulary, not two. */
+/** STEP 25 spec section 34/35 — reused from lib/payments/reconciliation.ts's own taxonomy so admin and STEP 24's reconciliation share one vocabulary, not two. STEP 26 adds the refund-flow issues from the same source module. */
 export type AdminReconciliationWarning = {
-  issue: "PROVIDER_PAID_LOCAL_STOCK_FAILURE" | "AMOUNT_MISMATCH" | "CURRENCY_MISMATCH";
+  issue:
+    | "PROVIDER_PAID_LOCAL_STOCK_FAILURE"
+    | "AMOUNT_MISMATCH"
+    | "CURRENCY_MISMATCH"
+    | "PROVIDER_REFUNDED_LOCAL_PENDING"
+    | "REFUND_AMOUNT_MISMATCH";
   paymentId: string;
 };
 
 export type AdminPaymentAttempt = {
   id: string;
   provider: PaymentProviderEnum;
+  /** Needed to call the provider adapter's refundPayment — never rendered directly (internal reference, not customer-facing). */
+  providerPaymentId: string | null;
   paymentMethod: PaymentMethodEnum;
   amount: number;
   currencyCode: CurrencyCodeEnum;
@@ -229,6 +240,33 @@ export type AdminPaymentAttempt = {
   failureMessage: string | null;
   paidAt: string | null;
   createdAt: string;
+  /** STEP 26 — sum of COMPLETED refund amounts against this payment; refundable remaining = amount - refundedAmount - pendingRefundAmount. */
+  refundedAmount: number;
+  /** A refund reserved (admin_create_refund succeeded) but not yet finalized — counts against the refundable cap even before the provider call resolves. */
+  pendingRefundAmount: number;
+};
+
+export type AdminRefundLine = {
+  orderItemId: string;
+  quantity: number;
+  amount: number;
+};
+
+/** STEP 26 spec section 29 — refund history shown on the admin order detail; never exposed to the customer beyond the coarse status derived from it. */
+export type AdminRefundSummary = {
+  id: string;
+  paymentId: string;
+  status: RefundStatusEnum;
+  amount: number;
+  refundShippingAmount: number;
+  currencyCode: CurrencyCodeEnum;
+  reasonCode: RefundReasonCodeEnum;
+  reason: string | null;
+  providerRefundId: string | null;
+  failureCode: string | null;
+  createdAt: string;
+  completedAt: string | null;
+  lines: AdminRefundLine[];
 };
 
 export type AdminOrderDetail = {
@@ -253,6 +291,7 @@ export type AdminOrderDetail = {
   items: AdminOrderItem[];
   shippingGroups: AdminShippingGroup[];
   payments: AdminPaymentAttempt[];
+  refunds: AdminRefundSummary[];
   adminNote: string | null;
   statusHistory: AdminOrderStatusHistoryEntry[];
   reconciliationWarnings: AdminReconciliationWarning[];

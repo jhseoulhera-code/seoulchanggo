@@ -303,6 +303,11 @@ export const en: Messages = {
       cancelled: "Cancelled",
       refunded: "Refunded",
     },
+    refundStatus: {
+      pending: "Refund in progress",
+      partial: "Partially refunded",
+      completed: "Refund complete",
+    },
     prepareFailed: "We couldn't prepare your payment.",
     confirmFailed: "Your payment failed.",
     amountMismatch: "We couldn't verify the payment amount. Please try again.",

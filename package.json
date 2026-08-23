@@ -17,7 +17,8 @@
     "test:order-creation": "node --experimental-strip-types scripts/test-order-creation.mts",
     "test:payment-finalization": "node --experimental-strip-types scripts/test-payment-finalization.mts",
     "test:payment-webhook-recovery": "node --experimental-strip-types scripts/test-payment-webhook-recovery.mts",
-    "test:admin-orders": "node --experimental-strip-types scripts/test-admin-orders.mts"
+    "test:admin-orders": "node --experimental-strip-types scripts/test-admin-orders.mts",
+    "test:refunds": "node --experimental-strip-types scripts/test-refunds.mts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",

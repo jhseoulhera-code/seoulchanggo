@@ -301,6 +301,11 @@ export type Messages = {
       cancelled: string;
       refunded: string;
     };
+    refundStatus: {
+      pending: string;
+      partial: string;
+      completed: string;
+    };
     prepareFailed: string;
     confirmFailed: string;
     amountMismatch: string;

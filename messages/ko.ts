@@ -303,6 +303,11 @@ export const ko: Messages = {
       cancelled: "취소",
       refunded: "환불",
     },
+    refundStatus: {
+      pending: "환불 처리중",
+      partial: "부분환불",
+      completed: "환불완료",
+    },
     prepareFailed: "결제를 준비하지 못했습니다.",
     confirmFailed: "결제에 실패했습니다.",
     amountMismatch: "결제 금액 확인에 실패했습니다. 다시 시도해주세요.",

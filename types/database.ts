@@ -55,6 +55,8 @@ export type PaymentAttemptStatusEnum =
   | "REFUNDED";
 export type PaymentProviderEnum = "KOREA_PG" | "INDIA_PG" | "GLOBAL_PG" | "MOCK";
 export type SearchKeywordTypeEnum = "POPULAR" | "RECOMMENDED";
+export type RefundStatusEnum = "PENDING" | "COMPLETED" | "FAILED";
+export type RefundReasonCodeEnum = "CUSTOMER_REQUEST" | "OUT_OF_STOCK" | "DELIVERY_ISSUE" | "PRODUCT_ISSUE" | "OTHER";
 
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
@@ -442,10 +444,30 @@ export type PaymentEventRow = {
 export type PaymentRefundRow = {
   id: string;
   payment_id: string;
+  order_id: string;
+  provider: PaymentProviderEnum;
+  currency: CurrencyCodeEnum;
   amount: number;
-  reason: string;
-  status: PaymentAttemptStatusEnum;
+  refund_shipping_amount: number;
+  reason_code: RefundReasonCodeEnum;
+  reason: string | null;
+  status: RefundStatusEnum;
   provider_refund_id: string | null;
+  idempotency_key: string;
+  admin_user_id: string | null;
+  failure_code: string | null;
+  failure_message: string | null;
+  created_at: string;
+  completed_at: string | null;
+};
+
+export type PaymentRefundItemRow = {
+  id: string;
+  refund_id: string;
+  order_item_id: string;
+  quantity: number;
+  amount: number;
+  stock_restored_at: string | null;
   created_at: string;
 };
 
@@ -553,6 +575,7 @@ export type Database = {
       payments: Table<PaymentRow, never, never>;
       payment_events: Table<PaymentEventRow, never, never>;
       payment_refunds: Table<PaymentRefundRow, never, never>;
+      payment_refund_items: Table<PaymentRefundItemRow, never, never>;
       search_keywords: Table<
         SearchKeywordRow,
         Omit<SearchKeywordRow, "id" | "created_at" | "updated_at"> & { id?: string },
@@ -676,6 +699,47 @@ export type Database = {
       cancel_unpaid_order: {
         Args: { p_order_id: string; p_reason: string };
         Returns: undefined;
+      };
+      cancel_own_unpaid_order: {
+        Args: { p_order_id: string; p_guest_contact?: string | null };
+        Returns: undefined;
+      };
+      admin_create_refund: {
+        Args: {
+          p_payment_id: string;
+          p_lines: Json;
+          p_reason_code: RefundReasonCodeEnum;
+          p_reason_note: string | null;
+          p_refund_shipping_amount?: number;
+          p_idempotency_key?: string | null;
+        };
+        Returns: Json;
+      };
+      admin_finalize_refund: {
+        Args: {
+          p_refund_id: string;
+          p_success: boolean;
+          p_provider_refund_id: string | null;
+          p_provider_amount: number | null;
+          p_provider_currency: CurrencyCodeEnum | null;
+          p_failure_code?: string | null;
+          p_failure_message?: string | null;
+        };
+        Returns: Json;
+      };
+      list_stale_pending_refunds: {
+        Args: { p_threshold_minutes?: number };
+        Returns: {
+          refund_id: string;
+          payment_id: string;
+          order_id: string;
+          order_number: string;
+          refund_status: RefundStatusEnum;
+          amount: number;
+          currency: CurrencyCodeEnum;
+          provider: PaymentProviderEnum;
+          created_at: string;
+        }[];
       };
       lookup_guest_order_full: {
         Args: { p_order_number: string; p_contact: string };

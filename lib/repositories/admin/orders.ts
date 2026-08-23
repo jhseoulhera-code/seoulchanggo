@@ -6,6 +6,8 @@ import type {
   OrderItemRow,
   OrderRow,
   OrderStatusHistoryRow,
+  PaymentRefundItemRow,
+  PaymentRefundRow,
   PaymentRow,
   ShippingGroupItemRow,
   ShippingGroupRow,
@@ -13,6 +15,7 @@ import type {
   ShippingTypeEnum,
 } from "@/types/database";
 import type { AdminOrderDetail, AdminOrderListItem, AdminOrderListResult, AdminReconciliationWarning } from "@/types/admin";
+import { isStalePendingRefund, STALE_REFUND_PENDING_THRESHOLD_MINUTES } from "@/lib/payments/reconciliation";
 
 function fail(context: string, error: { message: string }): never {
   console.error(`[admin/orders] ${context} failed:`, error.message);
@@ -137,6 +140,7 @@ type OrderDetailRow = OrderRow & {
   order_items: OrderItemRow[];
   shipping_groups: (ShippingGroupRow & { shipping_group_items: ShippingGroupItemRow[] })[];
   payments: PaymentRow[];
+  payment_refunds: (PaymentRefundRow & { payment_refund_items: PaymentRefundItemRow[] })[];
 };
 
 /** Personal customs code is masked at the repository boundary — see components/admin/orders/OrderDetailView.tsx for the "show full value" control. */
@@ -158,7 +162,17 @@ function maskCustomsCode(value: string | null | undefined): string | null {
  * stubFactory.ts). Reuses lib/payments/reconciliation.ts's own issue
  * vocabulary rather than inventing a parallel one.
  */
-function detectReconciliationWarnings(payments: PaymentRow[]): AdminReconciliationWarning[] {
+/**
+ * STEP 26 spec section 24/25 — extended with the refund-flow issues: a
+ * refund stuck in PENDING past the same staleness threshold STEP 24 uses for
+ * payments (admin_finalize_refund never completed — the provider may have
+ * already refunded the money), and a refund that ended FAILED specifically
+ * because admin_finalize_refund rejected an amount/currency mismatch (money
+ * may have moved at the provider even though our own record stayed
+ * unfinished/FAILED — the same "provider vs local" ambiguity STEP 24 already
+ * accepts for payments, now extended to refunds).
+ */
+function detectReconciliationWarnings(payments: PaymentRow[], refunds: PaymentRefundRow[]): AdminReconciliationWarning[] {
   const warnings: AdminReconciliationWarning[] = [];
   for (const payment of payments) {
     if (payment.status !== "FAILED" || !payment.provider_payment_id) continue;
@@ -170,6 +184,13 @@ function detectReconciliationWarnings(payments: PaymentRow[]): AdminReconciliati
       warnings.push({ issue: "CURRENCY_MISMATCH", paymentId: payment.id });
     }
   }
+  for (const refund of refunds) {
+    if (refund.status === "PENDING" && isStalePendingRefund(refund.status, refund.created_at, new Date(), STALE_REFUND_PENDING_THRESHOLD_MINUTES)) {
+      warnings.push({ issue: "PROVIDER_REFUNDED_LOCAL_PENDING", paymentId: refund.payment_id });
+    } else if (refund.status === "FAILED" && (refund.failure_code === "REFUND_AMOUNT_MISMATCH" || refund.failure_code === "REFUND_CURRENCY_MISMATCH")) {
+      warnings.push({ issue: "REFUND_AMOUNT_MISMATCH", paymentId: refund.payment_id });
+    }
+  }
   return warnings;
 }
 
@@ -177,7 +198,9 @@ export async function getAdminOrderDetail(id: string): Promise<AdminOrderDetail 
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("orders")
-    .select("*, profiles(display_name, email), order_items(*), shipping_groups(*, shipping_group_items(*)), payments(*)")
+    .select(
+      "*, profiles(display_name, email), order_items(*), shipping_groups(*, shipping_group_items(*)), payments(*), payment_refunds(*, payment_refund_items(*))"
+    )
     .eq("id", id)
     .maybeSingle();
   if (error) fail("getAdminOrderDetail", error);
@@ -185,6 +208,26 @@ export async function getAdminOrderDetail(id: string): Promise<AdminOrderDetail 
 
   const row = data as unknown as OrderDetailRow;
   const customsInfo = row.customs_info as unknown as { personalCustomsCode?: string } | null;
+
+  // STEP 26 — "already refunded" only ever counts PENDING+COMPLETED refunds
+  // (a FAILED refund never consumed any of the refundable quota), mirroring
+  // admin_create_refund's own guard exactly.
+  const activeRefunds = row.payment_refunds.filter((refund) => refund.status === "PENDING" || refund.status === "COMPLETED");
+  const refundedQuantityByItem = new Map<string, number>();
+  for (const refund of activeRefunds) {
+    for (const item of refund.payment_refund_items) {
+      refundedQuantityByItem.set(item.order_item_id, (refundedQuantityByItem.get(item.order_item_id) ?? 0) + item.quantity);
+    }
+  }
+  const completedAmountByPayment = new Map<string, number>();
+  const pendingAmountByPayment = new Map<string, number>();
+  for (const refund of row.payment_refunds) {
+    if (refund.status === "COMPLETED") {
+      completedAmountByPayment.set(refund.payment_id, (completedAmountByPayment.get(refund.payment_id) ?? 0) + refund.amount);
+    } else if (refund.status === "PENDING") {
+      pendingAmountByPayment.set(refund.payment_id, (pendingAmountByPayment.get(refund.payment_id) ?? 0) + refund.amount);
+    }
+  }
 
   const { data: historyData, error: historyError } = await supabase
     .from("order_status_history")
@@ -222,6 +265,7 @@ export async function getAdminOrderDetail(id: string): Promise<AdminOrderDetail 
       quantity: item.quantity,
       shippingType: item.shipping_type,
       originCountry: item.origin_country,
+      refundedQuantity: refundedQuantityByItem.get(item.id) ?? 0,
     })),
     shippingGroups: row.shipping_groups.map((group) => ({
       id: group.id,
@@ -241,6 +285,7 @@ export async function getAdminOrderDetail(id: string): Promise<AdminOrderDetail 
       .map((payment) => ({
         id: payment.id,
         provider: payment.provider,
+        providerPaymentId: payment.provider_payment_id,
         paymentMethod: payment.payment_method,
         amount: payment.amount,
         currencyCode: payment.currency_code,
@@ -249,6 +294,29 @@ export async function getAdminOrderDetail(id: string): Promise<AdminOrderDetail 
         failureMessage: payment.failure_message,
         paidAt: payment.paid_at,
         createdAt: payment.created_at,
+        refundedAmount: completedAmountByPayment.get(payment.id) ?? 0,
+        pendingRefundAmount: pendingAmountByPayment.get(payment.id) ?? 0,
+      })),
+    refunds: [...row.payment_refunds]
+      .sort((a, b) => b.created_at.localeCompare(a.created_at))
+      .map((refund) => ({
+        id: refund.id,
+        paymentId: refund.payment_id,
+        status: refund.status,
+        amount: refund.amount,
+        refundShippingAmount: refund.refund_shipping_amount,
+        currencyCode: refund.currency,
+        reasonCode: refund.reason_code,
+        reason: refund.reason,
+        providerRefundId: refund.provider_refund_id,
+        failureCode: refund.failure_code,
+        createdAt: refund.created_at,
+        completedAt: refund.completed_at,
+        lines: refund.payment_refund_items.map((item) => ({
+          orderItemId: item.order_item_id,
+          quantity: item.quantity,
+          amount: item.amount,
+        })),
       })),
     adminNote: row.admin_note,
     statusHistory: ((historyData ?? []) as unknown as OrderStatusHistoryRow[]).map((entry) => ({
@@ -258,7 +326,7 @@ export async function getAdminOrderDetail(id: string): Promise<AdminOrderDetail 
       toStatus: entry.to_status,
       createdAt: entry.created_at,
     })),
-    reconciliationWarnings: detectReconciliationWarnings(row.payments),
+    reconciliationWarnings: detectReconciliationWarnings(row.payments, row.payment_refunds),
   };
 }
 
