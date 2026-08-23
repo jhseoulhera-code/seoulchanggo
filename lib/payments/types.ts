@@ -58,15 +58,42 @@ export type RefundPaymentResult = { ok: true; providerRefundId: string } | { ok:
 
 export type WebhookVerifyInput = { headers: Record<string, string>; rawBody: string };
 
+/**
+ * STEP 24 spec section 4 — a normalized outcome every adapter's parseWebhook
+ * must collapse its own provider-specific event types into. CANCELLED/
+ * REFUNDED are recognized but deliberately NOT auto-actioned this STEP (see
+ * process_webhook_payment_event's own comment) — full refund/cancel
+ * automation is out of scope; they're only ever logged for reconciliation.
+ * UNKNOWN covers any provider event type we don't yet map (never treated as
+ * a success).
+ */
+export type NormalizedPaymentStatus = "PAID" | "FAILED" | "CANCELLED" | "REFUNDED" | "UNKNOWN";
+
+/**
+ * STEP 24 spec section 4/5 — amount/currency are now first-class (STEP 23's
+ * known limitation: process_webhook_payment_event always got null/null,
+ * which meant a PAID webhook could never actually mark anything PAID). Both
+ * are nullable because a real provider's FAILED/CANCELLED event may not
+ * carry a charge amount at all — but per the fail-closed rule, a PAID event
+ * with a null amount or currency is still never treated as a real success.
+ */
 export type ParsedWebhookEvent = {
   providerEventId: string;
   eventType: string;
   providerPaymentId: string;
-  success: boolean;
+  status: NormalizedPaymentStatus;
+  amount: number | null;
+  currencyCode: CurrencyCode | null;
+  approvedAt?: string | null;
   failureCode?: string;
   failureMessage?: string;
+  /** Adapter-internal only — the webhook route builds its own allow-listed metadata for storage, never forwards this wholesale (STEP 24 spec section 30). */
   payload: unknown;
 };
+
+export type PaymentStatusLookupResult =
+  | { ok: true; status: NormalizedPaymentStatus; amount: number | null; currencyCode: CurrencyCode | null; approvedAt?: string | null }
+  | { ok: false; error: string };
 
 /**
  * Every real PG integration implements this and nothing outside
@@ -82,4 +109,6 @@ export interface PaymentProviderAdapter {
   refundPayment(input: RefundPaymentInput): Promise<RefundPaymentResult>;
   verifyWebhook(input: WebhookVerifyInput): boolean;
   parseWebhook(input: WebhookVerifyInput): ParsedWebhookEvent | null;
+  /** STEP 24 spec section 18 — forward-compatible reconciliation hook; every stub returns NOT_CONFIGURED today. */
+  getPaymentStatus(providerPaymentId: string): Promise<PaymentStatusLookupResult>;
 }

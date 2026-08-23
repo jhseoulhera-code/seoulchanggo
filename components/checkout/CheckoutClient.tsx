@@ -31,6 +31,7 @@ import {
 import { computeGroupShippingQuote, isGrandTotalDetermined } from "@/lib/shipping/quote";
 import { clearBuyNowItem, getBuyNowItem } from "@/lib/buyNow";
 import { clearCheckoutIdempotencyKey, generateOrderId, getOrCreateCheckoutIdempotencyKey, saveGuestOrder } from "@/lib/order";
+import { attemptPayment as runAttemptPayment } from "@/lib/paymentRetry";
 import { createOrderAction } from "@/lib/actions/order";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import {
@@ -258,50 +259,30 @@ export function CheckoutClient({ products }: CheckoutClientProps) {
    * Payment against it, so retrying never double-charges coupon/point usage.
    */
   async function attemptPayment(dbOrderId: string, orderNumber: string) {
-    const prepareResponse = await fetch("/api/payments/prepare", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        orderId: dbOrderId,
-        paymentMethod: paymentMethod as PaymentMethodId,
-        marketCode: market.countryCode,
-        guestContact: customer.email,
-      }),
+    const result = await runAttemptPayment({
+      orderId: dbOrderId,
+      paymentMethod: paymentMethod as PaymentMethodId,
+      marketCode: market.countryCode,
+      guestContact: customer.email,
+      simulateFailure: simulateMockFailure,
     });
-    const prepared = await prepareResponse.json();
-    if (!prepared.ok) {
-      setSubmitting(false);
-      setPaymentFailure({ orderId: dbOrderId, orderNumber, message: prepared.error ?? messages.payment.prepareFailed });
-      return;
-    }
 
-    const confirmResponse = await fetch("/api/payments/confirm", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        paymentId: prepared.paymentId,
-        providerPaymentId: prepared.providerPaymentId,
-        provider: prepared.provider,
-        amount: prepared.amount,
-        currencyCode: prepared.currencyCode,
-        simulateFailure: prepared.provider === "MOCK" ? simulateMockFailure : undefined,
-        guestContact: customer.email,
-      }),
-    });
-    const confirmed = await confirmResponse.json();
-
-    if (!confirmed.ok) {
+    if (!result.ok) {
       setSubmitting(false);
+      if (result.stage === "prepare") {
+        setPaymentFailure({ orderId: dbOrderId, orderNumber, message: result.error ?? messages.payment.prepareFailed });
+        return;
+      }
       // STEP 23 — PAYMENT_AMOUNT_MISMATCH/PAYMENT_CURRENCY_MISMATCH/STOCK_CHANGED are
       // raised by _apply_payment_result itself (internal, English) — never shown
       // to the customer as-is; everything else falls back to the adapter's own
       // (already localized, e.g. MOCK_SIMULATED_FAILURE) failureMessage.
       const localizedMessage =
-        confirmed.failureCode === "PAYMENT_AMOUNT_MISMATCH" || confirmed.failureCode === "PAYMENT_CURRENCY_MISMATCH"
+        result.failureCode === "PAYMENT_AMOUNT_MISMATCH" || result.failureCode === "PAYMENT_CURRENCY_MISMATCH"
           ? messages.payment.amountMismatch
-          : confirmed.failureCode === "STOCK_CHANGED"
+          : result.failureCode === "STOCK_CHANGED"
             ? messages.payment.stockChangedAtPayment
-            : (confirmed.failureMessage ?? confirmed.error ?? messages.payment.confirmFailed);
+            : (result.failureMessage ?? result.error ?? messages.payment.confirmFailed);
       setPaymentFailure({ orderId: dbOrderId, orderNumber, message: localizedMessage });
       return;
     }

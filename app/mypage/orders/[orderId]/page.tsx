@@ -4,6 +4,8 @@ import { AlertTriangle, PackageX } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { PageContainer } from "@/components/common/PageContainer";
+import { Toast } from "@/components/common/Toast";
+import type { ToastState } from "@/components/common/Toast";
 import { ListHeader } from "@/components/layout/ListHeader";
 import { ProductImagePlaceholder } from "@/components/product/ProductImagePlaceholder";
 import { ShippingBadge } from "@/components/product/ShippingBadge";
@@ -12,6 +14,7 @@ import { useMarket } from "@/contexts/MarketContext";
 import { formatCurrency } from "@/lib/currency";
 import { formatDateTime, getMarketTimeZone } from "@/lib/intl";
 import { paymentMethodLabel } from "@/lib/paymentLabels";
+import { attemptPayment } from "@/lib/paymentRetry";
 import { shippingTypeLabel } from "@/lib/shippingLabels";
 import { getMyOrderDetailAction } from "@/lib/actions/mypage";
 import type { MyOrderDetail } from "@/lib/actions/mypage";
@@ -81,6 +84,8 @@ export default function MyOrderDetailPage() {
   const messages = getMessages(market.locale);
 
   const [order, setOrder] = useState<MyOrderDetail | null | undefined>(undefined);
+  const [retrying, setRetrying] = useState(false);
+  const [toast, setToast] = useState<ToastState | null>(null);
 
   useEffect(() => {
     if (isReady && !isAuthenticated) {
@@ -92,6 +97,47 @@ export default function MyOrderDetailPage() {
     if (!isAuthenticated) return;
     getMyOrderDetailAction(params.orderId).then(setOrder);
   }, [isAuthenticated, params.orderId]);
+
+  /**
+   * STEP 24 spec section 23/24 — reuses the exact same prepare/confirm
+   * pipeline as Checkout (lib/paymentRetry.ts), against THIS existing
+   * order's id — never creates a new order. On success, re-fetches the
+   * order detail from the server (the actual source of truth) rather than
+   * optimistically flipping local state, since finalize happened entirely
+   * server-side.
+   */
+  async function handleRetryPayment() {
+    if (!order || retrying) return;
+    setRetrying(true);
+    setToast(null);
+
+    const result = await attemptPayment({
+      orderId: order.id,
+      paymentMethod: order.latestPayment?.paymentMethod ?? order.paymentMethod,
+      marketCode: order.marketCode,
+    });
+
+    if (!result.ok) {
+      const message =
+        result.stage === "prepare"
+          ? (result.error ?? messages.payment.prepareFailed)
+          : result.failureCode === "PAYMENT_AMOUNT_MISMATCH" || result.failureCode === "PAYMENT_CURRENCY_MISMATCH"
+            ? messages.payment.amountMismatch
+            : result.failureCode === "STOCK_CHANGED"
+              ? messages.payment.stockChangedAtPayment
+              : (result.failureMessage ?? result.error ?? messages.payment.confirmFailed);
+      setToast({ message, tone: "error" });
+      setRetrying(false);
+      const refreshed = await getMyOrderDetailAction(params.orderId);
+      setOrder(refreshed);
+      return;
+    }
+
+    setRetrying(false);
+    const refreshed = await getMyOrderDetailAction(params.orderId);
+    setOrder(refreshed);
+    setToast({ message: "결제가 완료되었습니다.", tone: "success" });
+  }
 
   if (order === undefined) {
     return (
@@ -155,10 +201,14 @@ export default function MyOrderDetailPage() {
               </div>
             )}
             {!isPaid && order.canRetryPayment && (
-              <p className="flex items-center gap-1.5 text-xs text-primary">
-                <AlertTriangle size={12} className="shrink-0" />
-                다시 결제를 시도할 수 있는 주문입니다.
-              </p>
+              <button
+                type="button"
+                onClick={handleRetryPayment}
+                disabled={retrying}
+                className="mt-1 h-11 w-full bg-primary text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {retrying ? messages.common.loading : "다시 결제하기"}
+              </button>
             )}
           </div>
 
@@ -229,7 +279,7 @@ export default function MyOrderDetailPage() {
             </div>
           </div>
 
-          {!isPaid && (
+          {!isPaid && !order.canRetryPayment && (
             <p className="flex items-center gap-1.5 text-xs text-text-secondary">
               <AlertTriangle size={12} className="shrink-0" />
               결제가 완료되지 않은 주문입니다.
@@ -237,6 +287,7 @@ export default function MyOrderDetailPage() {
           )}
         </PageContainer>
       </main>
+      <Toast toast={toast} />
     </>
   );
 }

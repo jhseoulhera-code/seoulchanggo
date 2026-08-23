@@ -7,6 +7,7 @@ import type {
   ParsedWebhookEvent,
   PaymentProvider,
   PaymentProviderAdapter,
+  PaymentStatusLookupResult,
   RefundPaymentResult,
 } from "@/lib/payments/types";
 
@@ -40,6 +41,9 @@ export function createStubAdapter(provider: PaymentProvider, requiredEnvVars: st
     },
     parseWebhook(): ParsedWebhookEvent | null {
       return null;
+    },
+    async getPaymentStatus(): Promise<PaymentStatusLookupResult> {
+      return { ok: false, error: message };
     },
   };
 }

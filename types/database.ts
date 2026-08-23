@@ -634,7 +634,7 @@ export type Database = {
           p_payment_id: string;
           p_event_type: string;
           p_payload: Json;
-          p_success: boolean;
+          p_normalized_status: string;
           p_provider_payment_id?: string | null;
           p_provider_transaction_id?: string | null;
           p_failure_code?: string | null;
@@ -643,6 +643,21 @@ export type Database = {
           p_provider_currency?: CurrencyCodeEnum | null;
         };
         Returns: Json;
+      };
+      list_stale_pending_payments: {
+        Args: { p_threshold_minutes?: number };
+        Returns: {
+          payment_id: string;
+          order_id: string;
+          order_number: string;
+          payment_status: PaymentAttemptStatusEnum;
+          order_status: OrderStatusEnum;
+          amount: number;
+          currency_code: CurrencyCodeEnum;
+          provider: PaymentProviderEnum;
+          provider_payment_id: string | null;
+          created_at: string;
+        }[];
       };
       cancel_unpaid_order: {
         Args: { p_order_id: string; p_reason: string };

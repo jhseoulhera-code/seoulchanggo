@@ -1,16 +1,22 @@
 import "server-only";
 
+import { verifyMockWebhookSignature } from "@/lib/payments/mockWebhookSignature";
 import type {
   CancelPaymentResult,
   ConfirmPaymentInput,
   ConfirmPaymentResult,
   CreatePaymentInput,
   CreatePaymentResult,
+  NormalizedPaymentStatus,
   ParsedWebhookEvent,
   PaymentProviderAdapter,
+  PaymentStatusLookupResult,
   RefundPaymentResult,
   WebhookVerifyInput,
 } from "@/lib/payments/types";
+import type { CurrencyCode } from "@/types/market";
+
+const KNOWN_STATUSES: NormalizedPaymentStatus[] = ["PAID", "FAILED", "CANCELLED", "REFUNDED", "UNKNOWN"];
 
 /**
  * The only provider with a real (if synthetic) implementation today — every
@@ -57,9 +63,12 @@ export const mockPaymentProvider: PaymentProviderAdapter = {
     return { ok: true, providerRefundId: `mock_refund_${Date.now()}` };
   },
 
-  verifyWebhook(): boolean {
-    // No real signature scheme — Mock never sends real webhooks in this flow.
-    return true;
+  verifyWebhook(input: WebhookVerifyInput): boolean {
+    // STEP 24 — a real HMAC check (lib/payments/mockWebhookSignature.ts), so
+    // "invalid signature rejected" is an actually-exercisable scenario
+    // against this route, not a permanently-true stub. Header name matches
+    // what buildMockWebhookRequest-style test/QA callers must send.
+    return verifyMockWebhookSignature(input.rawBody, input.headers["x-mock-signature"]);
   },
 
   parseWebhook(input: WebhookVerifyInput): ParsedWebhookEvent | null {
@@ -68,16 +77,27 @@ export const mockPaymentProvider: PaymentProviderAdapter = {
         eventId?: string;
         eventType?: string;
         providerPaymentId?: string;
-        success?: boolean;
+        status?: string;
+        amount?: number;
+        currency?: string;
+        approvedAt?: string;
         failureCode?: string;
         failureMessage?: string;
       };
       if (!body.eventId || !body.providerPaymentId) return null;
+
+      const status: NormalizedPaymentStatus = KNOWN_STATUSES.includes(body.status as NormalizedPaymentStatus)
+        ? (body.status as NormalizedPaymentStatus)
+        : "UNKNOWN";
+
       return {
         providerEventId: body.eventId,
         eventType: body.eventType ?? "payment.updated",
         providerPaymentId: body.providerPaymentId,
-        success: Boolean(body.success),
+        status,
+        amount: typeof body.amount === "number" ? body.amount : null,
+        currencyCode: (body.currency as CurrencyCode | undefined) ?? null,
+        approvedAt: body.approvedAt ?? null,
         failureCode: body.failureCode,
         failureMessage: body.failureMessage,
         payload: body,
@@ -85,5 +105,14 @@ export const mockPaymentProvider: PaymentProviderAdapter = {
     } catch {
       return null;
     }
+  },
+
+  async getPaymentStatus(): Promise<PaymentStatusLookupResult> {
+    // MOCK confirms synchronously and keeps no backing store of its own to
+    // query afterward — a real adapter's implementation queries the PG's
+    // own record. Returning a clear "not supported" here (rather than
+    // fabricating a status) keeps reconciliation honest about what MOCK
+    // actually can and can't tell it.
+    return { ok: false, error: "MOCK has no persistent payment record to query — status is only known at confirm/webhook time." };
   },
 };
