@@ -97,7 +97,10 @@ export const ko: Messages = {
     shippingTotal: "배송비",
     grandTotal: "결제예정금액",
     checkoutButton: "선택상품 구매하기 ({count})",
-    checkoutPlaceholder: "주문 단계는 다음 STEP에서 연결됩니다.",
+    checkoutPlaceholder: "옵션 상품이 포함되어 있어 주문 연동은 다음 업데이트에서 제공됩니다. 옵션 상품을 선택 해제하면 계속 진행할 수 있습니다.",
+    unavailableItem: "현재 구매할 수 없는 상품입니다.",
+    priceChanged: "가격이 변경되었습니다.",
+    previousPrice: "담을 당시 {price}",
   },
   checkout: {
     pageTitle: "주문서",

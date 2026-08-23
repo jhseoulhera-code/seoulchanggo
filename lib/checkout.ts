@@ -1,4 +1,5 @@
-import { createCartItemId, enrichCartItem, summarizeLines } from "@/lib/cart";
+import { enrichCartItem, summarizeLines } from "@/lib/cart";
+import { calculateVariantPrice } from "@/lib/storefront/productVariants";
 import type { Product, ShippingType } from "@/types";
 import type { BuyNowItem, CartItem, CartLineView, CartSummaryTotals } from "@/types/cart";
 import type { Market } from "@/types/market";
@@ -11,7 +12,7 @@ function checkoutItemFromLine(line: CartLineView): CheckoutItem {
     productName: line.product.name,
     image: line.product.image,
     category: line.product.category,
-    selectedOptions: line.cartItem.selectedOptions,
+    selectedOptions: line.optionValues,
     optionLabel: line.optionLabel,
     quantity: line.cartItem.quantity,
     unitPrice: line.unitPrice,
@@ -27,7 +28,7 @@ function checkoutItemFromLine(line: CartLineView): CheckoutItem {
   };
 }
 
-/** Only the checked cart lines become checkout items — unselected items stay behind in the cart. */
+/** Only the checked, purchasable cart lines become checkout items — unselected or no-longer-sellable items stay behind in the cart (STEP 20 spec section 17/34). */
 export function buildCheckoutItemsFromCart(
   cartItems: CartItem[],
   products: Product[],
@@ -36,21 +37,38 @@ export function buildCheckoutItemsFromCart(
   return cartItems
     .filter((item) => item.checked)
     .map((item) => enrichCartItem(item, products, market))
-    .filter((line): line is CartLineView => line !== null)
+    .filter((line): line is CartLineView => line !== null && line.isPurchasable)
     .map(checkoutItemFromLine);
 }
 
-/** Runs the buy-now intent through the same pricing/availability pipeline as the cart, without touching the cart itself. */
+/**
+ * Runs the buy-now intent through the same pricing/availability pipeline
+ * as the cart, without touching the cart itself. The synthetic item's
+ * unitPriceSnapshot is set to the price resolved for it right now (not a
+ * real past snapshot) so enrichCartItem never reports a bogus "price
+ * changed" for an item that was never actually sitting in a cart.
+ */
 export function buildCheckoutItemFromBuyNow(
   buyNow: BuyNowItem,
   products: Product[],
   market: Market
 ): CheckoutItem | null {
+  const product = products.find((candidate) => candidate.id === buyNow.productId);
+  if (!product) return null;
+
+  const variant = buyNow.variantId ? (product.variants ?? []).find((v) => v.id === buyNow.variantId) ?? null : null;
+  // enrichCartItem always treats unitPriceSnapshot as KRW (matching what
+  // cart_add_item actually stores) — using product.salePrice (the raw KRW
+  // base, not market-converted) here keeps that assumption true instead of
+  // double-converting and reporting a bogus "price changed".
+  const unitPriceSnapshot = variant ? calculateVariantPrice(product.salePrice, variant.additionalPrice) : product.salePrice;
+
   const syntheticItem: CartItem = {
-    cartItemId: createCartItemId(buyNow.productId, buyNow.selectedOptions),
+    cartItemId: `buynow-${buyNow.productId}-${buyNow.variantId ?? "base"}`,
     productId: buyNow.productId,
-    selectedOptions: buyNow.selectedOptions,
+    variantId: buyNow.variantId,
     quantity: buyNow.quantity,
+    unitPriceSnapshot,
     checked: true,
   };
   const line = enrichCartItem(syntheticItem, products, market);

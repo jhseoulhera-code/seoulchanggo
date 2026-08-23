@@ -13,9 +13,9 @@ import { ShippingInfoPanel } from "@/components/product/ShippingInfoPanel";
 import { useCart } from "@/contexts/CartContext";
 import { useMarket } from "@/contexts/MarketContext";
 import { setBuyNowItem } from "@/lib/buyNow";
-import { createCartItemId } from "@/lib/cart";
 import { convertFromKrw, formatCurrency, getProductMarketPrice } from "@/lib/currency";
 import { formatNumber } from "@/lib/intl";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { isProductAvailableInMarket } from "@/lib/shipping";
 import { getLocalizedProductName, getLocalizedProductShortDescription } from "@/lib/productLocalization";
 import { shippingTypeLabel } from "@/lib/shippingLabels";
@@ -102,22 +102,24 @@ export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
     window.setTimeout(() => setToast(null), 2600);
   }
 
-  // --- option-less purchase path (unchanged from before STEP 19, aside
-  // from the sold-out gate this step's spec explicitly asks for) ----------
-  function handleAddToCartLegacy() {
+  // STEP 20 — cart.addItem now writes through a real server-validated cart
+  // (see contexts/CartContext.tsx); it only ever needs {productId,
+  // variantId, quantity} because price/stock/active-status are all
+  // re-derived server-side (cart_add_item RPC), never trusted from here.
+  // product.dbId is the real DB uuid (undefined only for static mock data
+  // when Supabase isn't configured, matching how every other DB-backed
+  // feature in this app already gates on isSupabaseConfigured()).
+  async function handleAddToCart(variant: ReturnType<typeof findMatchingVariant>) {
     if (!isAvailable || productSoldOut) return;
-
-    if (typeof product.stock === "number") {
-      const cartItemId = createCartItemId(product.id, selectedOptions);
-      const existing = cart.items.find((item) => item.cartItemId === cartItemId);
-      const projected = (existing?.quantity ?? 0) + quantity;
-      if (projected > product.stock) {
-        showToast({ message: messages.toast.outOfStock, tone: "error" });
-        return;
-      }
+    if (!isSupabaseConfigured() || !product.dbId) {
+      showToast({ message: "장바구니는 실제 상품에서만 사용할 수 있습니다.", tone: "error" });
+      return;
     }
-
-    cart.addItem(product.id, selectedOptions, quantity, product.stock);
+    const result = await cart.addItem(product.dbId, variant?.id ?? null, quantity);
+    if (!result.ok) {
+      showToast({ message: result.error, tone: "error" });
+      return;
+    }
     showToast({
       message: messages.toast.addedToCart,
       tone: "success",
@@ -126,22 +128,24 @@ export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
     });
   }
 
+  // --- option-less purchase path ------------------------------------------
+  function handleAddToCartLegacy() {
+    void handleAddToCart(null);
+  }
+
   function handleBuyNowLegacy() {
     if (!isAvailable || productSoldOut) return;
-    setBuyNowItem({ productId: product.id, selectedOptions, quantity });
+    setBuyNowItem({ productId: product.id, variantId: null, quantity });
     router.push("/checkout?source=buynow");
   }
 
-  // --- variant-aware path (STEP 19 — new) ---------------------------------
-  // cart.addItem/setBuyNowItem re-derive price purely from the product's
-  // own base price (lib/cart.ts's enrichCartItem), with no notion of a
-  // selected variant's SKU/price/stock — wiring a variant selection through
-  // them as-is would silently show the wrong price in the cart. STEP 19
-  // explicitly scopes real cart/order persistence out (see PurchaseSelection
-  // in types/purchase.ts); this only confirms the selection is valid and
-  // normalizes it into the exact payload STEP 20 will need.
-  function handleVariantSelection() {
-    if (!isAvailable || productSoldOut) return;
+  // --- variant-aware path ---------------------------------------------------
+  // Add-to-cart is real (STEP 20); buy-now for a variant product stays a
+  // "coming soon" toast — STEP 20's scope is the cart only, and wiring
+  // buy-now would mean the /checkout flow understanding variant pricing,
+  // which is explicitly out of scope here (see the STEP 20 report's known
+  // limitations).
+  function handleAddToCartVariant() {
     if (!matchedVariant) {
       showToast({ message: messages.product.selectVariantPrompt, tone: "error" });
       return;
@@ -155,6 +159,14 @@ export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
       maxStock: effectiveStock,
     });
     if (!selection) return;
+    void handleAddToCart(matchedVariant);
+  }
+
+  function handleBuyNowVariant() {
+    if (!matchedVariant) {
+      showToast({ message: messages.product.selectVariantPrompt, tone: "error" });
+      return;
+    }
     showToast({ message: messages.product.purchaseSelectionPending, tone: "success" });
   }
 
@@ -257,14 +269,14 @@ export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
 
       <PurchaseActions
         variant="inline"
-        onAddToCart={hasOptions ? handleVariantSelection : handleAddToCartLegacy}
-        onBuyNow={hasOptions ? handleVariantSelection : handleBuyNowLegacy}
+        onAddToCart={hasOptions ? handleAddToCartVariant : handleAddToCartLegacy}
+        onBuyNow={hasOptions ? handleBuyNowVariant : handleBuyNowLegacy}
         disabled={hasOptions ? variantDisabled : legacyDisabled}
       />
       <PurchaseActions
         variant="fixed"
-        onAddToCart={hasOptions ? handleVariantSelection : handleAddToCartLegacy}
-        onBuyNow={hasOptions ? handleVariantSelection : handleBuyNowLegacy}
+        onAddToCart={hasOptions ? handleAddToCartVariant : handleAddToCartLegacy}
+        onBuyNow={hasOptions ? handleBuyNowVariant : handleBuyNowLegacy}
         disabled={hasOptions ? variantDisabled : legacyDisabled}
       />
 

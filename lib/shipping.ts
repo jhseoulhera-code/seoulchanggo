@@ -1,4 +1,7 @@
-import { convertFromKrw } from "@/lib/currency";
+// Relative + .ts-extensioned so lib/cart.ts (imported directly by
+// scripts/test-cart.mts under plain Node) can resolve this transitively —
+// see that file's own import comment.
+import { convertFromKrw } from "./currency.ts";
 import type { Product, ShippingType } from "@/types";
 import type { CountryCode, Market } from "@/types/market";
 

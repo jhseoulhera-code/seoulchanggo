@@ -34,7 +34,10 @@ export function CartGroup({
 }: CartGroupProps) {
   const messages = getMessages(market.locale);
   const groupLabel = messages.cart[GROUP_LABEL_KEY[shippingType]];
-  const availableIds = lines.filter((line) => line.isAvailable).map((line) => line.cartItem.cartItemId);
+  // STEP 20 spec section 17 — a sold-out/deactivated line can't be
+  // meaningfully "selected for checkout" any more than a market-unavailable
+  // one could, so both gate the group's select-all the same way.
+  const availableIds = lines.filter((line) => line.isAvailable && line.isPurchasable).map((line) => line.cartItem.cartItemId);
   const allChecked = availableIds.length > 0 && availableIds.every((id) =>
     lines.find((line) => line.cartItem.cartItemId === id)?.cartItem.checked
   );

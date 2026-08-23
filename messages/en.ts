@@ -97,7 +97,10 @@ export const en: Messages = {
     shippingTotal: "Shipping",
     grandTotal: "Total",
     checkoutButton: "Buy selected ({count})",
-    checkoutPlaceholder: "Checkout will be connected in a later step.",
+    checkoutPlaceholder: "Checkout for option products is coming in a future update. Uncheck option items to continue.",
+    unavailableItem: "This item is currently unavailable.",
+    priceChanged: "The price has changed.",
+    previousPrice: "Added at {price}",
   },
   checkout: {
     pageTitle: "Checkout",

@@ -98,6 +98,9 @@ export type Messages = {
     grandTotal: string;
     checkoutButton: string;
     checkoutPlaceholder: string;
+    unavailableItem: string;
+    priceChanged: string;
+    previousPrice: string;
   };
   checkout: {
     pageTitle: string;

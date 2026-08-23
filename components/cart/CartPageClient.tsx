@@ -30,12 +30,22 @@ export function CartPageClient({ products }: CartPageClientProps) {
   const groups = useMemo(() => groupLinesByShippingType(lines), [lines]);
   const totals = useMemo(() => calculateCartSummary(lines), [lines]);
 
-  const availableIds = lines.filter((line) => line.isAvailable).map((line) => line.cartItem.cartItemId);
+  const availableIds = lines.filter((line) => line.isAvailable && line.isPurchasable).map((line) => line.cartItem.cartItemId);
   const allChecked =
     availableIds.length > 0 &&
     availableIds.every((id) => lines.find((line) => line.cartItem.cartItemId === id)?.cartItem.checked);
 
+  // STEP 20 spec section 33/38 — /checkout (STEP 11) still prices every
+  // line off the product's own base price only; it doesn't yet resolve a
+  // selected variant's additional_price, so checking out with one selected
+  // would silently charge the wrong amount. Blocked here rather than
+  // touched in checkout itself, which is explicitly out of this step's
+  // scope — see the STEP 20 report's known limitations.
+  const hasSelectedVariantLine = lines.some((line) => line.cartItem.checked && line.cartItem.variantId);
+  const blockedReason = hasSelectedVariantLine ? messages.cart.checkoutPlaceholder : undefined;
+
   function handleCheckout() {
+    if (hasSelectedVariantLine) return;
     router.push("/checkout?source=cart");
   }
 
@@ -68,10 +78,7 @@ export function CartPageClient({ products }: CartPageClientProps) {
                       market={market}
                       onToggleItem={(cartItemId, checked) => cart.setChecked(cartItemId, checked)}
                       onToggleGroup={(cartItemIds, checked) => cart.setCheckedMany(cartItemIds, checked)}
-                      onQuantityChange={(cartItemId, quantity) => {
-                        const line = lines.find((item) => item.cartItem.cartItemId === cartItemId);
-                        cart.setQuantity(cartItemId, quantity, line?.product.stock);
-                      }}
+                      onQuantityChange={(cartItemId, quantity) => cart.setQuantity(cartItemId, quantity)}
                       onRemove={(cartItemId) => cart.removeItem(cartItemId)}
                     />
                   ))}
@@ -80,7 +87,7 @@ export function CartPageClient({ products }: CartPageClientProps) {
 
               <div className="hidden md:block md:w-80 md:shrink-0">
                 <div className="sticky top-20">
-                  <CartSummary totals={totals} market={market} variant="card" onCheckout={handleCheckout} />
+                  <CartSummary totals={totals} market={market} variant="card" onCheckout={handleCheckout} blockedReason={blockedReason} />
                 </div>
               </div>
             </div>
@@ -89,7 +96,7 @@ export function CartPageClient({ products }: CartPageClientProps) {
       </main>
 
       {lines.length > 0 && (
-        <CartSummary totals={totals} market={market} variant="fixed" onCheckout={handleCheckout} />
+        <CartSummary totals={totals} market={market} variant="fixed" onCheckout={handleCheckout} blockedReason={blockedReason} />
       )}
     </>
   );

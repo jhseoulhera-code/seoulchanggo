@@ -10,11 +10,13 @@ type CartSummaryProps = {
   market: Market;
   variant: "fixed" | "card";
   onCheckout: () => void;
+  /** STEP 20 spec section 33/38 — set while checkout can't safely proceed yet (e.g. a selected option-product line, which /checkout doesn't price correctly yet); shown under the button and forces it disabled. */
+  blockedReason?: string;
 };
 
-export function CartSummary({ totals, market, variant, onCheckout }: CartSummaryProps) {
+export function CartSummary({ totals, market, variant, onCheckout, blockedReason }: CartSummaryProps) {
   const messages = getMessages(market.locale);
-  const disabled = totals.selectedCount === 0;
+  const disabled = totals.selectedCount === 0 || Boolean(blockedReason);
   const checkoutLabel = t(messages.cart.checkoutButton, { count: totals.selectedCount });
 
   if (variant === "fixed") {
@@ -34,6 +36,7 @@ export function CartSummary({ totals, market, variant, onCheckout }: CartSummary
         >
           {checkoutLabel}
         </button>
+        {blockedReason && <p className="mt-1.5 text-center text-xs text-text-secondary">{blockedReason}</p>}
       </div>
     );
   }
@@ -64,6 +67,7 @@ export function CartSummary({ totals, market, variant, onCheckout }: CartSummary
       >
         {checkoutLabel}
       </button>
+      {blockedReason && <p className="text-center text-xs text-text-secondary">{blockedReason}</p>}
     </div>
   );
 }

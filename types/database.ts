@@ -171,11 +171,12 @@ export type ProductVariantRow = {
 
 export type CartItemRow = {
   id: string;
-  user_id: string;
+  user_id: string | null;
+  anonymous_token: string | null;
   product_id: string;
   variant_id: string | null;
-  selected_options: Json;
   quantity: number;
+  unit_price_snapshot: number;
   created_at: string;
   updated_at: string;
 };
