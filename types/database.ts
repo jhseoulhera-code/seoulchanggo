@@ -112,6 +112,7 @@ export type ProductRow = {
   discount_rate: number | null;
   status: ProductStatusEnum;
   short_description_ko: string | null;
+  short_description_en: string | null;
   seo_title: string | null;
   seo_description: string | null;
   search_tags: string[];

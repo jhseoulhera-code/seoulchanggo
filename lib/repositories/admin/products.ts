@@ -167,6 +167,7 @@ export function emptyAdminProductDraft(): AdminProductDetail {
     freeShipping: false,
     discountRate: null,
     shortDescriptionKo: "",
+    shortDescriptionEn: "",
     seoTitle: "",
     seoDescription: "",
     searchTags: [],
@@ -224,6 +225,7 @@ export async function getAdminProductDetail(id: string): Promise<AdminProductDet
     freeShipping: row.free_shipping,
     discountRate: row.discount_rate,
     shortDescriptionKo: row.short_description_ko ?? "",
+    shortDescriptionEn: row.short_description_en ?? "",
     seoTitle: row.seo_title ?? "",
     seoDescription: row.seo_description ?? "",
     searchTags: row.search_tags ?? [],
@@ -306,6 +308,7 @@ export async function upsertAdminProduct(detail: AdminProductDetail): Promise<Up
     p_seo_title: detail.seoTitle || null,
     p_seo_description: detail.seoDescription || null,
     p_search_tags: detail.searchTags,
+    p_short_description_en: detail.shortDescriptionEn || null,
   } as never);
 
   if (error) {

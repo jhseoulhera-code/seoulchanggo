@@ -1,3 +1,4 @@
+import { checkMissingFields as sharedCheckMissingFields } from "../checkMissingFields.ts";
 import type {
   AiProductAssistantAdapter,
   AiSuggestion,
@@ -157,22 +158,6 @@ export const mockAiProductAssistant: AiProductAssistantAdapter = {
   },
 
   async checkMissingFields(input: MissingFieldCheckInput): Promise<CheckMissingFieldsResult> {
-    const findings: CheckMissingFieldsResult["findings"] = [];
-    if (!input.nameKo.trim()) findings.push({ field: "nameKo", message: "상품명(한국어)이 비어 있습니다." });
-    if (!input.nameEn.trim()) findings.push({ field: "nameEn", message: "영문 상품명이 없습니다 — 해외 판매 시 필요합니다." });
-    if (!input.descriptionKo.trim()) findings.push({ field: "descriptionKo", message: "상세 설명이 비어 있습니다." });
-    if (!input.categoryId) findings.push({ field: "categoryId", message: "카테고리가 선택되지 않았습니다." });
-    if (!input.hasAnyPrice) findings.push({ field: "prices", message: "판매 가능한 통화가 하나도 없습니다." });
-    if (!input.hasPrimaryImage) findings.push({ field: "images", message: "대표 이미지가 없습니다." });
-    if (input.stockType === "TRACKED" && input.stockQuantity <= 0) {
-      findings.push({ field: "stockQuantity", message: "재고관리 상품인데 재고수량이 0입니다." });
-    }
-
-    return {
-      provider: "MOCK",
-      isFallback: true,
-      message: findings.length > 0 ? "누락된 항목이 있습니다." : "확인 결과 누락된 필수 항목이 없습니다.",
-      findings,
-    };
+    return sharedCheckMissingFields(input, "MOCK");
   },
 };

@@ -13,7 +13,7 @@
  * something this module never produces.
  */
 
-export type AiProviderName = "MOCK" | "FUTURE_LLM_PROVIDER";
+export type AiProviderName = "MOCK" | "OPENAI";
 
 /** How sure the suggestion is meant to be taken — the Wizard renders this as a badge, never auto-applies it. */
 export type AiConfidence = "recommended" | "draft" | "needs_review";
@@ -52,7 +52,7 @@ export type TranslateDirection = "ko-to-en" | "en-to-ko";
 export type ProductTranslateInput = { text: string; direction: TranslateDirection };
 export type ProductTranslateResult = AiResultBase & { suggestion: AiSuggestion | null };
 
-export type CategoryOption = { id: string; nameKo: string };
+export type CategoryOption = { id: string; nameKo: string; slug?: string };
 export type SuggestCategoryInput = AiProductContext & { availableCategories: CategoryOption[] };
 export type SuggestCategoryResult = AiResultBase & { suggestions: (AiSuggestion & { categoryId: string })[] };
 

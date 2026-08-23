@@ -105,6 +105,7 @@ export type AdminProductDetail = {
   freeShipping: boolean;
   discountRate: number | null;
   shortDescriptionKo: string;
+  shortDescriptionEn: string;
   seoTitle: string;
   seoDescription: string;
   searchTags: string[];

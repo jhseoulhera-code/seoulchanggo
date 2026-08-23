@@ -7,6 +7,7 @@ import type {
   CheckMissingFieldsResult,
   GenerateSeoResult,
   ProductDraftResult,
+  ProductTranslateResult,
   SuggestCategoryResult,
 } from "@/lib/ai/productAssistant/types";
 import type { AdminCategory, AdminProductDetail } from "@/types/admin";
@@ -46,6 +47,16 @@ function SuggestionRow({ suggestion, onApply }: { suggestion: AiSuggestion; onAp
   );
 }
 
+const PROVIDER_LABEL: Record<string, string> = { MOCK: "Mock", OPENAI: "OpenAI" };
+
+function ProviderBadge({ provider }: { provider: string }) {
+  return (
+    <span className="inline-flex w-fit items-center gap-1 border border-border px-1.5 py-0.5 text-[10px] font-bold text-text-secondary">
+      AI: {PROVIDER_LABEL[provider] ?? provider}
+    </span>
+  );
+}
+
 async function postJson<T>(url: string, body: unknown): Promise<{ ok: true; data: T } | { ok: false; error: string }> {
   try {
     const response = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
@@ -74,7 +85,7 @@ export function AiAssistantPanel({ detail, categories, onPatch }: AiAssistantPan
   const [draftResult, setDraftResult] = useState<ProductDraftResult | null>(null);
   const [categoryResult, setCategoryResult] = useState<SuggestCategoryResult | null>(null);
   const [seoResult, setSeoResult] = useState<GenerateSeoResult | null>(null);
-  const [translateResult, setTranslateResult] = useState<AiSuggestion | null>(null);
+  const [translateResult, setTranslateResult] = useState<ProductTranslateResult | null>(null);
   const [checkResult, setCheckResult] = useState<CheckMissingFieldsResult | null>(null);
 
   async function handleGenerateDraft() {
@@ -88,7 +99,7 @@ export function AiAssistantPanel({ detail, categories, onPatch }: AiAssistantPan
         brand: detail.brand,
         descriptionKo: detail.descriptionKo,
         supplierDescription: supplierText,
-        availableCategories: categories.map((c) => ({ id: c.id, nameKo: c.nameKo })),
+        availableCategories: categories.map((c) => ({ id: c.id, nameKo: c.nameKo, slug: c.slug })),
       }
     );
     setPending(null);
@@ -115,13 +126,13 @@ export function AiAssistantPanel({ detail, categories, onPatch }: AiAssistantPan
     if (!translateText.trim()) return;
     setPending("translate");
     setError(null);
-    const result = await postJson<{ suggestion: AiSuggestion | null }>("/api/admin/ai/product-translate", {
+    const result = await postJson<ProductTranslateResult>("/api/admin/ai/product-translate", {
       text: translateText,
       direction: translateDirection,
     });
     setPending(null);
     if (!result.ok) return setError(result.error);
-    setTranslateResult(result.data.suggestion);
+    setTranslateResult(result.data);
   }
 
   async function handleCheck() {
@@ -152,8 +163,12 @@ export function AiAssistantPanel({ detail, categories, onPatch }: AiAssistantPan
         return onPatch({ descriptionKo: value });
       case "descriptionShortKo":
         return onPatch({ shortDescriptionKo: value });
+      case "descriptionShortEn":
+        return onPatch({ shortDescriptionEn: value });
       case "descriptionBulletsKo":
         return onPatch({ descriptionKo: value });
+      case "descriptionEn":
+        return onPatch({ descriptionEn: value });
       case "seoTitle":
         return onPatch({ seoTitle: value });
       case "seoDescription":
@@ -171,6 +186,9 @@ export function AiAssistantPanel({ detail, categories, onPatch }: AiAssistantPan
         <Sparkles size={18} className="text-primary" />
         <h2 className="text-sm font-bold text-text-main">AI 상품등록 도우미</h2>
       </div>
+      <p className="w-fit border border-amber-400 bg-amber-50 px-2 py-1 text-[11px] font-bold text-amber-700">
+        AI 초안 — 등록 전 확인 필요
+      </p>
       <p className="text-[11px] leading-relaxed text-text-secondary">
         AI는 초안만 제안합니다. 가격·원산지·재고·배송방식·통관정보·규제정보는 절대 자동으로 채우지 않으며, 모든 제안은 &ldquo;적용&rdquo;을 눌러야
         폼에 반영됩니다.
@@ -194,7 +212,7 @@ export function AiAssistantPanel({ detail, categories, onPatch }: AiAssistantPan
           disabled={pending !== null || !detail.nameKo.trim()}
           className="bg-primary px-3 py-1.5 text-xs font-bold text-white disabled:bg-border"
         >
-          {pending === "draft" ? "생성 중..." : "상품명/설명/카테고리 초안 생성"}
+          {pending === "draft" ? "생성 중..." : draftResult ? "다시 생성 (상품명/설명/카테고리)" : "상품명/설명/카테고리 초안 생성"}
         </button>
         <button
           type="button"
@@ -202,7 +220,7 @@ export function AiAssistantPanel({ detail, categories, onPatch }: AiAssistantPan
           disabled={pending !== null || !detail.nameKo.trim()}
           className="border border-primary px-3 py-1.5 text-xs font-bold text-primary disabled:border-border disabled:text-text-secondary"
         >
-          {pending === "seo" ? "생성 중..." : "SEO/태그 생성"}
+          {pending === "seo" ? "생성 중..." : seoResult ? "다시 생성 (SEO/태그)" : "SEO/태그 생성"}
         </button>
         <button
           type="button"
@@ -214,11 +232,18 @@ export function AiAssistantPanel({ detail, categories, onPatch }: AiAssistantPan
         </button>
       </div>
 
-      {error && <p className="text-xs text-red-600">{error}</p>}
+      {pending && <p className="text-xs text-text-secondary">AI 생성 중입니다...</p>}
+      {error && <p className="text-xs text-red-600">오류: {error}</p>}
 
       {draftResult && (
         <div className="flex flex-col gap-2">
-          <p className="text-[11px] text-text-secondary">{draftResult.message}</p>
+          <div className="flex items-center gap-2">
+            <ProviderBadge provider={draftResult.provider} />
+            <p className="text-[11px] text-text-secondary">{draftResult.message}</p>
+          </div>
+          {draftResult.suggestions.length === 0 && (
+            <p className="text-xs text-text-secondary">AI가 유효한 초안을 생성하지 못했습니다. 다시 시도하거나 직접 입력해주세요.</p>
+          )}
           {draftResult.suggestions.map((s, i) => (
             <SuggestionRow key={`${s.field}-${i}`} suggestion={s} onApply={() => applySuggestion(s.field, s.value)} />
           ))}
@@ -227,7 +252,10 @@ export function AiAssistantPanel({ detail, categories, onPatch }: AiAssistantPan
 
       {categoryResult && categoryResult.suggestions.length > 0 && (
         <div className="flex flex-col gap-2">
-          <p className="text-xs font-bold text-text-main">카테고리 추천</p>
+          <div className="flex items-center gap-2">
+            <ProviderBadge provider={categoryResult.provider} />
+            <p className="text-xs font-bold text-text-main">추천 카테고리</p>
+          </div>
           {categoryResult.suggestions.map((s, i) => (
             <SuggestionRow key={`${s.categoryId}-${i}`} suggestion={s} onApply={() => onPatch({ categoryId: s.categoryId })} />
           ))}
@@ -236,7 +264,10 @@ export function AiAssistantPanel({ detail, categories, onPatch }: AiAssistantPan
 
       {seoResult && (
         <div className="flex flex-col gap-2">
-          <p className="text-[11px] text-text-secondary">{seoResult.message}</p>
+          <div className="flex items-center gap-2">
+            <ProviderBadge provider={seoResult.provider} />
+            <p className="text-[11px] text-text-secondary">{seoResult.message}</p>
+          </div>
           {seoResult.seoTitle && <SuggestionRow suggestion={seoResult.seoTitle} onApply={() => applySuggestion("seoTitle", seoResult.seoTitle!.value)} />}
           {seoResult.seoDescription && (
             <SuggestionRow suggestion={seoResult.seoDescription} onApply={() => applySuggestion("seoDescription", seoResult.seoDescription!.value)} />
@@ -273,25 +304,44 @@ export function AiAssistantPanel({ detail, categories, onPatch }: AiAssistantPan
             번역
           </button>
         </div>
-        {translateResult && (
-          <SuggestionRow suggestion={translateResult} onApply={() => applySuggestion(translateResult.field, translateResult.value)} />
+        {translateResult?.suggestion && (
+          <div className="flex flex-col gap-1.5">
+            <ProviderBadge provider={translateResult.provider} />
+            <SuggestionRow
+              suggestion={translateResult.suggestion}
+              onApply={() => applySuggestion(translateResult.suggestion!.field, translateResult.suggestion!.value)}
+            />
+          </div>
         )}
+        {translateResult && !translateResult.suggestion && <p className="text-xs text-text-secondary">{translateResult.message}</p>}
       </div>
 
       {checkResult && (
         <div className="flex flex-col gap-1.5 border-t border-primary/30 pt-3">
-          <p className="text-xs font-bold text-text-main">누락 항목 점검 결과</p>
-          {checkResult.findings.length === 0 ? (
-            <p className="text-xs text-primary">필수 항목 누락 없음.</p>
-          ) : (
-            <ul className="flex flex-col gap-1">
-              {checkResult.findings.map((finding) => (
-                <li key={finding.field} className="text-xs text-red-600">
-                  · {finding.message}
-                </li>
-              ))}
-            </ul>
-          )}
+          <div className="flex items-center gap-2">
+            <ProviderBadge provider={checkResult.provider} />
+            <p className="text-xs font-bold text-text-main">누락 항목 점검 결과</p>
+          </div>
+          {(() => {
+            const realFindings = checkResult.findings.filter((f) => f.field !== "manual_review_required");
+            const manualNote = checkResult.findings.find((f) => f.field === "manual_review_required");
+            return (
+              <>
+                {realFindings.length === 0 ? (
+                  <p className="text-xs text-primary">필수 항목 누락 없음.</p>
+                ) : (
+                  <ul className="flex flex-col gap-1">
+                    {realFindings.map((finding) => (
+                      <li key={finding.field} className="text-xs text-red-600">
+                        · {finding.message}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {manualNote && <p className="text-[11px] text-text-secondary">{manualNote.message}</p>}
+              </>
+            );
+          })()}
         </div>
       )}
     </aside>

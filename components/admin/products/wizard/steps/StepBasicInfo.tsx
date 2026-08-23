@@ -69,18 +69,36 @@ export function StepBasicInfo({ detail, categories, onChange }: StepBasicInfoPro
           </label>
         </div>
 
-        <FormField
-          label="짧은 설명"
-          value={detail.shortDescriptionKo}
-          onChange={(v) => onChange({ shortDescriptionKo: v })}
-          optionalTag="(선택, 목록/카드에 노출)"
-        />
+        <div className="grid gap-3 md:grid-cols-2">
+          <FormField
+            label="짧은 설명 (한국어)"
+            value={detail.shortDescriptionKo}
+            onChange={(v) => onChange({ shortDescriptionKo: v })}
+            optionalTag="(선택, 목록/카드에 노출)"
+          />
+          <FormField
+            label="짧은 설명 (영어)"
+            value={detail.shortDescriptionEn}
+            onChange={(v) => onChange({ shortDescriptionEn: v })}
+            optionalTag="(선택)"
+          />
+        </div>
 
         <label className="flex flex-col gap-1.5 text-sm">
-          <span className="text-xs font-medium text-text-secondary">상세 설명</span>
+          <span className="text-xs font-medium text-text-secondary">상세 설명 (한국어)</span>
           <textarea
             value={detail.descriptionKo}
             onChange={(e) => onChange({ descriptionKo: e.target.value })}
+            rows={6}
+            className="border border-border px-3 py-2.5 text-sm text-text-main outline-none"
+          />
+        </label>
+
+        <label className="flex flex-col gap-1.5 text-sm">
+          <span className="text-xs font-medium text-text-secondary">상세 설명 (영어) (선택)</span>
+          <textarea
+            value={detail.descriptionEn}
+            onChange={(e) => onChange({ descriptionEn: e.target.value })}
             rows={6}
             className="border border-border px-3 py-2.5 text-sm text-text-main outline-none"
           />
