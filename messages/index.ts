@@ -58,6 +58,16 @@ export type Messages = {
     specOrigin: string;
     fallbackCategoryLabel: string;
     totalCount: string;
+    soldOut: string;
+    optionSoldOut: string;
+    selectVariantPrompt: string;
+    optionCombinationSoldOut: string;
+    basePriceLabel: string;
+    optionPriceLabel: string;
+    finalPriceLabel: string;
+    totalPriceLabel: string;
+    purchaseSelectionPending: string;
+    stockRemaining: string;
   };
   shippingExchange: {
     shippingMethod: string;

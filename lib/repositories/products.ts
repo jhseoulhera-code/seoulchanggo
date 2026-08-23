@@ -15,6 +15,7 @@ import type {
   ProductPriceRow,
   ProductRow,
   ProductShippingMarketRow,
+  ProductVariantRow,
   ShippingTypeEnum,
 } from "@/types/database";
 import type { Product, ProductOptionGroup, ShippingType, SortOption } from "@/types";
@@ -32,14 +33,22 @@ const SHIPPING_TYPE_FROM_DB: Record<ShippingTypeEnum, ShippingType> = {
   OVERSEAS_AGENCY: "overseas_agent",
 };
 
+// STEP 19: product_variants(*) joined here (not a separate detail-only
+// query) so every existing caller of getAllProducts/getProductBySlug/
+// searchProducts/home-section fetches gets real variant data through the
+// exact same mapProductRow mapping, rather than forking a parallel
+// "customer detail" query architecture for one page. RLS
+// (product_variants_public_read) already scopes this to active variants
+// of active products — no admin-only column is added by this join.
 export const PRODUCT_SELECT =
-  "*, categories(slug), product_prices(*), product_shipping_markets(*), product_images(*)";
+  "*, categories(slug), product_prices(*), product_shipping_markets(*), product_images(*), product_variants(*)";
 
 export type ProductJoinRow = ProductRow & {
   categories: { slug: string } | null;
   product_prices: ProductPriceRow[];
   product_shipping_markets: ProductShippingMarketRow[];
   product_images: ProductImageRow[];
+  product_variants?: ProductVariantRow[];
 };
 
 export function mapProductRow(row: ProductJoinRow): Product {
@@ -68,6 +77,7 @@ export function mapProductRow(row: ProductJoinRow): Product {
   return {
     id: row.slug,
     dbId: row.id,
+    sku: row.sku,
     name: row.name_ko,
     nameEn: row.name_en ?? undefined,
     image: primaryImage?.image_url ?? "",
@@ -84,7 +94,22 @@ export function mapProductRow(row: ProductJoinRow): Product {
     category: row.categories?.slug ?? "",
     description: row.description_ko ?? undefined,
     descriptionEn: row.description_en ?? undefined,
+    shortDescription: row.short_description_ko ?? undefined,
+    shortDescriptionEn: row.short_description_en ?? undefined,
+    seoTitle: row.seo_title ?? undefined,
+    seoDescription: row.seo_description ?? undefined,
     options: Array.isArray(row.option_groups) ? (row.option_groups as unknown as ProductOptionGroup[]) : undefined,
+    variants:
+      row.product_variants && row.product_variants.length > 0
+        ? row.product_variants.map((v) => ({
+            id: v.id,
+            sku: v.sku,
+            optionValues: (v.option_values as unknown as Record<string, string>) ?? {},
+            additionalPrice: v.additional_price,
+            stockQuantity: v.stock_quantity,
+            isActive: v.is_active,
+          }))
+        : undefined,
     stock: row.stock_type === "TRACKED" ? row.stock_quantity : undefined,
     marketPrices: Object.keys(marketPrices).length > 0 ? marketPrices : undefined,
     globalPrice: usdPrice ? { salePrice: usdPrice.sale_price, originalPrice: usdPrice.original_price } : undefined,

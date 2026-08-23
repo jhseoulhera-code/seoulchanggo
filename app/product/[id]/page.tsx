@@ -12,14 +12,27 @@ export async function generateStaticParams() {
   return products.map((product) => ({ id: product.id }));
 }
 
-/** Server-rendered metadata always reflects the ko default (see lib/seo.ts) — the visible page itself is still locale-reactive client-side. */
+/**
+ * Server-rendered metadata always reflects the ko default (see lib/seo.ts)
+ * — the visible page itself is still locale-reactive client-side.
+ *
+ * STEP 19 spec section 24 — uses only the STEP 17 AI SEO Assistant's
+ * already-saved seo_title/seo_description (via Product.seoTitle/
+ * seoDescription) when present; never calls OpenAI or any AI route from
+ * this customer-facing request. Falls back to name/description exactly as
+ * before when an admin never ran or applied that suggestion.
+ */
 export async function generateMetadata(props: PageProps<"/product/[id]">): Promise<Metadata> {
   const { id } = await props.params;
   const product = await getProductBySlug(id);
   if (!product) return { title: "상품을 찾을 수 없습니다" };
+
+  const title = product.seoTitle || `${product.name} | 서울창고`;
+  const description = product.seoDescription || product.shortDescription || product.description || product.name;
   return {
-    title: `${product.name} | 서울창고`,
-    description: product.description ?? product.name,
+    title,
+    description,
+    openGraph: product.image ? { images: [{ url: product.image }] } : undefined,
   };
 }
 

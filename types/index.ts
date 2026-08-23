@@ -33,6 +33,22 @@ export type ProductSpec = {
   value: string;
 };
 
+/**
+ * STEP 19 — a real, purchasable option combination (STEP 18's
+ * product_variants), as opposed to ProductOptionGroup above which is only
+ * the display-only "what choices exist" list. Deliberately declared
+ * independently of types/admin.ts's AdminProductVariant (same shape) so
+ * customer-facing code never imports the admin domain model.
+ */
+export type ProductVariant = {
+  id: string;
+  sku: string;
+  optionValues: Record<string, string>;
+  additionalPrice: number;
+  stockQuantity: number;
+  isActive: boolean;
+};
+
 export type Product = {
   id: string;
   /** Real DB UUID (STEP 10) — undefined for static mock products, since reviews/inquiries need Supabase. */
@@ -40,6 +56,8 @@ export type Product = {
   name: string;
   /** English name, when set by admin/DB — see lib/productLocalization.ts for the ko-fallback resolver. */
   nameEn?: string;
+  /** STEP 19 — the product's own SKU, used as the purchasable SKU for an option-less product (PurchaseSelection.sku when there's no variants). Undefined only for static mock data. */
+  sku?: string;
   image: string;
   images?: string[];
   brand?: string;
@@ -55,8 +73,16 @@ export type Product = {
   description?: string;
   /** English description, when set by admin/DB — see lib/productLocalization.ts for the ko-fallback resolver. */
   descriptionEn?: string;
+  /** STEP 19 — short summary shown in the purchase panel, distinct from the long `description` shown in DetailTabs. Falls back to `description` when unset (see lib/productLocalization.ts). */
+  shortDescription?: string;
+  shortDescriptionEn?: string;
+  /** STEP 19 spec section 24 — DB-stored AI SEO Assistant output (STEP 17) surfaced only for <meta> generation, never called live from a customer request. */
+  seoTitle?: string;
+  seoDescription?: string;
   specifications?: ProductSpec[];
   options?: ProductOptionGroup[];
+  /** STEP 19 — real, purchasable combinations (STEP 18's product_variants). Undefined/empty means this product sells as a single SKU (its own sku/price/stock below). */
+  variants?: ProductVariant[];
   stock?: number;
   /** Per-market authoritative price in that market's own currency. Falls back to a dev exchange-rate conversion of salePrice/originalPrice when absent for the current market. */
   marketPrices?: Partial<Record<CountryCode, { salePrice: number; originalPrice: number }>>;
