@@ -622,6 +622,8 @@ export type Database = {
           p_failure_code?: string | null;
           p_failure_message?: string | null;
           p_guest_contact?: string | null;
+          p_provider_amount?: number | null;
+          p_provider_currency?: CurrencyCodeEnum | null;
         };
         Returns: Json;
       };
@@ -637,6 +639,8 @@ export type Database = {
           p_provider_transaction_id?: string | null;
           p_failure_code?: string | null;
           p_failure_message?: string | null;
+          p_provider_amount?: number | null;
+          p_provider_currency?: CurrencyCodeEnum | null;
         };
         Returns: Json;
       };

@@ -36,7 +36,17 @@ export const mockPaymentProvider: PaymentProviderAdapter = {
     if (input.simulateFailure) {
       return { ok: false, failureCode: "MOCK_SIMULATED_FAILURE", failureMessage: "테스트를 위해 의도적으로 실패 처리된 결제입니다." };
     }
-    return { ok: true, providerTransactionId: `mock_txn_${input.paymentId}` };
+    // QA-only: deliberately echoes back a WRONG amount so the amount-mismatch
+    // rejection path (_apply_payment_result's PAYMENT_AMOUNT_MISMATCH) can be
+    // exercised end-to-end without a real PG ever disagreeing with itself.
+    const amount = input.simulateAmountMismatch ? (input.amount ?? 0) + 1 : (input.amount ?? 0);
+    return {
+      ok: true,
+      providerTransactionId: `mock_txn_${input.paymentId}`,
+      amount,
+      currencyCode: input.currencyCode ?? "KRW",
+      approvedAt: new Date().toISOString(),
+    };
   },
 
   async cancelPayment(): Promise<CancelPaymentResult> {

@@ -282,6 +282,8 @@ export function CheckoutClient({ products }: CheckoutClientProps) {
         paymentId: prepared.paymentId,
         providerPaymentId: prepared.providerPaymentId,
         provider: prepared.provider,
+        amount: prepared.amount,
+        currencyCode: prepared.currencyCode,
         simulateFailure: prepared.provider === "MOCK" ? simulateMockFailure : undefined,
         guestContact: customer.email,
       }),
@@ -290,11 +292,17 @@ export function CheckoutClient({ products }: CheckoutClientProps) {
 
     if (!confirmed.ok) {
       setSubmitting(false);
-      setPaymentFailure({
-        orderId: dbOrderId,
-        orderNumber,
-        message: confirmed.failureMessage ?? confirmed.error ?? messages.payment.confirmFailed,
-      });
+      // STEP 23 — PAYMENT_AMOUNT_MISMATCH/PAYMENT_CURRENCY_MISMATCH/STOCK_CHANGED are
+      // raised by _apply_payment_result itself (internal, English) — never shown
+      // to the customer as-is; everything else falls back to the adapter's own
+      // (already localized, e.g. MOCK_SIMULATED_FAILURE) failureMessage.
+      const localizedMessage =
+        confirmed.failureCode === "PAYMENT_AMOUNT_MISMATCH" || confirmed.failureCode === "PAYMENT_CURRENCY_MISMATCH"
+          ? messages.payment.amountMismatch
+          : confirmed.failureCode === "STOCK_CHANGED"
+            ? messages.payment.stockChangedAtPayment
+            : (confirmed.failureMessage ?? confirmed.error ?? messages.payment.confirmFailed);
+      setPaymentFailure({ orderId: dbOrderId, orderNumber, message: localizedMessage });
       return;
     }
 

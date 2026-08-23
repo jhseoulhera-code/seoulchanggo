@@ -8,8 +8,21 @@ type ConfirmBody = {
   paymentId: string;
   providerPaymentId: string;
   provider: PaymentProvider;
+  /**
+   * STEP 23 — echoed from the prepare_payment response (itself derived
+   * server-side from orders.total_amount/currency_code), passed through to
+   * the adapter so MOCK has something to confirm against. This is never
+   * the actual security boundary: confirm_payment() below re-compares
+   * whatever the adapter reports against payments.amount/currency_code
+   * itself, so a client that forges these merely makes MOCK "confirm" the
+   * wrong number, which then gets rejected server-side regardless.
+   */
+  amount?: number;
+  currencyCode?: string;
   /** MOCK-only QA toggle — see lib/payments/providers/mock.ts. */
   simulateFailure?: boolean;
+  /** MOCK-only QA toggle for the amount-mismatch rejection path — see lib/payments/providers/mock.ts. */
+  simulateAmountMismatch?: boolean;
   guestContact?: string;
 };
 
@@ -41,7 +54,10 @@ export async function POST(request: Request) {
   const result = await adapter.confirmPayment({
     paymentId: body.paymentId,
     providerPaymentId: body.providerPaymentId,
+    amount: body.amount,
+    currencyCode: body.currencyCode as never,
     simulateFailure: body.simulateFailure,
+    simulateAmountMismatch: body.simulateAmountMismatch,
   });
 
   const supabase = await createClient();
@@ -53,6 +69,11 @@ export async function POST(request: Request) {
     p_failure_code: result.ok ? null : result.failureCode,
     p_failure_message: result.ok ? null : result.failureMessage,
     p_guest_contact: body.guestContact ?? null,
+    // STEP 23 — the actual security check: _apply_payment_result compares
+    // these against payments.amount/currency_code (never against this
+    // route's own body) before ever marking a payment PAID.
+    p_provider_amount: result.ok ? result.amount : null,
+    p_provider_currency: result.ok ? result.currencyCode : null,
   } as never);
 
   if (error || !data) {
@@ -64,6 +85,17 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, failureCode: result.failureCode, failureMessage: result.failureMessage }, { status: 200 });
   }
 
-  const applied = data as unknown as { status: string };
+  // STEP 23 — the adapter itself said "ok", but _apply_payment_result can
+  // still resolve to FAILED server-side (amount/currency mismatch, or a
+  // stock shortfall discovered only at finalize time) — that verdict, not
+  // the adapter's, is what actually happened to the payment.
+  const applied = data as unknown as { status: string; failure_code?: string };
+  if (applied.status !== "PAID") {
+    return NextResponse.json(
+      { ok: false, failureCode: applied.failure_code ?? "UNKNOWN", failureMessage: "결제를 확정하지 못했습니다." },
+      { status: 200 }
+    );
+  }
+
   return NextResponse.json({ ok: true, status: applied.status });
 }

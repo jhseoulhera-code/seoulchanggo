@@ -19,12 +19,35 @@ export type CreatePaymentResult =
 export type ConfirmPaymentInput = {
   paymentId: string;
   providerPaymentId: string;
+  /**
+   * STEP 23 — what the ROUTE believes should be charged (echoed straight
+   * from prepare_payment's own response, which itself came from
+   * orders.total_amount/currency_code, never client-typed). A real PG
+   * adapter ignores this and queries the PG's own record of what it
+   * actually charged instead — MOCK has no real backing store, so it
+   * echoes this back as its "confirmed" amount, which is what makes it a
+   * faithful stand-in: the real security check (ConfirmPaymentResult's
+   * amount/currencyCode vs payments.amount/currency_code) happens
+   * server-side in _apply_payment_result regardless of where this number
+   * originated, so a forged confirm request still gets rejected there.
+   */
+  amount?: number;
+  currencyCode?: CurrencyCode;
   /** Only meaningful for MOCK — lets Checkout QA a failed-payment path without a real PG. */
   simulateFailure?: boolean;
+  /** Only meaningful for MOCK — lets Checkout QA the amount-mismatch rejection path without a real PG. */
+  simulateAmountMismatch?: boolean;
 };
 
 export type ConfirmPaymentResult =
-  | { ok: true; providerTransactionId: string }
+  | {
+      ok: true;
+      providerTransactionId: string;
+      /** STEP 23 spec section 25 — the provider's OWN normalized confirmation, never a raw provider payload. */
+      amount: number;
+      currencyCode: CurrencyCode;
+      approvedAt: string;
+    }
   | { ok: false; failureCode: string; failureMessage: string };
 
 export type CancelPaymentInput = { providerPaymentId: string };

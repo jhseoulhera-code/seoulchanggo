@@ -305,6 +305,8 @@ export const en: Messages = {
     },
     prepareFailed: "We couldn't prepare your payment.",
     confirmFailed: "Your payment failed.",
+    amountMismatch: "We couldn't verify the payment amount. Please try again.",
+    stockChangedAtPayment: "Stock changed while your payment was processing. Please check the quantity in your cart.",
   },
   orderStatus: {
     ORDER_CREATED: "Order received",

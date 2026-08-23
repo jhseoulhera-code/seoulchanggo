@@ -303,6 +303,8 @@ export type Messages = {
     };
     prepareFailed: string;
     confirmFailed: string;
+    amountMismatch: string;
+    stockChangedAtPayment: string;
   };
   orderStatus: Record<
     | "ORDER_CREATED"

@@ -18,13 +18,32 @@ import type { MyOrderDetail } from "@/lib/actions/mypage";
 import { getMessages } from "@/messages";
 import type { ShippingType } from "@/types";
 import type { ShippingAddress } from "@/types/order";
-import type { ShippingTypeEnum } from "@/types/database";
+import type { PaymentAttemptStatusEnum, ShippingTypeEnum } from "@/types/database";
 
 /** Same DB-enum-to-TS-type map already used (in the other direction) by lib/actions/order.ts's SHIPPING_TYPE_TO_DB. */
 const SHIPPING_TYPE_FROM_DB: Record<ShippingTypeEnum, ShippingType> = {
   DOMESTIC: "domestic",
   OVERSEAS_DIRECT: "overseas_direct",
   OVERSEAS_AGENCY: "overseas_agent",
+};
+
+/**
+ * STEP 23 — payment_attempt_status_enum (per-attempt, fine-grained: CREATED/
+ * READY/PENDING/AUTHORIZED/PAID/FAILED/CANCELLED/PARTIALLY_REFUNDED/REFUNDED)
+ * collapsed onto messages.payment.status's 5 customer-facing buckets. Never
+ * shown as the raw enum value — a customer doesn't need to know the
+ * difference between CREATED and READY, only "결제대기".
+ */
+const PAYMENT_ATTEMPT_STATUS_LABEL: Record<PaymentAttemptStatusEnum, "pending" | "paid" | "failed" | "cancelled" | "refunded"> = {
+  CREATED: "pending",
+  READY: "pending",
+  PENDING: "pending",
+  AUTHORIZED: "pending",
+  PAID: "paid",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+  PARTIALLY_REFUNDED: "refunded",
+  REFUNDED: "refunded",
 };
 
 function AddressLines({ address }: { address: ShippingAddress }) {
@@ -101,6 +120,7 @@ export default function MyOrderDetailPage() {
 
   const address = order.shippingAddress as unknown as ShippingAddress;
   const isPaid = order.paymentStatus === "PAID";
+  const attemptStatusLabel = order.latestPayment ? PAYMENT_ATTEMPT_STATUS_LABEL[order.latestPayment.status] : "pending";
 
   return (
     <>
@@ -122,12 +142,24 @@ export default function MyOrderDetailPage() {
             </div>
             <div className="flex items-center justify-between">
               <span className="text-text-secondary">{messages.payment.methodLabel}</span>
-              <span className="text-text-main">{paymentMethodLabel(order.paymentMethod, market.locale)}</span>
+              <span className="text-text-main">{paymentMethodLabel(order.latestPayment?.paymentMethod ?? order.paymentMethod, market.locale)}</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-text-secondary">{messages.payment.statusLabel}</span>
-              <span className="text-text-main">{isPaid ? messages.payment.status.paid : messages.payment.status.pending}</span>
+              <span className="text-text-main">{messages.payment.status[attemptStatusLabel]}</span>
             </div>
+            {isPaid && order.latestPayment?.paidAt && (
+              <div className="flex items-center justify-between">
+                <span className="text-text-secondary">결제완료 시각</span>
+                <span className="text-text-main">{formatDateTime(order.latestPayment.paidAt, market.locale, getMarketTimeZone(order.marketCode))}</span>
+              </div>
+            )}
+            {!isPaid && order.canRetryPayment && (
+              <p className="flex items-center gap-1.5 text-xs text-primary">
+                <AlertTriangle size={12} className="shrink-0" />
+                다시 결제를 시도할 수 있는 주문입니다.
+              </p>
+            )}
           </div>
 
           <section className="flex flex-col gap-2">

@@ -305,6 +305,8 @@ export const ko: Messages = {
     },
     prepareFailed: "결제를 준비하지 못했습니다.",
     confirmFailed: "결제에 실패했습니다.",
+    amountMismatch: "결제 금액 확인에 실패했습니다. 다시 시도해주세요.",
+    stockChangedAtPayment: "결제 처리 중 재고가 변경되었습니다. 장바구니에서 수량을 확인해주세요.",
   },
   orderStatus: {
     ORDER_CREATED: "주문접수",

@@ -6,7 +6,10 @@ import type {
   OrderItemRow,
   OrderRow,
   OrderStatusEnum,
+  PaymentAttemptStatusEnum,
   PaymentMethodEnum,
+  PaymentProviderEnum,
+  PaymentRow,
   PaymentStatusEnum,
   ShippingGroupItemRow,
   ShippingGroupRow,
@@ -138,6 +141,24 @@ export type MyOrderDetailShippingGroup = {
  * current live product — a renamed product or deleted variant must never
  * change how a past order reads.
  */
+/**
+ * STEP 23 spec section 38 — the latest payment ATTEMPT for this order (not
+ * orders.payment_status, which only ever distinguishes UNPAID/PAID and
+ * loses the FAILED/PENDING nuance). Never exposes provider_payment_id/
+ * provider_transaction_id/raw_metadata/failure_message — none of those are
+ * meant for a customer's eyes (internal-only diagnostic values, and
+ * raw_metadata is an allow-list of non-sensitive provider fields at best).
+ */
+export type MyOrderDetailPayment = {
+  status: PaymentAttemptStatusEnum;
+  provider: PaymentProviderEnum;
+  paymentMethod: PaymentMethodEnum;
+  amount: number;
+  currencyCode: CurrencyCode;
+  paidAt: string | null;
+  createdAt: string;
+};
+
 export type MyOrderDetail = {
   id: string;
   orderNumber: string;
@@ -154,11 +175,15 @@ export type MyOrderDetail = {
   grandTotal: number;
   items: MyOrderDetailItem[];
   shippingGroups: MyOrderDetailShippingGroup[];
+  latestPayment: MyOrderDetailPayment | null;
+  /** STEP 23 section 38 — a failed/abandoned attempt can still be retried against the same order; a PAID or CANCELLED order cannot. */
+  canRetryPayment: boolean;
 };
 
 type OrderDetailRow = OrderRow & {
   order_items: OrderItemRow[];
   shipping_groups: (ShippingGroupRow & { shipping_group_items: ShippingGroupItemRow[] })[];
+  payments: PaymentRow[];
 };
 
 /**
@@ -181,7 +206,7 @@ export async function getMyOrderDetailAction(orderId: string): Promise<MyOrderDe
 
   const { data, error } = await supabase
     .from("orders")
-    .select("*, order_items(*), shipping_groups(*, shipping_group_items(*))")
+    .select("*, order_items(*), shipping_groups(*, shipping_group_items(*)), payments(*)")
     .eq("id", orderId)
     .eq("user_id", user.id)
     .maybeSingle();
@@ -192,6 +217,9 @@ export async function getMyOrderDetailAction(orderId: string): Promise<MyOrderDe
   if (!data) return null;
 
   const row = data as unknown as OrderDetailRow;
+  const latestPaymentRow = [...row.payments].sort(
+    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  )[0];
 
   return {
     id: row.id,
@@ -227,5 +255,17 @@ export async function getMyOrderDetailAction(orderId: string): Promise<MyOrderDe
       status: group.status,
       itemIds: group.shipping_group_items.map((item) => item.order_item_id),
     })),
+    latestPayment: latestPaymentRow
+      ? {
+          status: latestPaymentRow.status,
+          provider: latestPaymentRow.provider,
+          paymentMethod: latestPaymentRow.payment_method,
+          amount: latestPaymentRow.amount,
+          currencyCode: latestPaymentRow.currency_code,
+          paidAt: latestPaymentRow.paid_at,
+          createdAt: latestPaymentRow.created_at,
+        }
+      : null,
+    canRetryPayment: row.payment_status !== "PAID" && row.order_status !== "CANCELLED",
   };
 }
