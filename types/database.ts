@@ -202,6 +202,7 @@ export type OrderRow = {
   coupon_discount_amount: number;
   points_used: number;
   points_discount_amount: number;
+  admin_note: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -235,6 +236,8 @@ export type ShippingGroupRow = {
   tracking_number: string | null;
   estimated_min_days: number | null;
   estimated_max_days: number | null;
+  shipped_at: string | null;
+  delivered_at: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -242,6 +245,16 @@ export type ShippingGroupRow = {
 export type ShippingGroupItemRow = {
   shipping_group_id: string;
   order_item_id: string;
+};
+
+export type OrderStatusHistoryRow = {
+  id: string;
+  order_id: string;
+  shipping_group_id: string | null;
+  from_status: string | null;
+  to_status: string;
+  admin_user_id: string | null;
+  created_at: string;
 };
 
 export type HomeSectionRow = {
@@ -499,6 +512,7 @@ export type Database = {
       order_items: Table<OrderItemRow, never, never>;
       shipping_groups: Table<ShippingGroupRow, never, Partial<ShippingGroupRow>>;
       shipping_group_items: Table<ShippingGroupItemRow, never, never>;
+      order_status_history: Table<OrderStatusHistoryRow, never, never>;
       home_sections: Table<HomeSectionRow, never, Partial<HomeSectionRow>>;
       home_section_items: Table<
         HomeSectionItemRow,
@@ -678,6 +692,10 @@ export type Database = {
           p_carrier: string | null;
           p_tracking_number: string | null;
         };
+        Returns: undefined;
+      };
+      admin_set_order_note: {
+        Args: { p_order_id: string; p_note: string | null };
         Returns: undefined;
       };
       admin_upsert_product: {

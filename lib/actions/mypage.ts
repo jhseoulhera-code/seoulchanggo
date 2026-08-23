@@ -131,6 +131,10 @@ export type MyOrderDetailShippingGroup = {
   shippingFee: number;
   status: ShippingGroupStatusEnum;
   itemIds: string[];
+  carrier: string | null;
+  trackingNumber: string | null;
+  shippedAt: string | null;
+  deliveredAt: string | null;
 };
 
 /**
@@ -254,6 +258,10 @@ export async function getMyOrderDetailAction(orderId: string): Promise<MyOrderDe
       shippingFee: group.shipping_fee,
       status: group.status,
       itemIds: group.shipping_group_items.map((item) => item.order_item_id),
+      carrier: group.carrier,
+      trackingNumber: group.tracking_number,
+      shippedAt: group.shipped_at,
+      deliveredAt: group.delivered_at,
     })),
     latestPayment: latestPaymentRow
       ? {

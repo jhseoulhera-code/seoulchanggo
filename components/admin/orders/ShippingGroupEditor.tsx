@@ -4,26 +4,50 @@ import { useState } from "react";
 import { updateShippingGroupAction } from "@/lib/actions/adminOrders";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { NEXT_SHIPPING_STATUSES, SHIPPING_GROUP_STATUS_LABEL, SHIPPING_TYPE_LABEL } from "@/lib/adminLabels";
+import { carrierLabel, DOMESTIC_CARRIERS, INTERNATIONAL_CARRIERS } from "@/lib/shipping/carriers";
+import { isValidTrackingNumber } from "@/lib/validation";
 import type { AdminShippingGroup } from "@/types/admin";
 
-export function ShippingGroupEditor({ orderId, group }: { orderId: string; group: AdminShippingGroup }) {
+export function ShippingGroupEditor({ orderId, group, orderPaid }: { orderId: string; group: AdminShippingGroup; orderPaid: boolean }) {
   const [status, setStatus] = useState(group.status);
   const [nextStatus, setNextStatus] = useState("");
   const [carrier, setCarrier] = useState(group.carrier ?? "");
   const [trackingNumber, setTrackingNumber] = useState(group.trackingNumber ?? "");
+  const [shippedAt, setShippedAt] = useState(group.shippedAt);
+  const [deliveredAt, setDeliveredAt] = useState(group.deliveredAt);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
   const options = NEXT_SHIPPING_STATUSES[status];
+  const carrierOptions = group.shippingType === "DOMESTIC" ? DOMESTIC_CARRIERS : INTERNATIONAL_CARRIERS;
+  const targetStatus = nextStatus || status;
+  const requiresShippingInfo = targetStatus === "SHIPPED";
+  const requiresPayment = ["SHIPPED", "IN_TRANSIT", "CUSTOMS", "OUT_FOR_DELIVERY", "DELIVERED"].includes(targetStatus);
 
   async function handleSave() {
-    setPending(true);
     setError(null);
     setSaved(false);
+
+    // Client-side pre-check only (fail-fast UX) — admin_update_shipping_group
+    // itself re-validates all of this server-side and is the real boundary.
+    if (requiresShippingInfo && (!carrier.trim() || !trackingNumber.trim())) {
+      setError("발송 처리하려면 운송사와 송장번호를 입력해야 합니다.");
+      return;
+    }
+    if (trackingNumber.trim() && !isValidTrackingNumber(trackingNumber)) {
+      setError("송장번호 형식이 올바르지 않습니다.");
+      return;
+    }
+    if (requiresPayment && !orderPaid) {
+      setError("결제가 완료되지 않은 주문은 발송 처리할 수 없습니다.");
+      return;
+    }
+
+    setPending(true);
     const result = await updateShippingGroupAction(orderId, {
       shippingGroupId: group.id,
-      status: nextStatus || status,
+      status: targetStatus,
       carrier: carrier || null,
       trackingNumber: trackingNumber || null,
     });
@@ -35,6 +59,8 @@ export function ShippingGroupEditor({ orderId, group }: { orderId: string; group
     if (nextStatus) {
       setStatus(nextStatus as typeof status);
       setNextStatus("");
+      if (nextStatus === "SHIPPED" && !shippedAt) setShippedAt(new Date().toISOString());
+      if (nextStatus === "DELIVERED" && !deliveredAt) setDeliveredAt(new Date().toISOString());
     }
     setSaved(true);
   }
@@ -50,6 +76,10 @@ export function ShippingGroupEditor({ orderId, group }: { orderId: string; group
         </div>
         <StatusBadge label={SHIPPING_GROUP_STATUS_LABEL[status]} tone="primary" />
       </div>
+
+      {!orderPaid && (
+        <p className="mt-2 text-xs text-red-600">결제 완료 전에는 발송 처리(SHIPPED 이상)로 변경할 수 없습니다.</p>
+      )}
 
       <div className="mt-3 flex flex-wrap items-end gap-2">
         <label className="flex flex-col gap-1 text-xs text-text-secondary">
@@ -70,17 +100,25 @@ export function ShippingGroupEditor({ orderId, group }: { orderId: string; group
         </label>
         <label className="flex flex-col gap-1 text-xs text-text-secondary">
           운송사
-          <input
+          <select
             value={carrier}
             onChange={(e) => setCarrier(e.target.value)}
             className="w-36 border border-border px-2 py-1.5 text-sm outline-none"
-          />
+          >
+            <option value="">선택</option>
+            {carrierOptions.map((code) => (
+              <option key={code} value={code}>
+                {carrierLabel(code)}
+              </option>
+            ))}
+          </select>
         </label>
         <label className="flex flex-col gap-1 text-xs text-text-secondary">
           송장번호
           <input
             value={trackingNumber}
             onChange={(e) => setTrackingNumber(e.target.value)}
+            maxLength={40}
             className="w-40 border border-border px-2 py-1.5 text-sm outline-none"
           />
         </label>
@@ -93,6 +131,14 @@ export function ShippingGroupEditor({ orderId, group }: { orderId: string; group
           {pending ? "저장 중..." : "저장"}
         </button>
       </div>
+
+      {(shippedAt || deliveredAt) && (
+        <div className="mt-2 flex flex-wrap gap-4 text-xs text-text-secondary">
+          {shippedAt && <span>발송일시: {new Date(shippedAt).toLocaleString("ko-KR")}</span>}
+          {deliveredAt && <span>배송완료일시: {new Date(deliveredAt).toLocaleString("ko-KR")}</span>}
+        </div>
+      )}
+
       {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
       {saved && !error && <p className="mt-2 text-xs text-primary">저장되었습니다.</p>}
     </div>

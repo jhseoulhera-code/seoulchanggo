@@ -1,11 +1,19 @@
+import { AlertTriangle } from "lucide-react";
 import { notFound } from "next/navigation";
 import { AdminErrorScreen } from "@/components/admin/AdminBlockerScreen";
+import { AdminNoteEditor } from "@/components/admin/orders/AdminNoteEditor";
 import { PaymentHistoryPanel } from "@/components/admin/orders/PaymentHistoryPanel";
 import { ShippingGroupEditor } from "@/components/admin/orders/ShippingGroupEditor";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { getAdminOrderDetail } from "@/lib/repositories/admin/orders";
 import { ORDER_STATUS_LABEL, PAYMENT_STATUS_LABEL } from "@/lib/adminLabels";
 import { formatCurrency } from "@/lib/currency";
+
+const RECONCILIATION_ISSUE_LABEL: Record<string, string> = {
+  PROVIDER_PAID_LOCAL_STOCK_FAILURE: "결제는 승인되었으나 재고 부족으로 확정 실패 — 결제/이행 상태 확인 필요",
+  AMOUNT_MISMATCH: "결제 금액 불일치 감지 — 확인 필요",
+  CURRENCY_MISMATCH: "결제 통화 불일치 감지 — 확인 필요",
+};
 
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
@@ -128,6 +136,20 @@ export default async function AdminOrderDetailPage(props: { params: Promise<{ id
         </div>
       </section>
 
+      {order.reconciliationWarnings.length > 0 && (
+        <section className="flex flex-col gap-2 border border-red-500 bg-red-50 p-3">
+          <h2 className="flex items-center gap-1.5 text-sm font-bold text-red-700">
+            <AlertTriangle className="h-4 w-4" />
+            결제 상태 확인 필요
+          </h2>
+          <ul className="flex flex-col gap-1 text-xs text-red-700">
+            {order.reconciliationWarnings.map((warning) => (
+              <li key={warning.paymentId}>{RECONCILIATION_ISSUE_LABEL[warning.issue] ?? warning.issue}</li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       <PaymentHistoryPanel orderId={order.id} paymentStatus={order.paymentStatus} payments={order.payments} />
 
       <section className="flex flex-col gap-3">
@@ -137,11 +159,46 @@ export default async function AdminOrderDetailPage(props: { params: Promise<{ id
         ) : (
           <div className="flex flex-col gap-3">
             {order.shippingGroups.map((group) => (
-              <ShippingGroupEditor key={group.id} orderId={order.id} group={group} />
+              <ShippingGroupEditor
+                key={group.id}
+                orderId={order.id}
+                group={group}
+                orderPaid={order.paymentStatus === "PAID"}
+              />
             ))}
           </div>
         )}
       </section>
+
+      <AdminNoteEditor orderId={order.id} initialNote={order.adminNote} />
+
+      {order.statusHistory.length > 0 && (
+        <section className="flex flex-col gap-2 border border-border p-3">
+          <h2 className="text-sm font-bold text-text-main">상태 변경 이력 (관리자 전용)</h2>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[560px] text-left text-xs">
+              <thead className="border-b border-border text-text-secondary">
+                <tr>
+                  <th className="px-2 py-1.5">일시</th>
+                  <th className="px-2 py-1.5">대상</th>
+                  <th className="px-2 py-1.5">이전 상태</th>
+                  <th className="px-2 py-1.5">변경 상태</th>
+                </tr>
+              </thead>
+              <tbody>
+                {order.statusHistory.map((entry) => (
+                  <tr key={entry.id} className="border-b border-border last:border-b-0">
+                    <td className="px-2 py-1.5 text-text-secondary">{new Date(entry.createdAt).toLocaleString("ko-KR")}</td>
+                    <td className="px-2 py-1.5 text-text-secondary">{entry.shippingGroupId ? "배송그룹" : "주문 전체"}</td>
+                    <td className="px-2 py-1.5 text-text-main">{entry.fromStatus ?? "-"}</td>
+                    <td className="px-2 py-1.5 text-text-main">{entry.toStatus}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
     </div>
   );
 }

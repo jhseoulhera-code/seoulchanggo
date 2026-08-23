@@ -29,3 +29,16 @@ export function isValidCustomsCode(value: string): boolean {
 export function isValidPassword(value: string): boolean {
   return value.length >= 8;
 }
+
+/**
+ * STEP 25 spec section 18 — no specific carrier's tracking-number format is
+ * enforced (that would need real carrier specs this project doesn't have);
+ * only structural sanity: trimmed non-empty, a generous length cap, and no
+ * control characters (which could otherwise corrupt admin UI rendering or
+ * any future export).
+ */
+export function isValidTrackingNumber(value: string): boolean {
+  const trimmed = value.trim();
+  if (trimmed.length === 0 || trimmed.length > 40) return false;
+  return !/[\x00-\x1f\x7f]/.test(trimmed);
+}

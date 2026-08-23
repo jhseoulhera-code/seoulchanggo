@@ -15,6 +15,7 @@ import { formatCurrency } from "@/lib/currency";
 import { formatDateTime, getMarketTimeZone } from "@/lib/intl";
 import { paymentMethodLabel } from "@/lib/paymentLabels";
 import { attemptPayment } from "@/lib/paymentRetry";
+import { carrierLabel } from "@/lib/shipping/carriers";
 import { shippingTypeLabel } from "@/lib/shippingLabels";
 import { getMyOrderDetailAction } from "@/lib/actions/mypage";
 import type { MyOrderDetail } from "@/lib/actions/mypage";
@@ -232,6 +233,18 @@ export default function MyOrderDetailPage() {
                       {messages.cart.shippingTotal}: {formatCurrency(group.shippingFee, order.currencyCode)}
                     </span>
                   </div>
+                  {(group.carrier || group.trackingNumber) && (
+                    <div className="mt-2 flex flex-col gap-0.5 text-xs text-text-secondary">
+                      {group.carrier && <span>운송사: {carrierLabel(group.carrier)}</span>}
+                      {group.trackingNumber && <span>송장번호: {group.trackingNumber}</span>}
+                      {group.shippedAt && (
+                        <span>발송일시: {formatDateTime(group.shippedAt, market.locale, getMarketTimeZone(order.marketCode))}</span>
+                      )}
+                      {group.deliveredAt && (
+                        <span>배송완료일시: {formatDateTime(group.deliveredAt, market.locale, getMarketTimeZone(order.marketCode))}</span>
+                      )}
+                    </div>
+                  )}
                   <div className="mt-3 flex flex-col gap-3">
                     {groupItems.map((item) => (
                       <div key={item.id} className="flex gap-3">

@@ -159,6 +159,23 @@ export type AdminOrderListItem = {
   totalAmount: number;
   paymentStatus: PaymentStatusEnum;
   orderStatus: OrderStatusEnum;
+  /**
+   * STEP 25 spec section 3 — every distinct shipping group status/type on
+   * this order, for the main admin order list's "배송상태 요약"/"배송유형"
+   * columns. Optional: this same type is also built by
+   * lib/repositories/admin/customers.ts (a customer's own order history)
+   * and admin/dashboard.ts (recent orders), which don't select shipping
+   * groups for that narrower purpose — only listAdminOrders populates this.
+   */
+  shippingStatuses?: ShippingGroupStatusEnum[];
+  shippingTypes?: ShippingTypeEnum[];
+};
+
+export type AdminOrderListResult = {
+  items: AdminOrderListItem[];
+  total: number;
+  page: number;
+  pageSize: number;
 };
 
 export type AdminOrderItem = {
@@ -182,7 +199,23 @@ export type AdminShippingGroup = {
   status: ShippingGroupStatusEnum;
   carrier: string | null;
   trackingNumber: string | null;
+  shippedAt: string | null;
+  deliveredAt: string | null;
   itemIds: string[];
+};
+
+export type AdminOrderStatusHistoryEntry = {
+  id: string;
+  shippingGroupId: string | null;
+  fromStatus: string | null;
+  toStatus: string;
+  createdAt: string;
+};
+
+/** STEP 25 spec section 34/35 — reused from lib/payments/reconciliation.ts's own taxonomy so admin and STEP 24's reconciliation share one vocabulary, not two. */
+export type AdminReconciliationWarning = {
+  issue: "PROVIDER_PAID_LOCAL_STOCK_FAILURE" | "AMOUNT_MISMATCH" | "CURRENCY_MISMATCH";
+  paymentId: string;
 };
 
 export type AdminPaymentAttempt = {
@@ -220,6 +253,9 @@ export type AdminOrderDetail = {
   items: AdminOrderItem[];
   shippingGroups: AdminShippingGroup[];
   payments: AdminPaymentAttempt[];
+  adminNote: string | null;
+  statusHistory: AdminOrderStatusHistoryEntry[];
+  reconciliationWarnings: AdminReconciliationWarning[];
 };
 
 export type AdminCustomerListItem = {
