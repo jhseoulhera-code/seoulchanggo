@@ -118,15 +118,22 @@ export default function MyPage() {
               ) : (
                 <div className="flex flex-col gap-2">
                   {dbOrders.map((order) => (
-                    <div key={order.id} className="flex items-center justify-between border border-border px-3.5 py-3 text-sm">
+                    <Link
+                      key={order.id}
+                      href={`/mypage/orders/${order.id}`}
+                      className="flex items-center justify-between border border-border px-3.5 py-3 text-sm"
+                    >
                       <div className="flex flex-col gap-0.5">
                         <span className="font-bold text-text-main">{order.orderNumber}</span>
                         <span className="text-xs text-text-secondary">
                           {formatDate(order.createdAt, market.locale, getMarketTimeZone(market.countryCode))}
                         </span>
                       </div>
-                      <span className="text-text-main">{formatCurrency(order.totalAmount, order.currencyCode)}</span>
-                    </div>
+                      <div className="flex items-center gap-1.5 text-text-main">
+                        {formatCurrency(order.totalAmount, order.currencyCode)}
+                        <ChevronRight size={16} className="text-text-secondary" />
+                      </div>
+                    </Link>
                   ))}
                 </div>
               )

@@ -30,7 +30,7 @@ import {
 } from "@/lib/checkout";
 import { computeGroupShippingQuote, isGrandTotalDetermined } from "@/lib/shipping/quote";
 import { clearBuyNowItem, getBuyNowItem } from "@/lib/buyNow";
-import { generateOrderId, saveGuestOrder } from "@/lib/order";
+import { clearCheckoutIdempotencyKey, generateOrderId, getOrCreateCheckoutIdempotencyKey, saveGuestOrder } from "@/lib/order";
 import { createOrderAction } from "@/lib/actions/order";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import {
@@ -85,6 +85,11 @@ export function CheckoutClient({ products }: CheckoutClientProps) {
   const source = searchParams.get("source") === "buynow" ? "buynow" : "cart";
   const messages = getMessages(market.locale);
   const checkoutReturnTo = source === "buynow" ? "/checkout?source=buynow" : "/checkout";
+
+  // STEP 22 — one key per checkout attempt, kept in sessionStorage (not just
+  // this component's state) so a page reload mid-attempt reuses it too; see
+  // lib/order.ts's own doc comment for why it's only cleared on success.
+  const idempotencyKey = useMemo(() => getOrCreateCheckoutIdempotencyKey(source), [source]);
 
   const checkoutItems = useMemo(() => {
     if (source === "buynow") {
@@ -231,6 +236,9 @@ export function CheckoutClient({ products }: CheckoutClientProps) {
 
   function finalizeOrder(orderNumber: string) {
     saveGuestOrder(buildLocalOrder(orderNumber));
+    // STEP 22 — this checkout attempt is truly done now (paid, or the
+    // no-Supabase local fallback ran); the NEXT checkout starts a fresh key.
+    clearCheckoutIdempotencyKey(source);
 
     if (source === "cart") {
       availableItems.forEach((item) => {
@@ -313,6 +321,8 @@ export function CheckoutClient({ products }: CheckoutClientProps) {
     if (isSupabaseConfigured()) {
       const result = await createOrderAction({
         orderNumber,
+        source,
+        idempotencyKey,
         customer,
         shippingAddress: address,
         customsInfo: needsCustomsCode ? { personalCustomsCode: customsCode } : undefined,
@@ -341,7 +351,17 @@ export function CheckoutClient({ products }: CheckoutClientProps) {
                   ? messages.checkout.stockChanged
                   : result.error === "PRICE_MISMATCH"
                     ? messages.checkout.priceMismatch
-                    : messages.checkout.orderFailed;
+                    : result.error === "SHIPPING_UNAVAILABLE"
+                      ? messages.checkout.orderShippingUnavailable
+                      : result.error === "SHIPPING_PENDING"
+                        ? messages.checkout.orderShippingPending
+                        : result.error === "INVALID_ADDRESS"
+                          ? messages.checkout.invalidAddress
+                          : result.error === "CART_CHANGED"
+                            ? messages.checkout.cartChanged
+                            : result.error === "UNAUTHORIZED"
+                              ? messages.checkout.unauthorizedOrder
+                              : messages.checkout.orderFailed;
         setToast({ message, tone: "error" });
         return;
       }

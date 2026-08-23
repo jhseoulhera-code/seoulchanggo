@@ -1,14 +1,52 @@
 import type { Order } from "@/types/order";
 
 const GUEST_ORDERS_KEY = "seoulchanggo:guestOrders";
+const CHECKOUT_IDEMPOTENCY_KEY_PREFIX = "seoulchanggo:checkoutIdempotencyKey:";
 
+/**
+ * STEP 22 — 8 random base36 chars (~2.8×10^12 combinations per day) rather
+ * than STEP 08's original 4 (~1.7×10^6, an uncomfortably real collision risk
+ * once order volume grows). The DB's own `orders_order_number_key` unique
+ * constraint is still the actual guarantee (see the STEP 22 migration's
+ * create_order() exception handling) — this only makes a real collision
+ * astronomically unlikely rather than merely "unlikely".
+ */
 export function generateOrderId(): string {
   const now = new Date();
   const y = now.getFullYear();
   const m = String(now.getMonth() + 1).padStart(2, "0");
   const d = String(now.getDate()).padStart(2, "0");
-  const random = Math.random().toString(36).slice(2, 6).toUpperCase();
+  const random = Array.from({ length: 8 }, () => Math.floor(Math.random() * 36).toString(36))
+    .join("")
+    .toUpperCase();
   return `ORD-${y}${m}${d}-${random}`;
+}
+
+/**
+ * STEP 22 idempotency key — generated once per checkout attempt and kept in
+ * sessionStorage (not React state alone) specifically so it survives a page
+ * reload, not just a re-render: a double-click, a reload, or a network
+ * retry during the SAME attempt all reuse this same key, so create_order()
+ * can recognize a resubmit and return the original order instead of
+ * creating a second one. Cleared only once the attempt is truly finished
+ * (see clearCheckoutIdempotencyKey), never right after order creation
+ * succeeds — the order can still exist unpaid at that point, and a retry
+ * before payment completes must keep resolving to the same order.
+ */
+export function getOrCreateCheckoutIdempotencyKey(source: "cart" | "buynow"): string {
+  if (typeof window === "undefined") return crypto.randomUUID();
+  const storageKey = `${CHECKOUT_IDEMPOTENCY_KEY_PREFIX}${source}`;
+  const existing = window.sessionStorage.getItem(storageKey);
+  if (existing) return existing;
+  const generated = crypto.randomUUID();
+  window.sessionStorage.setItem(storageKey, generated);
+  return generated;
+}
+
+/** Called once a checkout attempt is truly done (payment succeeded, or the no-Supabase local fallback ran) so the NEXT checkout starts a fresh key. */
+export function clearCheckoutIdempotencyKey(source: "cart" | "buynow"): void {
+  if (typeof window === "undefined") return;
+  window.sessionStorage.removeItem(`${CHECKOUT_IDEMPOTENCY_KEY_PREFIX}${source}`);
 }
 
 export function saveGuestOrder(order: Order): void {

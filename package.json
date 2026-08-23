@@ -13,7 +13,8 @@
     "test:admin-product-variants": "node --experimental-strip-types scripts/test-admin-product-variants.mts",
     "test:storefront-product-detail": "node --experimental-strip-types scripts/test-storefront-product-detail.mts",
     "test:cart": "node --experimental-strip-types scripts/test-cart.mts",
-    "test:checkout-shipping": "node --experimental-strip-types scripts/test-checkout-shipping.mts"
+    "test:checkout-shipping": "node --experimental-strip-types scripts/test-checkout-shipping.mts",
+    "test:order-creation": "node --experimental-strip-types scripts/test-order-creation.mts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",

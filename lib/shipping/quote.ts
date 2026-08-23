@@ -45,3 +45,14 @@ export function computeGroupShippingQuote(
 export function isGrandTotalDetermined(quotes: ShippingQuote[]): boolean {
   return quotes.every((quote) => quote.status === "CALCULATED" || quote.status === "FREE");
 }
+
+/**
+ * STEP 22 spec section 11 — an order may only be created once every shipping
+ * group's fee is a real, resolved number. UNAVAILABLE and PENDING both mean
+ * "not a number yet" (see this file's ShippingQuote doc), so both must block
+ * order creation the same way — never fabricate a 0/placeholder fee to let
+ * an order through.
+ */
+export function isShippingQuoteBlocking(quote: ShippingQuote): boolean {
+  return quote.status === "UNAVAILABLE" || quote.status === "PENDING";
+}

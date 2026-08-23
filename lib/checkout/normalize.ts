@@ -59,3 +59,37 @@ export function deriveUnavailableReason(isAvailable: boolean, isPurchasable: boo
   if (!isPurchasable) return "soldOut";
   return null;
 }
+
+/** A real, persisted cart_items row's identity, as returned by cart_get_items (never client-declared). */
+export type RealCartLineIdentity = {
+  cartItemId: string;
+  productId: string;
+  variantId: string | null;
+};
+
+export type ClaimedCartLine = {
+  cartItemId?: string;
+  productId: string;
+  variantId: string | null;
+};
+
+/**
+ * STEP 22 spec section 14/25 — a cart-sourced checkout line is trustworthy
+ * only if it actually corresponds to a row in the CALLER's OWN persisted
+ * cart (fetched server-side via cart_get_items, never taken from the
+ * client's in-memory CheckoutItem array as-is). This is a distinct check
+ * from price/stock re-validation: a forged cartItemId could otherwise still
+ * price/stock-check out "correctly" while never having been a real item in
+ * anyone's cart, or worse, could reference an id belonging to a different
+ * user's cart. A buy-now line (no real cart_items row at all) is never
+ * checked here — the caller skips this function entirely for those.
+ */
+export function isCartLineOwnedByCaller(claimed: ClaimedCartLine, realCartLines: RealCartLineIdentity[]): boolean {
+  if (!claimed.cartItemId) return false;
+  return realCartLines.some(
+    (real) =>
+      real.cartItemId === claimed.cartItemId &&
+      real.productId === claimed.productId &&
+      real.variantId === claimed.variantId
+  );
+}

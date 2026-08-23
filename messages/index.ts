@@ -129,6 +129,11 @@ export type Messages = {
     priceNotReady: string;
     stockChanged: string;
     priceMismatch: string;
+    orderShippingUnavailable: string;
+    orderShippingPending: string;
+    invalidAddress: string;
+    cartChanged: string;
+    unauthorizedOrder: string;
     optionSectionLabel: string;
     priceChangedBadge: string;
     unavailableBadge: string;

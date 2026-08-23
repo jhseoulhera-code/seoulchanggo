@@ -1,11 +1,17 @@
 "use server";
 
 import { MARKETS } from "@/data/markets";
-import { resolveSellPrice } from "@/lib/checkout/normalize";
+import { groupCheckoutItemsByShippingType } from "@/lib/checkout";
+import { isCartLineOwnedByCaller, resolveSellPrice } from "@/lib/checkout/normalize";
+import { getCartToken } from "@/lib/cart/cartToken";
+import { getCartItems } from "@/lib/repositories/cart";
 import { mapProductRow, PRODUCT_SELECT } from "@/lib/repositories/products";
 import { getShippingFeeForMarket } from "@/lib/shipping";
+import { evaluateGroupEligibility } from "@/lib/shipping/eligibility";
+import { computeGroupShippingQuote, isShippingQuoteBlocking } from "@/lib/shipping/quote";
 import { getEffectiveStock } from "@/lib/storefront/productVariants";
 import { createClient } from "@/lib/supabase/server";
+import { isNonEmpty, isValidInPhone, isValidInPincode, isValidKrPhone, isValidKrPostcode } from "@/lib/validation";
 import type { ProductJoinRow } from "@/lib/repositories/products";
 import type { ShippingTypeEnum } from "@/types/database";
 import type { CountryCode, CurrencyCode, Market } from "@/types/market";
@@ -19,6 +25,10 @@ const SHIPPING_TYPE_TO_DB: Record<CheckoutItem["shippingType"], ShippingTypeEnum
 
 export type CreateOrderActionInput = {
   orderNumber: string;
+  /** STEP 22 — a cart-sourced line must match a real cart_items row the caller owns; a buy-now line has none and skips that check entirely. */
+  source: "cart" | "buynow";
+  /** STEP 22 — generated once per checkout attempt (lib/order.ts's getOrCreateCheckoutIdempotencyKey) and forwarded to create_order() so a double-click/reload/retry returns the original order instead of creating a second one. */
+  idempotencyKey: string;
   customer: GuestCustomer;
   shippingAddress: ShippingAddress;
   customsInfo?: CustomsInfo;
@@ -36,9 +46,44 @@ export type CreateOrderActionInput = {
 
 export type CreateOrderActionResult =
   | { ok: true; orderId: string }
-  | { ok: false; error: "PRICE_MISMATCH" | "PRICE_NOT_READY" | "STOCK_CHANGED" | "COUPON_INVALID" | "POINTS_INVALID" | "UNKNOWN" };
+  | {
+      ok: false;
+      error:
+        | "PRICE_MISMATCH"
+        | "PRICE_NOT_READY"
+        | "STOCK_CHANGED"
+        | "SHIPPING_UNAVAILABLE"
+        | "SHIPPING_PENDING"
+        | "INVALID_ADDRESS"
+        | "CART_CHANGED"
+        | "UNAUTHORIZED"
+        | "COUPON_INVALID"
+        | "POINTS_INVALID"
+        | "UNKNOWN";
+    };
 
 const PRICE_TOLERANCE = 1;
+
+/** Mirrors CheckoutClient's own client-side validate() rules — a defensive re-check in case this Server Action is ever reached with a malformed address that didn't go through that form. */
+function isCompleteShippingAddress(address: ShippingAddress): boolean {
+  if (address.country === "KR") {
+    return (
+      isNonEmpty(address.recipientName) &&
+      isValidKrPhone(address.phone) &&
+      isValidKrPostcode(address.postcode) &&
+      isNonEmpty(address.address) &&
+      isNonEmpty(address.addressDetail)
+    );
+  }
+  return (
+    isNonEmpty(address.fullName) &&
+    isValidInPhone(address.mobileNumber) &&
+    isNonEmpty(address.addressLine1) &&
+    isNonEmpty(address.city) &&
+    isNonEmpty(address.state) &&
+    isValidInPincode(address.pinCode)
+  );
+}
 
 /**
  * The only path that writes an order to Supabase — called from CheckoutClient for both
@@ -60,10 +105,44 @@ export async function createOrderAction(input: CreateOrderActionInput): Promise<
     return { ok: false, error: "POINTS_INVALID" };
   }
 
+  if (input.items.length === 0) {
+    return { ok: false, error: "CART_CHANGED" };
+  }
+
+  // STEP 22 section 9/14 — a defensive re-check independent of CheckoutClient's own
+  // form validation, in case this Action is ever reached with an incomplete address
+  // (a malformed direct call, a client bug). shipping_address is stored on the order
+  // as-is (the actual snapshot), so it must be structurally complete before that happens.
+  if (!isCompleteShippingAddress(input.shippingAddress)) {
+    return { ok: false, error: "INVALID_ADDRESS" };
+  }
+
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  // STEP 22 section 14/21/25 — a cart-sourced line must correspond to a REAL
+  // cart_items row this caller actually owns (resolved server-side via the
+  // caller's own session/cart-token, never a client claim). A price-correct
+  // but fabricated cartItemId — or one copied from another user's cart —
+  // must never reach order creation. Buy-now items have no backing cart_items
+  // row at all and are exempt, per source.
+  if (input.source === "cart") {
+    const anonymousToken = user ? null : await getCartToken();
+    const realCartItems = await getCartItems(anonymousToken);
+    const realCartLines = realCartItems.map((item) => ({
+      cartItemId: item.cartItemId,
+      productId: item.productId,
+      variantId: item.variantId,
+    }));
+    const allOwned = input.items.every((item) =>
+      isCartLineOwnedByCaller({ cartItemId: item.cartItemId, productId: item.productId, variantId: item.variantId }, realCartLines)
+    );
+    if (!allOwned) {
+      return { ok: false, error: "CART_CHANGED" };
+    }
+  }
 
   const slugs = input.items.map((item) => item.productId);
   const { data: products, error: productsError } = await supabase
@@ -149,6 +228,25 @@ export async function createOrderAction(input: CreateOrderActionInput): Promise<
     });
   }
 
+  // STEP 22 section 11 — every shipping group must have a resolved
+  // (CALCULATED/FREE) fee before an order can be created; a group whose
+  // destination is unshippable, or whose fee never resolved (PENDING —
+  // reserved for a future async freight lookup, see lib/shipping/quote.ts),
+  // must block order creation rather than let it through with a
+  // fabricated/guessed fee. Grouped/eligibility-checked against the REAL
+  // resolved product records (productsBySlug), not the client's own
+  // item.shippingType claim.
+  for (const group of groupCheckoutItemsByShippingType(input.items)) {
+    const groupProducts = group.items
+      .map((item) => productsBySlug.get(item.productId))
+      .filter((product): product is NonNullable<typeof product> => product != null);
+    const eligibility = evaluateGroupEligibility(group.shippingType, groupProducts, input.market);
+    const quote = computeGroupShippingQuote(group.shippingType, group.items, input.currency, eligibility.isShippable);
+    if (isShippingQuoteBlocking(quote)) {
+      return { ok: false, error: quote.status === "PENDING" ? "SHIPPING_PENDING" : "SHIPPING_UNAVAILABLE" };
+    }
+  }
+
   // STEP 15: create_order() no longer accepts p_subtotal/p_discount_amount/
   // p_shipping_amount/p_total_amount at all — it recomputes every amount
   // itself from product_prices/product_shipping_markets/products, so those
@@ -179,13 +277,16 @@ export async function createOrderAction(input: CreateOrderActionInput): Promise<
     p_items: rpcItems,
     p_coupon_code: input.couponCode ?? null,
     p_points_used: input.pointsUsed ?? 0,
+    p_idempotency_key: input.idempotencyKey,
   } as never);
 
   if (rpcError || !orderId) {
     console.error("[order] create_order RPC failed:", rpcError?.message);
     const message = rpcError?.message ?? "";
+    if (message.includes("UNAUTHORIZED")) return { ok: false, error: "UNAUTHORIZED" };
     if (message.includes("PRICE_NOT_READY")) return { ok: false, error: "PRICE_NOT_READY" };
     if (message.includes("STOCK_CHANGED")) return { ok: false, error: "STOCK_CHANGED" };
+    if (message.includes("SHIPPING_UNAVAILABLE")) return { ok: false, error: "SHIPPING_UNAVAILABLE" };
     if (message.includes("coupon")) return { ok: false, error: "COUPON_INVALID" };
     if (message.includes("point")) return { ok: false, error: "POINTS_INVALID" };
     if (message.includes("not available in market") || message.includes("not found or inactive")) {
