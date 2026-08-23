@@ -160,6 +160,10 @@ export function StepSupplyShipping({ detail, onChange }: StepSupplyShippingProps
             onChange={(v) => onChange({ stockQuantity: Number(v) || 0 })}
           />
         )}
+        {/* STEP 18 spec section 13 — 품절 is derived from stock, not a separately settable flag (matches lib/repositories/admin/inventory.ts's existing convention). Only meaningful for an option-less product; a product with variants shows this per-variant instead (StepMediaOptions). */}
+        {detail.optionGroups.length === 0 && detail.stockType === "TRACKED" && detail.stockQuantity <= 0 && (
+          <p className="w-fit bg-red-50 px-2 py-1 text-xs font-bold text-red-600">품절 (재고 0)</p>
+        )}
         {detail.stockType === "TRACKED" && detail.stockQuantity <= 0 && (
           <p className="text-xs text-red-600">재고관리 상품은 재고수량이 0보다 커야 등록할 수 있습니다.</p>
         )}

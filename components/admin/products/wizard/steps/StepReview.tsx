@@ -63,7 +63,10 @@ export function StepReview({ detail, categories, mode, saving, message, onSaveDr
           value={detail.stockType === "TRACKED" ? `${detail.stockQuantity}개 (TRACKED)` : "무제한 (UNLIMITED)"}
         />
         <SummaryRow label="이미지" value={`${detail.images.length}장${noPrimaryImage ? " (대표 이미지 없음)" : ""}`} />
-        <SummaryRow label="옵션 조합" value={`${detail.variants.length}개`} />
+        <SummaryRow
+          label="옵션"
+          value={detail.optionGroups.length === 0 ? "옵션 없음 (단일 SKU)" : `${detail.optionGroups.length}개 그룹 · ${detail.variants.length}개 조합`}
+        />
       </div>
 
       <div className="flex flex-wrap items-center gap-3 border-t border-border pt-4">

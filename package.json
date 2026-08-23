@@ -9,7 +9,8 @@
     "lint": "eslint",
     "check-i18n": "node --experimental-strip-types scripts/check-i18n.mts",
     "test:admin-product-wizard": "node --experimental-strip-types scripts/test-admin-product-wizard.mts",
-    "test:ai-product-assistant": "node --experimental-strip-types scripts/test-ai-product-assistant.mts"
+    "test:ai-product-assistant": "node --experimental-strip-types scripts/test-ai-product-assistant.mts",
+    "test:admin-product-variants": "node --experimental-strip-types scripts/test-admin-product-variants.mts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",

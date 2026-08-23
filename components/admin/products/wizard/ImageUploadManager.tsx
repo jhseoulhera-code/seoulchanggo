@@ -3,6 +3,7 @@
 import { ChevronDown, ChevronUp, Star, Trash2, Upload } from "lucide-react";
 import { useRef, useState } from "react";
 import { addImageAction, deleteImageAction, reorderImagesAction, setPrimaryImageAction } from "@/lib/actions/adminProducts";
+import { PRODUCT_IMAGE_MAX_COUNT, validateProductImageFile } from "@/lib/admin/productImages";
 import { createClient } from "@/lib/supabase/client";
 import type { AdminProductImage } from "@/types/admin";
 
@@ -40,10 +41,36 @@ export function ImageUploadManager({ productId, images, onImagesChange }: ImageU
   }
 
   async function uploadFiles(files: FileList | File[]) {
-    const fileArray = Array.from(files).filter((file) => file.type.startsWith("image/"));
-    if (fileArray.length === 0) return;
+    const requested = Array.from(files);
+    if (requested.length === 0) return;
 
     setError(null);
+
+    // STEP 18 spec section 6 — fail fast client-side (MIME/size/count);
+    // real enforcement is the product-images bucket's own
+    // file_size_limit/allowed_mime_types (STEP 18 migration) plus
+    // addAdminProductImage's own count check, since a direct Storage/action
+    // call could bypass this component entirely.
+    const remainingSlots = PRODUCT_IMAGE_MAX_COUNT - list.length;
+    if (remainingSlots <= 0) {
+      setError(`이미지는 상품당 최대 ${PRODUCT_IMAGE_MAX_COUNT}개까지 등록할 수 있습니다.`);
+      return;
+    }
+
+    const fileArray: File[] = [];
+    for (const file of requested.slice(0, remainingSlots)) {
+      const check = validateProductImageFile(file);
+      if (!check.ok) {
+        setError(check.error);
+        continue;
+      }
+      fileArray.push(file);
+    }
+    if (requested.length > remainingSlots) {
+      setError(`이미지는 상품당 최대 ${PRODUCT_IMAGE_MAX_COUNT}개까지 등록할 수 있어 앞의 ${remainingSlots}개만 업로드합니다.`);
+    }
+    if (fileArray.length === 0) return;
+
     setUploadingCount((count) => count + fileArray.length);
     const supabase = createClient();
     let working = list;

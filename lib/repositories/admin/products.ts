@@ -1,6 +1,7 @@
 import "server-only";
 
 import { computeSafeDiscountRate } from "@/lib/admin/productPricing";
+import { PRODUCT_IMAGE_MAX_COUNT } from "@/lib/admin/productImages";
 import { escapeIlikePattern, sanitizeForOrFilter } from "@/lib/search/normalize";
 import { createClient } from "@/lib/supabase/server";
 import type {
@@ -10,7 +11,7 @@ import type {
   ProductShippingMarketRow,
   ProductVariantRow,
 } from "@/types/database";
-import type { AdminProductDetail, AdminProductListItem } from "@/types/admin";
+import type { AdminProductDetail, AdminProductListItem, AdminProductVariant } from "@/types/admin";
 
 function fail(context: string, error: { message: string }): never {
   console.error(`[admin/products] ${context} failed:`, error.message);
@@ -348,10 +349,17 @@ export async function addAdminProductVariant(
 
 export async function updateAdminProductVariant(
   variantId: string,
-  patch: Partial<{ stockQuantity: number; additionalPrice: number; isActive: boolean }>
+  patch: Partial<{ sku: string; stockQuantity: number; additionalPrice: number; isActive: boolean }>
 ): Promise<void> {
   const supabase = await createClient();
   const update: Record<string, unknown> = {};
+  if (patch.sku !== undefined) {
+    const sku = patch.sku.trim();
+    if (!sku) throw new Error("SKU를 입력해주세요.");
+    const { data: conflict } = await supabase.from("product_variants").select("id").eq("sku", sku).neq("id", variantId).maybeSingle();
+    if (conflict) throw new Error("이미 사용 중인 SKU입니다.");
+    update.sku = sku;
+  }
   if (patch.stockQuantity !== undefined) update.stock_quantity = patch.stockQuantity;
   if (patch.additionalPrice !== undefined) update.additional_price = patch.additionalPrice;
   if (patch.isActive !== undefined) update.is_active = patch.isActive;
@@ -366,11 +374,69 @@ export async function deleteAdminProductVariant(variantId: string): Promise<void
   if (error) fail("deleteAdminProductVariant", error);
 }
 
+/**
+ * STEP 18 spec section 16 — the option-group -> Cartesian-product editor can
+ * regenerate many rows at once; saving that as N sequential
+ * addAdminProductVariant/updateAdminProductVariant/deleteAdminProductVariant
+ * calls risks a half-saved option set if one of them fails partway through.
+ * admin_replace_product_variants (STEP 18 migration) does the whole
+ * replace-by-sku in one transaction instead. The single-row helpers above
+ * are untouched and still used for one-off edits from the variant table.
+ */
+export async function replaceAdminProductVariants(
+  productId: string,
+  variants: Pick<AdminProductVariant, "sku" | "optionValues" | "additionalPrice" | "stockQuantity" | "isActive">[]
+): Promise<AdminProductVariant[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("admin_replace_product_variants", {
+    p_product_id: productId,
+    p_variants: variants.map((v) => ({
+      sku: v.sku,
+      option_values: v.optionValues,
+      additional_price: v.additionalPrice,
+      stock_quantity: v.stockQuantity,
+      is_active: v.isActive,
+    })),
+  } as never);
+  if (error) {
+    console.error("[admin/products] replaceAdminProductVariants failed:", error.message);
+    // Unlike fail()'s generic message, this surfaces the RPC's own reason
+    // (duplicate sku, sku owned by another product, negative stock, ...) —
+    // all raised as plain, non-sensitive validation text the admin needs to
+    // act on, never a raw DB/internal error.
+    if (error.message.includes("duplicate sku")) throw new Error("옵션 조합 SKU가 중복되었습니다.");
+    if (error.message.includes("already used by another product")) throw new Error("이미 다른 상품에서 사용 중인 SKU가 있습니다.");
+    if (error.message.includes("sku is required")) throw new Error("모든 옵션 조합에 SKU를 입력해주세요.");
+    if (error.message.includes("stock_quantity must be")) throw new Error("재고는 0 이상이어야 합니다.");
+    throw new Error("옵션 조합을 저장하지 못했습니다.");
+  }
+  return ((data ?? []) as unknown as ProductVariantRow[]).map((row) => ({
+    id: row.id,
+    sku: row.sku,
+    optionValues: (row.option_values as unknown as Record<string, string>) ?? {},
+    additionalPrice: row.additional_price,
+    stockQuantity: row.stock_quantity,
+    isActive: row.is_active,
+  }));
+}
+
 export async function addAdminProductImage(
   productId: string,
   input: { imageUrl: string; altKo: string; sortOrder: number; isPrimary: boolean }
 ): Promise<{ id: string; imageUrl: string; altKo: string | null; sortOrder: number; isPrimary: boolean }> {
   const supabase = await createClient();
+
+  // STEP 18 spec section 6 — server-side enforcement of the image count
+  // limit, since the client-side check in ImageUploadManager.tsx can't stop
+  // a direct call to this action.
+  const { count } = await supabase
+    .from("product_images")
+    .select("*", { count: "exact", head: true })
+    .eq("product_id", productId);
+  if ((count ?? 0) >= PRODUCT_IMAGE_MAX_COUNT) {
+    throw new Error(`이미지는 상품당 최대 ${PRODUCT_IMAGE_MAX_COUNT}개까지 등록할 수 있습니다.`);
+  }
+
   const { data, error } = await supabase
     .from("product_images")
     .insert({
@@ -441,21 +507,34 @@ export async function duplicateAdminProduct(sourceId: string): Promise<UpsertPro
   const result = await upsertAdminProduct(duplicate);
   if (!result.ok) return result;
 
+  // STEP 18 note: addAdminProductImage now enforces PRODUCT_IMAGE_MAX_COUNT
+  // (see its own comment) — a source product already at that limit must
+  // still duplicate its core fields successfully rather than throwing
+  // partway through this loop, so per-item failures here are logged and
+  // skipped instead of aborting the whole duplication.
   for (const image of source.images) {
-    await addAdminProductImage(result.id, {
-      imageUrl: image.imageUrl,
-      altKo: image.altKo ?? "",
-      sortOrder: image.sortOrder,
-      isPrimary: image.isPrimary,
-    });
+    try {
+      await addAdminProductImage(result.id, {
+        imageUrl: image.imageUrl,
+        altKo: image.altKo ?? "",
+        sortOrder: image.sortOrder,
+        isPrimary: image.isPrimary,
+      });
+    } catch (error) {
+      console.error("[admin/products] duplicateAdminProduct: skipped one image:", error instanceof Error ? error.message : error);
+    }
   }
   for (const variant of source.variants) {
-    await addAdminProductVariant(result.id, {
-      sku: `${variant.sku}-COPY-${suffix}`,
-      optionValues: variant.optionValues,
-      additionalPrice: variant.additionalPrice,
-      stockQuantity: variant.stockQuantity,
-    });
+    try {
+      await addAdminProductVariant(result.id, {
+        sku: `${variant.sku}-COPY-${suffix}`,
+        optionValues: variant.optionValues,
+        additionalPrice: variant.additionalPrice,
+        stockQuantity: variant.stockQuantity,
+      });
+    } catch (error) {
+      console.error("[admin/products] duplicateAdminProduct: skipped one variant:", error instanceof Error ? error.message : error);
+    }
   }
 
   return result;

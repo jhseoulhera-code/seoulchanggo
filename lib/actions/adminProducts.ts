@@ -8,12 +8,13 @@ import {
   deleteAdminProductImage,
   deleteAdminProductVariant,
   duplicateAdminProduct,
+  replaceAdminProductVariants,
   reorderAdminProductImages,
   setAdminProductPrimaryImage,
   updateAdminProductVariant,
   upsertAdminProduct,
 } from "@/lib/repositories/admin/products";
-import type { AdminProductDetail } from "@/types/admin";
+import type { AdminProductDetail, AdminProductVariant } from "@/types/admin";
 
 type ActionResult<T = undefined> = { ok: true; data: T } | { ok: false; error: string };
 
@@ -59,7 +60,7 @@ export async function addVariantAction(
 export async function updateVariantAction(
   productId: string,
   variantId: string,
-  patch: Partial<{ stockQuantity: number; additionalPrice: number; isActive: boolean }>
+  patch: Partial<{ sku: string; stockQuantity: number; additionalPrice: number; isActive: boolean }>
 ): Promise<ActionResult> {
   const guardError = await requireAdmin();
   if (guardError) return guardError;
@@ -84,6 +85,30 @@ export async function deleteVariantAction(productId: string, variantId: string):
   }
   revalidatePath(`/admin/products/${productId}`);
   return { ok: true, data: undefined };
+}
+
+/**
+ * STEP 18 spec section 16 — one atomic call for the option-editor's
+ * "조합 생성/재생성" and bulk price/stock apply flows, replacing what would
+ * otherwise be N sequential addVariantAction/updateVariantAction/
+ * deleteVariantAction calls for a freshly (re)generated combination list.
+ */
+export async function replaceVariantsAction(
+  productId: string,
+  variants: Pick<AdminProductVariant, "sku" | "optionValues" | "additionalPrice" | "stockQuantity" | "isActive">[]
+): Promise<ActionResult<AdminProductVariant[]>> {
+  const guardError = await requireAdmin();
+  if (guardError) return guardError as ActionResult<AdminProductVariant[]>;
+
+  let saved: AdminProductVariant[];
+  try {
+    saved = await replaceAdminProductVariants(productId, variants);
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "옵션 조합을 저장하지 못했습니다." };
+  }
+  revalidatePath(`/admin/products/${productId}`);
+  revalidatePath(`/admin/products/${productId}/edit`);
+  return { ok: true, data: saved };
 }
 
 export async function addImageAction(
