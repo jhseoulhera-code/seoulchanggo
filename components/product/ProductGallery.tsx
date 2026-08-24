@@ -37,7 +37,7 @@ export function ProductGallery({ product }: ProductGalleryProps) {
 
   if (slides.length === 0) {
     return (
-      <div className="aspect-square w-full overflow-hidden border border-border">
+      <div className="aspect-[4/5] w-full overflow-hidden border border-border">
         <ProductImagePlaceholder category={product.category} className="h-full w-full" />
       </div>
     );
@@ -47,12 +47,18 @@ export function ProductGallery({ product }: ProductGalleryProps) {
 
   return (
     <div>
-      <div className="relative aspect-square w-full overflow-hidden border border-border">
+      {/* STEP 26.7 — taller than the old aspect-square, and the left
+          column itself is now ~65% of the page instead of ~50%, so the
+          same fill+object-cover Image renders visibly larger without any
+          change to the underlying single-active-image + thumbnail-strip
+          mechanism (still the best fit for this data — a plain array of
+          image URLs, not pre-cropped section assets). */}
+      <div className="relative aspect-[4/5] w-full overflow-hidden border border-border">
         <Image
           src={activeUrl}
           alt={displayName}
           fill
-          sizes="(min-width: 768px) 50vw, 100vw"
+          sizes="(min-width: 1024px) 62vw, (min-width: 768px) 58vw, 100vw"
           priority={activeIndex === 0}
           className="object-cover"
         />
@@ -64,7 +70,7 @@ export function ProductGallery({ product }: ProductGalleryProps) {
       </div>
 
       {slides.length > 1 && (
-        <div className="no-scrollbar mt-2 flex gap-2 overflow-x-auto">
+        <div className="no-scrollbar mt-3 flex gap-2 overflow-x-auto">
           {slides.map((url, index) => (
             <button
               key={`${url}-${index}`}
@@ -72,11 +78,11 @@ export function ProductGallery({ product }: ProductGalleryProps) {
               onClick={() => setActiveIndex(index)}
               aria-label={t(messages.a11y.viewImageAt, { index: index + 1 })}
               className={cn(
-                "relative h-14 w-14 flex-shrink-0 overflow-hidden border",
+                "relative h-16 w-16 flex-shrink-0 overflow-hidden border",
                 index === activeIndex ? "border-primary" : "border-border"
               )}
             >
-              <Image src={url} alt="" fill sizes="56px" className="object-cover" />
+              <Image src={url} alt="" fill sizes="64px" className="object-cover" />
             </button>
           ))}
         </div>

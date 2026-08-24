@@ -73,7 +73,7 @@ export type Product = {
   description?: string;
   /** English description, when set by admin/DB — see lib/productLocalization.ts for the ko-fallback resolver. */
   descriptionEn?: string;
-  /** STEP 19 — short summary shown in the purchase panel, distinct from the long `description` shown in DetailTabs. Falls back to `description` when unset (see lib/productLocalization.ts). */
+  /** STEP 19 — short summary shown in the purchase panel, distinct from the long `description` shown in ProductDetailSections. Falls back to `description` when unset (see lib/productLocalization.ts). */
   shortDescription?: string;
   shortDescriptionEn?: string;
   /** STEP 19 spec section 24 — DB-stored AI SEO Assistant output (STEP 17) surfaced only for <meta> generation, never called live from a customer request. */

@@ -6,6 +6,7 @@ import { MarketProvider } from "@/contexts/MarketContext";
 import { HtmlLangSync } from "@/components/layout/HtmlLangSync";
 import { ProductionConfigBanner } from "@/components/layout/ProductionConfigBanner";
 import { getSiteUrl } from "@/lib/seo";
+import { cn } from "@/lib/utils";
 import "./globals.css";
 
 const notoSansKr = Noto_Sans_KR({
@@ -22,7 +23,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="ko" className={notoSansKr.variable}>
+    <html lang="ko" className={cn("scroll-smooth", notoSansKr.variable)}>
       <body className="font-sans antialiased">
         <ProductionConfigBanner />
         <MarketProvider>

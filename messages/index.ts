@@ -68,6 +68,7 @@ export type Messages = {
     totalPriceLabel: string;
     purchaseSelectionPending: string;
     stockRemaining: string;
+    relatedProductsHeading: string;
   };
   shippingExchange: {
     shippingMethod: string;
@@ -454,6 +455,7 @@ export type Messages = {
     increaseQuantity: string;
     viewImageAt: string;
     goToBanner: string;
+    productDetailNav: string;
   };
 };
 

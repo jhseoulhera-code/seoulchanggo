@@ -67,6 +67,7 @@ export const en: Messages = {
     totalPriceLabel: "Total amount",
     purchaseSelectionPending: "Your selection has been confirmed. Cart/checkout integration is coming in a future update.",
     stockRemaining: "{count} left in stock",
+    relatedProductsHeading: "Related Products",
   },
   shippingExchange: {
     shippingMethod: "Shipping method",
@@ -454,5 +455,6 @@ export const en: Messages = {
     increaseQuantity: "Increase quantity",
     viewImageAt: "View image {index}",
     goToBanner: "Go to banner {index}",
+    productDetailNav: "Jump to product detail section",
   },
 };

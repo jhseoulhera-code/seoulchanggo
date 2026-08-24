@@ -67,6 +67,7 @@ export const ko: Messages = {
     totalPriceLabel: "총 상품금액",
     purchaseSelectionPending: "선택하신 옵션을 확인했습니다. 장바구니/구매 연동은 다음 업데이트에서 제공됩니다.",
     stockRemaining: "재고 {count}개 남음",
+    relatedProductsHeading: "관련 상품",
   },
   shippingExchange: {
     shippingMethod: "배송방식",
@@ -454,5 +455,6 @@ export const ko: Messages = {
     increaseQuantity: "수량 증가",
     viewImageAt: "{index}번째 이미지 보기",
     goToBanner: "{index}번째 배너로 이동",
+    productDetailNav: "상품 상세 섹션 이동",
   },
 };
