@@ -704,6 +704,10 @@ export type Database = {
         Args: { p_order_id: string; p_reason: string };
         Returns: undefined;
       };
+      get_review_author_names: {
+        Args: { p_user_ids: string[] };
+        Returns: { user_id: string; display_name: string }[];
+      };
       cancel_own_unpaid_order: {
         Args: { p_order_id: string; p_guest_contact?: string | null };
         Returns: undefined;

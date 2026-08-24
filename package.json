@@ -23,7 +23,8 @@
     "test:direct-pickup": "node --experimental-strip-types scripts/test-direct-pickup.mts",
     "test:integration-audit-fixes": "node --experimental-strip-types scripts/test-integration-audit-fixes.mts",
     "test:payment-rpc-hardening": "node --experimental-strip-types scripts/test-payment-rpc-hardening.mts",
-    "test:product-detail-layout": "node --experimental-strip-types scripts/test-product-detail-layout.mts"
+    "test:product-detail-layout": "node --experimental-strip-types scripts/test-product-detail-layout.mts",
+    "test:review-author-lookup": "node --experimental-strip-types scripts/test-review-author-lookup.mts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",

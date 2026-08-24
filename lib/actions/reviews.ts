@@ -24,7 +24,6 @@ function maskDisplayName(name: string): string {
 }
 
 type ReviewJoinRow = ReviewRow & {
-  profiles: { display_name: string } | null;
   review_images: ReviewImageRow[];
   review_helpful_votes: { user_id: string }[];
 };
@@ -35,7 +34,13 @@ export async function getProductReviewsAction(productDbId: string): Promise<Prod
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("reviews")
-    .select("*, profiles(display_name), review_images(*), review_helpful_votes(user_id)")
+    // STEP 26.7 — no `profiles(...)` embed here: reviews.user_id and
+    // profiles.id both reference auth.users(id) independently, with no
+    // direct FK between reviews and profiles for PostgREST to resolve (the
+    // same failure class STEP 26 already fixed for the admin side —
+    // 20260906001200's migration comment has the full story). Author
+    // display_name is resolved separately below via get_review_author_names().
+    .select("*, review_images(*), review_helpful_votes(user_id)")
     .eq("product_id", productDbId)
     .eq("status", "PUBLISHED")
     .order("created_at", { ascending: false });
@@ -45,19 +50,37 @@ export async function getProductReviewsAction(productDbId: string): Promise<Prod
     return [];
   }
 
-  return ((data ?? []) as unknown as ReviewJoinRow[]).map((row) => ({
-    id: row.id,
-    authorName: row.profiles?.display_name ? maskDisplayName(row.profiles.display_name) : "익명",
-    rating: row.rating,
-    content: row.content,
-    optionLabel: Object.values((row.option_snapshot as unknown as Record<string, string>) ?? {}).join(" / "),
-    images: [...row.review_images].sort((a, b) => a.sort_order - b.sort_order).map((image) => image.image_url),
-    helpfulCount: row.helpful_count,
-    // review_helpful_votes RLS only ever returns the calling user's own row (or none), so
-    // a non-empty array here already means "I voted" — no separate auth.uid() lookup needed.
-    isHelpfulByMe: row.review_helpful_votes.length > 0,
-    createdAt: row.created_at,
-  }));
+  const rows = (data ?? []) as unknown as ReviewJoinRow[];
+
+  const authorIds = [...new Set(rows.map((row) => row.user_id).filter((id): id is string => id !== null))];
+  const authorNames = new Map<string, string>();
+  if (authorIds.length > 0) {
+    const { data: authors, error: authorsError } = await supabase.rpc("get_review_author_names", { p_user_ids: authorIds } as never);
+    if (authorsError) {
+      console.error("[reviews] get_review_author_names failed:", authorsError.message);
+    } else {
+      for (const author of (authors ?? []) as unknown as { user_id: string; display_name: string }[]) {
+        authorNames.set(author.user_id, author.display_name);
+      }
+    }
+  }
+
+  return rows.map((row) => {
+    const displayName = row.user_id ? authorNames.get(row.user_id) : undefined;
+    return {
+      id: row.id,
+      authorName: displayName ? maskDisplayName(displayName) : "익명",
+      rating: row.rating,
+      content: row.content,
+      optionLabel: Object.values((row.option_snapshot as unknown as Record<string, string>) ?? {}).join(" / "),
+      images: [...row.review_images].sort((a, b) => a.sort_order - b.sort_order).map((image) => image.image_url),
+      helpfulCount: row.helpful_count,
+      // review_helpful_votes RLS only ever returns the calling user's own row (or none), so
+      // a non-empty array here already means "I voted" — no separate auth.uid() lookup needed.
+      isHelpfulByMe: row.review_helpful_votes.length > 0,
+      createdAt: row.created_at,
+    };
+  });
 }
 
 export type SubmitReviewResult = { ok: true } | { ok: false; error: string };

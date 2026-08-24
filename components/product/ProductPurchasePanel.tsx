@@ -172,17 +172,39 @@ export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
 
   const totalPrice = unitPrice !== null ? unitPrice * quantity : null;
 
+  // STEP 26.7 — product number/SKU line: the matched variant's own SKU when
+  // one is selected (it's the actually-purchasable unit), otherwise the
+  // base product's own SKU. Never fabricated — omitted entirely for the
+  // static mock-data products that have no sku at all.
+  const skuValue = hasOptions ? matchedVariant?.sku : product.sku;
+
+  const selectedOptionsSummary =
+    hasOptions && matchedVariant
+      ? Object.entries(selectedOptions)
+          .map(([groupName, choice]) => `${groupName}: ${choice}`)
+          .join(" / ")
+      : null;
+
   return (
     <div className="flex flex-col gap-5">
       <div>
         {eyebrow && <p className="text-xs font-medium text-text-secondary">{eyebrow}</p>}
         <h1 className="mt-1 text-lg font-bold text-text-main md:text-xl">{getLocalizedProductName(product, market.locale)}</h1>
         {shortDescription && <p className="mt-1.5 text-sm text-text-secondary">{shortDescription}</p>}
-        <div className="mt-2 flex items-center gap-1 text-sm text-text-secondary">
+        {skuValue && (
+          <p className="mt-1 text-xs text-text-secondary">
+            {messages.product.specSku} {skuValue}
+          </p>
+        )}
+        {/* STEP 26.7 — a real #anchor into ProductDetailSections' #review
+            section (same page, normal document flow), not a JS scroll
+            handler — clicking it jumps there via the browser's native
+            anchor navigation (smoothed by app/layout.tsx's scroll-smooth). */}
+        <a href="#review" className="mt-2 flex w-fit items-center gap-1 text-sm text-text-secondary hover:text-text-main">
           <Star size={14} className="fill-primary text-primary" />
           <span className="font-medium text-text-main">{product.rating.toFixed(1)}</span>
-          <span>({formatNumber(product.reviewCount, market.locale)})</span>
-        </div>
+          <span className="underline-offset-2 hover:underline">({formatNumber(product.reviewCount, market.locale)})</span>
+        </a>
       </div>
 
       <div className="border-t border-border pt-5">
@@ -255,6 +277,11 @@ export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
           <div className="mt-2">
             <QuantitySelector value={quantity} onChange={setQuantity} max={effectiveStock} />
           </div>
+          {selectedOptionsSummary && (
+            <p className="mt-3 text-xs text-text-secondary">
+              {messages.product.selectedOptionsLabel}: {selectedOptionsSummary}
+            </p>
+          )}
           {totalPrice !== null && (
             <div className="mt-3 flex items-baseline justify-between border-t border-border pt-3">
               <span className="text-xs font-bold text-text-secondary">{messages.product.totalPriceLabel}</span>

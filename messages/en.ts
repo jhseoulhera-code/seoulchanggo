@@ -36,6 +36,7 @@ export const en: Messages = {
     outOfMarketShort: "Not shippable",
     freeShipping: "Free shipping",
     tabInfo: "Info",
+    tabSpecs: "Details",
     tabReview: "Reviews",
     tabInquiry: "Inquiry",
     tabShipping: "Shipping/Exchange",
@@ -51,9 +52,8 @@ export const en: Messages = {
     noticeText:
       "Product images may differ slightly from the actual color depending on the shooting environment. For shipping delays or defects, please contact us via product inquiry or customer support.",
     specCategory: "Category",
-    specShippingType: "Shipping method",
-    specComposition: "Package contents",
-    specCompositionValue: "1 item, user guide",
+    specBrand: "Brand",
+    specSku: "Product No.",
     specOrigin: "Country of origin",
     fallbackCategoryLabel: "General merchandise",
     totalCount: "{count} items total",
@@ -68,6 +68,7 @@ export const en: Messages = {
     purchaseSelectionPending: "Your selection has been confirmed. Cart/checkout integration is coming in a future update.",
     stockRemaining: "{count} left in stock",
     relatedProductsHeading: "Related Products",
+    selectedOptionsLabel: "Selected options",
   },
   shippingExchange: {
     shippingMethod: "Shipping method",

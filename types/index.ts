@@ -34,6 +34,25 @@ export type ProductSpec = {
 };
 
 /**
+ * STEP 26.7 — a typed, extensible unit for the "rich product detail"
+ * section (components/product/ProductDetailBlocks.tsx). Today every caller
+ * synthesizes this array from existing real fields (description, the
+ * generic feature-notice strings, the structured spec table) — there is no
+ * admin block editor yet. The type exists so that seam is ready: a future
+ * admin "detail builder" step can start producing real authored
+ * heading/image/imageGrid blocks and ProductDetailBlocks itself needs no
+ * change, only the array it's handed.
+ */
+export type ProductDetailBlock =
+  | { type: "heading"; text: string }
+  | { type: "paragraph"; text: string }
+  | { type: "image"; url: string; alt: string }
+  | { type: "imageGrid"; images: { url: string; alt: string }[] }
+  | { type: "featureList"; items: string[] }
+  | { type: "specTable"; rows: ProductSpec[] }
+  | { type: "divider" };
+
+/**
  * STEP 19 — a real, purchasable option combination (STEP 18's
  * product_variants), as opposed to ProductOptionGroup above which is only
  * the display-only "what choices exist" list. Deliberately declared

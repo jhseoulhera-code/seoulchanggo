@@ -3,6 +3,7 @@
 import { InquiryTab } from "@/components/product/InquiryTab";
 import { ProductGrid } from "@/components/product/ProductGrid";
 import { ProductInfoTab } from "@/components/product/ProductInfoTab";
+import { ProductSpecTable } from "@/components/product/ProductSpecTable";
 import { ReviewsTab } from "@/components/product/ReviewsTab";
 import { ShippingExchangeTab } from "@/components/product/ShippingExchangeTab";
 import { useMarket } from "@/contexts/MarketContext";
@@ -18,6 +19,7 @@ type ProductDetailSectionsProps = {
 
 const SECTIONS = [
   { id: "info", messageKey: "tabInfo" },
+  { id: "specs", messageKey: "tabSpecs" },
   { id: "review", messageKey: "tabReview" },
   { id: "shipping", messageKey: "tabShipping" },
   { id: "inquiry", messageKey: "tabInquiry" },
@@ -28,9 +30,11 @@ const SECTIONS = [
  * renders continuously in normal document flow (MUJI-style "keep scrolling
  * to learn more") instead of only one panel being mounted at a time; the nav
  * below jumps to a section via a real #anchor rather than toggling
- * visibility. The four content components themselves (ProductInfoTab/
- * ReviewsTab/ShippingExchangeTab/InquiryTab) are unchanged — only how
- * they're arranged on the page changed.
+ * visibility. ProductInfoTab (rich detail: description/features/notice) and
+ * ProductSpecTable (structured spec table) are deliberately separate
+ * components/anchors — "상품정보" vs "상세정보" — even though both used to
+ * live inside one ProductInfoTab; ReviewsTab/ShippingExchangeTab/InquiryTab
+ * are unchanged — only how everything is arranged on the page changed.
  */
 export function ProductDetailSections({ product, relatedProducts }: ProductDetailSectionsProps) {
   const { market } = useMarket();
@@ -57,6 +61,9 @@ export function ProductDetailSections({ product, relatedProducts }: ProductDetai
 
       <section id="info" className="scroll-mt-28 border-t border-border md:scroll-mt-20">
         <ProductInfoTab product={product} />
+      </section>
+      <section id="specs" className="scroll-mt-28 border-t border-border md:scroll-mt-20">
+        <ProductSpecTable product={product} />
       </section>
       <section id="review" className="scroll-mt-28 border-t border-border md:scroll-mt-20">
         <ReviewsTab product={product} />

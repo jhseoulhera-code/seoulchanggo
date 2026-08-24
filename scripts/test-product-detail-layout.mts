@@ -27,6 +27,13 @@ const purchaseActionsSource = readFileSync("components/product/PurchaseActions.t
 const layoutSource = readFileSync("app/layout.tsx", "utf8");
 const koMessagesSource = readFileSync("messages/ko.ts", "utf8");
 const enMessagesSource = readFileSync("messages/en.ts", "utf8");
+const infoTabSource = readFileSync("components/product/ProductInfoTab.tsx", "utf8");
+const specTableSource = readFileSync("components/product/ProductSpecTable.tsx", "utf8");
+const shippingInfoDataSource = readFileSync("data/shippingInfo.ts", "utf8");
+const shippingInfoPanelSource = readFileSync("components/product/ShippingInfoPanel.tsx", "utf8");
+const shippingExchangeTabSource = readFileSync("components/product/ShippingExchangeTab.tsx", "utf8");
+const shippingLibSource = readFileSync("lib/shipping.ts", "utf8");
+const shippingBadgeSource = readFileSync("components/product/ShippingBadge.tsx", "utf8");
 
 // --- 1. DetailTabs fully retired, replaced by ProductDetailSections (structural) ---
 {
@@ -118,6 +125,7 @@ const enMessagesSource = readFileSync("messages/en.ts", "utf8");
   );
   for (const [id, component] of [
     ["info", "<ProductInfoTab"],
+    ["specs", "<ProductSpecTable"],
     ["review", "<ReviewsTab"],
     ["shipping", "<ShippingExchangeTab"],
     ["inquiry", "<InquiryTab"],
@@ -180,10 +188,92 @@ const enMessagesSource = readFileSync("messages/en.ts", "utf8");
   );
 }
 
+// --- 12. rich detail (상품정보) and structured specs (상세정보) are separate ----------
+{
+  assert(
+    !infoTabSource.includes("<ProductSpecTable") && !infoTabSource.includes('type: "specTable"'),
+    "(structural) ProductInfoTab must no longer render the structured spec table itself — that's ProductSpecTable's job now, on its own #specs anchor"
+  );
+  assert(
+    specTableSource.includes("export function ProductSpecTable"),
+    "(structural) ProductSpecTable must exist as its own component"
+  );
+}
+
+// --- 13. no fabricated spec rows; only real, already-DB-sourced Product fields ------
+{
+  assert(
+    !specTableSource.includes("specComposition") && !specTableSource.includes("specShippingType"),
+    "(structural) the fabricated generic 'composition' row and the shippingType-duplicate row must be gone from the spec table"
+  );
+  assert(
+    specTableSource.includes("if (product.brand)") && specTableSource.includes("if (product.sku)") && specTableSource.includes("if (product.originCountry)"),
+    "(structural) brand/sku/origin rows must each be conditionally included ONLY when the real field is set — never a '-' placeholder for a missing value"
+  );
+  assert(
+    !koMessagesSource.includes("specComposition") && !enMessagesSource.includes("specComposition"),
+    "(structural) the fabricated composition i18n keys must be removed from both locales, not just unused"
+  );
+}
+
+// --- 14. origin country now sourced from the real per-product field (regression fix) --
+{
+  assert(
+    specTableSource.includes("ORIGIN_COUNTRY_CODE_LABEL[product.originCountry]"),
+    "(structural) the spec table's origin row must display the REAL per-product products.origin_country (Product.originCountry), not a generic shippingType-keyed default"
+  );
+  assert(
+    !shippingInfoDataSource.includes("export const ORIGIN_COUNTRY:") ,
+    "(structural) the old generic shippingType-keyed ORIGIN_COUNTRY map must be removed now that nothing reads it — it was the source of the origin-country data-integrity bug (spec section 15)"
+  );
+  assert(
+    shippingInfoDataSource.includes("export const ORIGIN_COUNTRY_CODE_LABEL: Record<OriginCountryCode, Bilingual>"),
+    "(structural) a real country-code -> display-name label map must exist for the per-product originCountry field"
+  );
+}
+
+// --- 15. purchase panel: SKU line + review-summary anchor link (spec section 3.C/D) ---
+{
+  assert(
+    purchasePanelSource.includes("const skuValue = hasOptions ? matchedVariant?.sku : product.sku;"),
+    "(structural) the purchase panel must show the matched VARIANT's own sku when one is selected, else the base product's sku — never fabricated when neither exists"
+  );
+  assert(
+    /<a href="#review"[^>]*>/.test(purchasePanelSource),
+    "(structural) the rating/review-count line must be a real #review anchor link, so clicking it jumps to the reviews section"
+  );
+}
+
+// --- 16. selected-options summary line (spec section 3.J) ----------------------------
+{
+  assert(
+    purchasePanelSource.includes("selectedOptionsSummary") && purchasePanelSource.includes("messages.product.selectedOptionsLabel"),
+    "(structural) a selected-options summary must be shown alongside quantity/total for a variant product, built from the real selectedOptions state"
+  );
+}
+
+// --- 17. DIRECT_PICKUP still fee-0 with no carrier/tracking language (regression guard) ---
+{
+  assert(
+    shippingLibSource.includes('if (product.shippingType === "direct_pickup") return 0;'),
+    "(structural) DIRECT_PICKUP shipping fee must still be hard-forced to 0 regardless of any stored/client override"
+  );
+  assert(
+    shippingBadgeSource.includes('type === "overseas_agent" || type === "direct_pickup" ? DEFAULT_CODE[type]'),
+    "(structural) the DIRECT_PICKUP badge must still show the fixed PU code, never the product's origin country"
+  );
+  for (const source of [shippingInfoPanelSource, shippingExchangeTabSource]) {
+    assert(
+      !/carrier|tracking|송장|운송장/i.test(source),
+      "(structural) neither customer-facing shipping info component may ever mention carrier/tracking-number concepts — DIRECT_PICKUP has none, and this must never leak in"
+    );
+  }
+}
+
 if (failures > 0) {
   console.error(`\n${failures} assertion(s) failed.`);
   process.exit(1);
 }
 console.log(
-  "OK — sticky (non-stretched, height-capped) desktop purchase column, a normally-scrolling left column, continuous (non-tabbed) detail sections with anchor nav, a reused-category related-products section, gallery 0/1/many-image handling, and ProductPurchasePanel/PurchaseActions business-logic non-regression checks passed."
+  "OK — sticky (non-stretched, height-capped) desktop purchase column, a normally-scrolling left column, continuous (non-tabbed) detail sections with anchor nav, separate rich-detail/spec-table sections with no fabricated fields, a real per-product origin-country fix, purchase-panel SKU/review-link/selected-options additions, a reused-category related-products section, gallery 0/1/many-image handling, DIRECT_PICKUP non-regression, and ProductPurchasePanel/PurchaseActions business-logic non-regression checks passed."
 );

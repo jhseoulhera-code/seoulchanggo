@@ -1,5 +1,5 @@
 import type { ShippingType } from "@/types";
-import type { InternationalShippingMethod, LocaleCode } from "@/types/market";
+import type { InternationalShippingMethod, LocaleCode, OriginCountryCode } from "@/types/market";
 
 type Bilingual = { ko: string; en: string };
 
@@ -57,17 +57,28 @@ export const SHIPPING_INFO: Record<ShippingType, ShippingInfoConfig> = {
   },
 };
 
-export const ORIGIN_COUNTRY: Record<ShippingType, Bilingual> = {
-  domestic: { ko: "대한민국", en: "South Korea" },
-  overseas_direct: { ko: "중국 등 해외", en: "China and other overseas origins" },
-  overseas_agent: { ko: "해외 판매처별 상이", en: "Varies by overseas seller" },
-  direct_pickup: { ko: "매장 수령", en: "Store pickup" },
-};
-
 /** Customer-facing label for the international transport mode — never show the raw SEA/AIR code. */
 export const SHIPPING_METHOD_LABEL: Record<InternationalShippingMethod, Bilingual> = {
   SEA: { ko: "해외 일반배송", en: "Standard overseas shipping" },
   AIR: { ko: "해외 항공배송", en: "Air overseas shipping" },
+};
+
+/**
+ * STEP 26.7 — display label for products.origin_country (a real per-product
+ * admin-entered field, mapped to Product.originCountry by
+ * lib/repositories/products.ts's mapProductRow), distinct from the
+ * ORIGIN_COUNTRY map above (which is a generic per-shippingType default, not
+ * this product's actual origin). Never show the raw "CN"/"US" code itself.
+ */
+export const ORIGIN_COUNTRY_CODE_LABEL: Record<OriginCountryCode, Bilingual> = {
+  KR: { ko: "대한민국", en: "South Korea" },
+  CN: { ko: "중국", en: "China" },
+  US: { ko: "미국", en: "United States" },
+  JP: { ko: "일본", en: "Japan" },
+  IN: { ko: "인도", en: "India" },
+  VN: { ko: "베트남", en: "Vietnam" },
+  TH: { ko: "태국", en: "Thailand" },
+  DE: { ko: "독일", en: "Germany" },
 };
 
 export function pickLocale(value: Bilingual, locale: LocaleCode): string {

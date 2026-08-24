@@ -38,6 +38,7 @@ export type Messages = {
     outOfMarketShort: string;
     freeShipping: string;
     tabInfo: string;
+    tabSpecs: string;
     tabReview: string;
     tabInquiry: string;
     tabShipping: string;
@@ -52,9 +53,8 @@ export type Messages = {
     feature3: string;
     noticeText: string;
     specCategory: string;
-    specShippingType: string;
-    specComposition: string;
-    specCompositionValue: string;
+    specBrand: string;
+    specSku: string;
     specOrigin: string;
     fallbackCategoryLabel: string;
     totalCount: string;
@@ -69,6 +69,7 @@ export type Messages = {
     purchaseSelectionPending: string;
     stockRemaining: string;
     relatedProductsHeading: string;
+    selectedOptionsLabel: string;
   };
   shippingExchange: {
     shippingMethod: string;
