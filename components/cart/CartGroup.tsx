@@ -7,10 +7,11 @@ import type { ShippingType } from "@/types";
 import type { CartLineView } from "@/types/cart";
 import type { Market } from "@/types/market";
 
-const GROUP_LABEL_KEY: Record<ShippingType, "groupDomestic" | "groupOverseasDirect" | "groupOverseasAgency"> = {
+const GROUP_LABEL_KEY: Record<ShippingType, "groupDomestic" | "groupOverseasDirect" | "groupOverseasAgency" | "groupDirectPickup"> = {
   domestic: "groupDomestic",
   overseas_direct: "groupOverseasDirect",
   overseas_agent: "groupOverseasAgency",
+  direct_pickup: "groupDirectPickup",
 };
 
 type CartGroupProps = {

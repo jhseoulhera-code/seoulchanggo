@@ -12,6 +12,12 @@ type StepSupplyShippingProps = {
 export function StepSupplyShipping({ detail, onChange }: StepSupplyShippingProps) {
   const krMarket = detail.shippingMarkets.find((m) => m.countryCode === "KR");
   const inMarket = detail.shippingMarkets.find((m) => m.countryCode === "IN");
+  // STEP 26.1 spec section 2 — a pickup product never needs an international
+  // shipping method or a per-market fee; the server independently guarantees
+  // shipping_fee=0 for DIRECT_PICKUP regardless of what's stored here
+  // (lib/shipping.ts's getBaseShippingFeeKrw, create_order's own fee CASE) —
+  // this UI state is purely to avoid presenting inputs that would be ignored.
+  const isPickup = detail.shippingType === "DIRECT_PICKUP";
 
   function updateShippingMarket(countryCode: "KR" | "IN", patch: Partial<AdminProductDetail["shippingMarkets"][number]>) {
     onChange({ shippingMarkets: detail.shippingMarkets.map((m) => (m.countryCode === countryCode ? { ...m, ...patch } : m)) });
@@ -38,12 +44,19 @@ export function StepSupplyShipping({ detail, onChange }: StepSupplyShippingProps
             <span className="text-xs font-medium text-text-secondary">배송방식</span>
             <select
               value={detail.shippingType}
-              onChange={(e) => onChange({ shippingType: e.target.value as AdminProductDetail["shippingType"] })}
+              onChange={(e) =>
+                onChange({
+                  shippingType: e.target.value as AdminProductDetail["shippingType"],
+                  // Switching to/from DIRECT_PICKUP clears any leftover international method — it never applies to pickup.
+                  defaultShippingMethod: e.target.value === "DIRECT_PICKUP" ? null : detail.defaultShippingMethod,
+                })
+              }
               className="border border-border px-3 py-2.5 text-sm text-text-main"
             >
               <option value="DOMESTIC">국내배송 (DOMESTIC_PARCEL)</option>
               <option value="OVERSEAS_DIRECT">해외직배송</option>
               <option value="OVERSEAS_AGENCY">해외구매대행</option>
+              <option value="DIRECT_PICKUP">직접수령</option>
             </select>
           </label>
           <FormField
@@ -51,21 +64,28 @@ export function StepSupplyShipping({ detail, onChange }: StepSupplyShippingProps
             value={detail.originCountry}
             onChange={(v) => onChange({ originCountry: v.toUpperCase() })}
           />
-          <label className="flex flex-col gap-1.5 text-sm">
-            <span className="text-xs font-medium text-text-secondary">국제배송 방식</span>
-            <select
-              value={detail.defaultShippingMethod ?? ""}
-              onChange={(e) =>
-                onChange({ defaultShippingMethod: (e.target.value || null) as AdminProductDetail["defaultShippingMethod"] })
-              }
-              className="border border-border px-3 py-2.5 text-sm text-text-main"
-            >
-              <option value="">해당 없음</option>
-              <option value="SEA">OVERSEAS_SEA (해상)</option>
-              <option value="AIR">OVERSEAS_AIR (항공)</option>
-            </select>
-          </label>
+          {!isPickup && (
+            <label className="flex flex-col gap-1.5 text-sm">
+              <span className="text-xs font-medium text-text-secondary">국제배송 방식</span>
+              <select
+                value={detail.defaultShippingMethod ?? ""}
+                onChange={(e) =>
+                  onChange({ defaultShippingMethod: (e.target.value || null) as AdminProductDetail["defaultShippingMethod"] })
+                }
+                className="border border-border px-3 py-2.5 text-sm text-text-main"
+              >
+                <option value="">해당 없음</option>
+                <option value="SEA">OVERSEAS_SEA (해상)</option>
+                <option value="AIR">OVERSEAS_AIR (항공)</option>
+              </select>
+            </label>
+          )}
         </div>
+        {isPickup && (
+          <p className="border border-border bg-primary-light/30 p-2 text-xs text-text-secondary">
+            직접수령 상품은 배송비가 항상 0원이며, 아래 국가별 배송비/배송방식 입력은 무시됩니다. 매장 등 수령 장소 안내는 별도 공지로 전달해주세요.
+          </p>
+        )}
         <label className="flex items-center gap-2.5 text-sm text-text-main">
           <input
             type="checkbox"
@@ -98,12 +118,13 @@ export function StepSupplyShipping({ detail, onChange }: StepSupplyShippingProps
                 <FormField
                   label="배송비"
                   type="number"
-                  value={String(market?.shippingFee ?? 0)}
+                  value={isPickup ? "0" : String(market?.shippingFee ?? 0)}
                   onChange={(v) => updateShippingMarket(code, { shippingFee: Number(v) || 0 })}
+                  disabled={isPickup}
                 />
                 <div className="grid grid-cols-2 gap-2">
                   <FormField
-                    label="예상 출고/도착 최소일"
+                    label={isPickup ? "수령 가능 최소일(참고)" : "예상 출고/도착 최소일"}
                     type="number"
                     optionalTag="(선택)"
                     value={String(market?.estimatedMinDays ?? "")}
@@ -117,22 +138,24 @@ export function StepSupplyShipping({ detail, onChange }: StepSupplyShippingProps
                     onChange={(v) => updateShippingMarket(code, { estimatedMaxDays: v ? Number(v) : null })}
                   />
                 </div>
-                <label className="flex flex-col gap-1.5 text-sm">
-                  <span className="text-xs font-medium text-text-secondary">배송방식</span>
-                  <select
-                    value={market?.shippingMethod ?? ""}
-                    onChange={(e) =>
-                      updateShippingMarket(code, {
-                        shippingMethod: (e.target.value || null) as AdminProductDetail["shippingMarkets"][number]["shippingMethod"],
-                      })
-                    }
-                    className="border border-border px-3 py-2.5 text-sm text-text-main"
-                  >
-                    <option value="">해당 없음</option>
-                    <option value="SEA">SEA</option>
-                    <option value="AIR">AIR</option>
-                  </select>
-                </label>
+                {!isPickup && (
+                  <label className="flex flex-col gap-1.5 text-sm">
+                    <span className="text-xs font-medium text-text-secondary">배송방식</span>
+                    <select
+                      value={market?.shippingMethod ?? ""}
+                      onChange={(e) =>
+                        updateShippingMarket(code, {
+                          shippingMethod: (e.target.value || null) as AdminProductDetail["shippingMarkets"][number]["shippingMethod"],
+                        })
+                      }
+                      className="border border-border px-3 py-2.5 text-sm text-text-main"
+                    >
+                      <option value="">해당 없음</option>
+                      <option value="SEA">SEA</option>
+                      <option value="AIR">AIR</option>
+                    </select>
+                  </label>
+                )}
               </div>
             )
           )}

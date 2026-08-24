@@ -449,8 +449,11 @@ const step24MigrationSource = readFileSync(new URL("../supabase/migrations/20260
 // --- 43. domestic/overseas-direct/agency shipping types preserved (structural) ------------------
 {
   assert(
-    databaseTypesSource.includes('export type ShippingTypeEnum = "DOMESTIC" | "OVERSEAS_DIRECT" | "OVERSEAS_AGENCY";'),
-    "(structural) the three shipping types from STEP 08/21 must remain unchanged — STEP 25 must not redesign or collapse them"
+    databaseTypesSource.includes('"DOMESTIC"') &&
+      databaseTypesSource.includes('"OVERSEAS_DIRECT"') &&
+      databaseTypesSource.includes('"OVERSEAS_AGENCY"') &&
+      /export type ShippingTypeEnum = "DOMESTIC" \| "OVERSEAS_DIRECT" \| "OVERSEAS_AGENCY"/.test(databaseTypesSource),
+    "(structural) the three original shipping types from STEP 08/21 must remain present and in order — STEP 26.1's DIRECT_PICKUP is an addition, never a redesign/collapse of these three"
   );
 }
 

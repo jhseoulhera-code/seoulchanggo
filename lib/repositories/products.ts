@@ -25,12 +25,14 @@ const SHIPPING_LABEL: Record<ShippingType, string> = {
   domestic: "국내출고",
   overseas_direct: "직배송",
   overseas_agent: "구매대행",
+  direct_pickup: "직접수령",
 };
 
 const SHIPPING_TYPE_FROM_DB: Record<ShippingTypeEnum, ShippingType> = {
   DOMESTIC: "domestic",
   OVERSEAS_DIRECT: "overseas_direct",
   OVERSEAS_AGENCY: "overseas_agent",
+  DIRECT_PICKUP: "direct_pickup",
 };
 
 // STEP 19: product_variants(*) joined here (not a separate detail-only
@@ -169,6 +171,7 @@ const SHIPPING_TYPE_TO_DB: Record<ShippingType, ShippingTypeEnum> = {
   domestic: "DOMESTIC",
   overseas_direct: "OVERSEAS_DIRECT",
   overseas_agent: "OVERSEAS_AGENCY",
+  direct_pickup: "DIRECT_PICKUP",
 };
 
 const DEFAULT_SEARCH_PAGE_SIZE = 24;

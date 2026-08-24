@@ -23,6 +23,7 @@ export function ListToolbar() {
     { value: "domestic", label: messages.shipping.domestic },
     { value: "overseas_direct", label: messages.shipping.overseasDirect },
     { value: "overseas_agent", label: messages.shipping.overseasAgency },
+    { value: "direct_pickup", label: messages.shipping.directPickup },
   ];
 
   const priceOptions: { value: PriceRangeId; label: string }[] = [

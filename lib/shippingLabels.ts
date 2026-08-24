@@ -17,5 +17,7 @@ export function shippingTypeLabel(type: ShippingType, locale: LocaleCode): strin
       return messages.shipping.overseasDirect;
     case "overseas_agent":
       return messages.shipping.overseasAgency;
+    case "direct_pickup":
+      return messages.shipping.directPickup;
   }
 }

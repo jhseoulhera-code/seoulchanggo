@@ -11,7 +11,7 @@ export type LocaleCodeEnum = "ko" | "en";
 export type MarketCodeEnum = "KR" | "IN";
 export type CurrencyCodeEnum = "KRW" | "INR" | "USD";
 export type SupplyTypeEnum = "DOMESTIC_STOCK" | "OVERSEAS_DIRECT" | "OVERSEAS_AGENCY";
-export type ShippingTypeEnum = "DOMESTIC" | "OVERSEAS_DIRECT" | "OVERSEAS_AGENCY";
+export type ShippingTypeEnum = "DOMESTIC" | "OVERSEAS_DIRECT" | "OVERSEAS_AGENCY" | "DIRECT_PICKUP";
 export type ShippingMethodEnum = "SEA" | "AIR";
 export type OrderStatusEnum =
   | "ORDER_CREATED"
@@ -33,7 +33,10 @@ export type ShippingGroupStatusEnum =
   | "IN_TRANSIT"
   | "CUSTOMS"
   | "OUT_FOR_DELIVERY"
-  | "DELIVERED";
+  | "DELIVERED"
+  /** STEP 26.1 — DIRECT_PICKUP-only states; a courier-based group never enters either. */
+  | "READY_FOR_PICKUP"
+  | "PICKED_UP";
 export type PaymentMethodEnum = "card" | "easy_pay" | "bank_transfer" | "upi" | "net_banking" | "wallet";
 export type PaymentStatusEnum = "UNPAID" | "PAID";
 export type StockTypeEnum = "TRACKED" | "UNLIMITED";

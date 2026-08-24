@@ -29,6 +29,7 @@ const SHIPPING_TYPE_FROM_DB: Record<ShippingTypeEnum, ShippingType> = {
   DOMESTIC: "domestic",
   OVERSEAS_DIRECT: "overseas_direct",
   OVERSEAS_AGENCY: "overseas_agent",
+  DIRECT_PICKUP: "direct_pickup",
 };
 
 /**
@@ -269,6 +270,7 @@ export default function MyOrderDetailPage() {
             {order.shippingGroups.map((group) => {
               const groupItems = order.items.filter((item) => group.itemIds.includes(item.id));
               const type = SHIPPING_TYPE_FROM_DB[group.shippingType];
+              const isPickup = type === "direct_pickup";
               return (
                 <section key={group.id} className="border-t border-border pt-4 first:border-t-0 first:pt-0">
                   <div className="flex flex-wrap items-center gap-2">
@@ -278,18 +280,32 @@ export default function MyOrderDetailPage() {
                       {messages.cart.shippingTotal}: {formatCurrency(group.shippingFee, order.currencyCode)}
                     </span>
                   </div>
-                  {(group.carrier || group.trackingNumber) && (
-                    <div className="mt-2 flex flex-col gap-0.5 text-xs text-text-secondary">
-                      {group.carrier && <span>운송사: {carrierLabel(group.carrier)}</span>}
-                      {group.trackingNumber && <span>송장번호: {group.trackingNumber}</span>}
-                      {group.shippedAt && (
-                        <span>발송일시: {formatDateTime(group.shippedAt, market.locale, getMarketTimeZone(order.marketCode))}</span>
+                  {/* STEP 26.1 spec section 6 — a pickup group never shows carrier/tracking
+                      (there is none), only its own 수령 준비/완료 timestamps; shipped_at/
+                      delivered_at are reused generically for those two milestones. */}
+                  {isPickup
+                    ? (group.shippedAt || group.deliveredAt) && (
+                        <div className="mt-2 flex flex-col gap-0.5 text-xs text-text-secondary">
+                          {group.shippedAt && (
+                            <span>수령 준비일시: {formatDateTime(group.shippedAt, market.locale, getMarketTimeZone(order.marketCode))}</span>
+                          )}
+                          {group.deliveredAt && (
+                            <span>수령완료일시: {formatDateTime(group.deliveredAt, market.locale, getMarketTimeZone(order.marketCode))}</span>
+                          )}
+                        </div>
+                      )
+                    : (group.carrier || group.trackingNumber) && (
+                        <div className="mt-2 flex flex-col gap-0.5 text-xs text-text-secondary">
+                          {group.carrier && <span>운송사: {carrierLabel(group.carrier)}</span>}
+                          {group.trackingNumber && <span>송장번호: {group.trackingNumber}</span>}
+                          {group.shippedAt && (
+                            <span>발송일시: {formatDateTime(group.shippedAt, market.locale, getMarketTimeZone(order.marketCode))}</span>
+                          )}
+                          {group.deliveredAt && (
+                            <span>배송완료일시: {formatDateTime(group.deliveredAt, market.locale, getMarketTimeZone(order.marketCode))}</span>
+                          )}
+                        </div>
                       )}
-                      {group.deliveredAt && (
-                        <span>배송완료일시: {formatDateTime(group.deliveredAt, market.locale, getMarketTimeZone(order.marketCode))}</span>
-                      )}
-                    </div>
-                  )}
                   <div className="mt-3 flex flex-col gap-3">
                     {groupItems.map((item) => (
                       <div key={item.id} className="flex gap-3">

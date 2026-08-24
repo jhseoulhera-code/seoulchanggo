@@ -9,6 +9,7 @@ const DEFAULT_SHIPPING_FEE_KRW: Record<ShippingType, number> = {
   domestic: 3000,
   overseas_direct: 5000,
   overseas_agent: 6000,
+  direct_pickup: 0,
 };
 
 /** A product with no `availableCountries` ships everywhere — no magic "ALL" sentinel needed. */
@@ -17,8 +18,17 @@ export function isProductAvailableInMarket(product: Product, countryCode: Countr
   return product.availableCountries.includes(countryCode);
 }
 
-/** Base shipping fee in KRW for a destination market: per-market override, else a shippingType default. */
+/**
+ * Base shipping fee in KRW for a destination market: per-market override, else a shippingType default.
+ *
+ * STEP 26.1 spec section 8 — a direct_pickup product's fee is always 0,
+ * checked BEFORE any per-market override, so a stray admin-entered
+ * product_shipping_markets fee for a pickup product can never leak through.
+ * This is never trusted from client input either way (this function only
+ * ever runs server-side or is re-verified server-side in createOrderAction).
+ */
 export function getBaseShippingFeeKrw(product: Product, countryCode: CountryCode): number {
+  if (product.shippingType === "direct_pickup") return 0;
   if (product.freeShipping) return 0;
   return product.shippingFees?.[countryCode] ?? DEFAULT_SHIPPING_FEE_KRW[product.shippingType];
 }

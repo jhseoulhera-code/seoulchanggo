@@ -88,7 +88,7 @@ export function buildCheckoutItemFromBuyNow(
   return line ? checkoutItemFromLine(line) : null;
 }
 
-const GROUP_ORDER: ShippingType[] = ["domestic", "overseas_direct", "overseas_agent"];
+const GROUP_ORDER: ShippingType[] = ["domestic", "overseas_direct", "overseas_agent", "direct_pickup"];
 
 export function groupCheckoutItemsByShippingType(
   items: CheckoutItem[]

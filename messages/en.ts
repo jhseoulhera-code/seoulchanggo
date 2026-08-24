@@ -90,6 +90,7 @@ export const en: Messages = {
     groupDomestic: "Domestic",
     groupOverseasDirect: "Overseas direct",
     groupOverseasAgency: "Overseas agency",
+    groupDirectPickup: "Store pickup",
     remove: "Remove",
     unavailableInMarket: "This item can't be shipped to {country}.",
     itemsTotal: "Items total",
@@ -283,6 +284,7 @@ export const en: Messages = {
     domestic: "Domestic Shipping",
     overseasDirect: "International Direct Shipping",
     overseasAgency: "Overseas Purchase Service",
+    directPickup: "Store Pickup",
     estimatedDays: "Estimated {min}–{max} days",
   },
   payment: {
@@ -335,6 +337,8 @@ export const en: Messages = {
     CUSTOMS: "In customs",
     OUT_FOR_DELIVERY: "Out for delivery",
     DELIVERED: "Delivered",
+    READY_FOR_PICKUP: "Ready for pickup",
+    PICKED_UP: "Picked up",
   },
   customer: {
     name: "Full Name",

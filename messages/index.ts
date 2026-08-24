@@ -90,6 +90,7 @@ export type Messages = {
     groupDomestic: string;
     groupOverseasDirect: string;
     groupOverseasAgency: string;
+    groupDirectPickup: string;
     remove: string;
     unavailableInMarket: string;
     itemsTotal: string;
@@ -281,6 +282,7 @@ export type Messages = {
     domestic: string;
     overseasDirect: string;
     overseasAgency: string;
+    directPickup: string;
     estimatedDays: string;
   };
   payment: {
@@ -326,7 +328,16 @@ export type Messages = {
     string
   >;
   shippingStatus: Record<
-    "PREPARING" | "PURCHASING" | "READY_TO_SHIP" | "SHIPPED" | "IN_TRANSIT" | "CUSTOMS" | "OUT_FOR_DELIVERY" | "DELIVERED",
+    | "PREPARING"
+    | "PURCHASING"
+    | "READY_TO_SHIP"
+    | "SHIPPED"
+    | "IN_TRANSIT"
+    | "CUSTOMS"
+    | "OUT_FOR_DELIVERY"
+    | "DELIVERED"
+    | "READY_FOR_PICKUP"
+    | "PICKED_UP",
     string
   >;
   customer: {

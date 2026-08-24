@@ -108,7 +108,7 @@ export function enrichCartItems(items: CartItem[], products: Product[], market: 
  * before STEP 20 — reused as-is, not reinvented, since it's precisely the
  * "국내/해외직배송/구매대행" split the spec describes.
  */
-const GROUP_ORDER: ShippingType[] = ["domestic", "overseas_direct", "overseas_agent"];
+const GROUP_ORDER: ShippingType[] = ["domestic", "overseas_direct", "overseas_agent", "direct_pickup"];
 
 export function groupLinesByShippingType(lines: CartLineView[]): { shippingType: ShippingType; lines: CartLineView[] }[] {
   return GROUP_ORDER.map((shippingType) => ({

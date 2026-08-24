@@ -90,6 +90,7 @@ export const ko: Messages = {
     groupDomestic: "국내배송",
     groupOverseasDirect: "해외직배송",
     groupOverseasAgency: "해외구매대행",
+    groupDirectPickup: "직접수령",
     remove: "삭제",
     unavailableInMarket: "현재 {country}로 배송할 수 없습니다.",
     itemsTotal: "상품금액",
@@ -283,6 +284,7 @@ export const ko: Messages = {
     domestic: "국내배송",
     overseasDirect: "해외직배송",
     overseasAgency: "해외구매대행",
+    directPickup: "직접수령",
     estimatedDays: "예상 {min}~{max}일",
   },
   payment: {
@@ -335,6 +337,8 @@ export const ko: Messages = {
     CUSTOMS: "통관중",
     OUT_FOR_DELIVERY: "배송출발",
     DELIVERED: "배송완료",
+    READY_FOR_PICKUP: "수령 대기중",
+    PICKED_UP: "수령완료",
   },
   customer: {
     name: "이름",

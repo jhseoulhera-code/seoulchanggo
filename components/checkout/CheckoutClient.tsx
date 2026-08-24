@@ -126,7 +126,9 @@ export function CheckoutClient({ products }: CheckoutClientProps) {
     [groups, market.currency]
   );
   const isTotalPending = !isGrandTotalDetermined(Array.from(shippingQuotes.values()));
-  const hasOverseasItem = availableItems.some((item) => item.shippingType !== "domestic");
+  // STEP 26.1 — an allowlist, not a "!== domestic" denylist: a direct_pickup
+  // item is also not "domestic" but never needs a customs code either.
+  const hasOverseasItem = availableItems.some((item) => item.shippingType === "overseas_direct" || item.shippingType === "overseas_agent");
   const needsCustomsCode = market.countryCode === "KR" && hasOverseasItem;
   const paymentOptions = PAYMENT_METHODS_BY_MARKET[market.countryCode];
 

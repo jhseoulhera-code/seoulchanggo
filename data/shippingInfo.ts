@@ -47,12 +47,21 @@ export const SHIPPING_INFO: Record<ShippingType, ShippingInfoConfig> = {
       en: "This is an overseas purchase-service item — after your order is placed, it is bought from an overseas seller and shipped to you. A personal customs clearance code is required, and delivery time may vary by item and local conditions.",
     },
   },
+  direct_pickup: {
+    title: { ko: "직접수령", en: "Store Pickup" },
+    origin: { ko: "매장/지정 장소에서 직접 수령", en: "Picked up in person at the store or a designated location" },
+    eta: { ko: "수령 준비 완료 후 방문 가능", en: "Ready for pickup once prepared" },
+    methodNote: { ko: "택배 없이 방문 수령", en: "No courier — picked up in person" },
+    defaultFee: { ko: "수령비 없음(무료)", en: "No pickup fee" },
+    customsIdRequired: false,
+  },
 };
 
 export const ORIGIN_COUNTRY: Record<ShippingType, Bilingual> = {
   domestic: { ko: "대한민국", en: "South Korea" },
   overseas_direct: { ko: "중국 등 해외", en: "China and other overseas origins" },
   overseas_agent: { ko: "해외 판매처별 상이", en: "Varies by overseas seller" },
+  direct_pickup: { ko: "매장 수령", en: "Store pickup" },
 };
 
 /** Customer-facing label for the international transport mode — never show the raw SEA/AIR code. */

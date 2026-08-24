@@ -4,6 +4,7 @@ const SHIPPING_LABEL: Record<ShippingType, string> = {
   domestic: "국내출고",
   overseas_direct: "직배송",
   overseas_agent: "구매대행",
+  direct_pickup: "직접수령",
 };
 
 function createProduct(data: Omit<Product, "shippingLabel">): Product {

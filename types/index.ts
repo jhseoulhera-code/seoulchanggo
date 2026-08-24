@@ -21,7 +21,7 @@ export type Category = {
   icon: LucideIcon;
 };
 
-export type ShippingType = "domestic" | "overseas_direct" | "overseas_agent";
+export type ShippingType = "domestic" | "overseas_direct" | "overseas_agent" | "direct_pickup";
 
 export type ProductOptionGroup = {
   name: string;

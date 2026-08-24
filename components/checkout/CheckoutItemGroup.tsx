@@ -11,10 +11,11 @@ import type { Market } from "@/types/market";
 import type { CheckoutItem } from "@/types/order";
 import type { ShippingQuote } from "@/lib/shipping/quote";
 
-const GROUP_LABEL_KEY: Record<ShippingType, "groupDomestic" | "groupOverseasDirect" | "groupOverseasAgency"> = {
+const GROUP_LABEL_KEY: Record<ShippingType, "groupDomestic" | "groupOverseasDirect" | "groupOverseasAgency" | "groupDirectPickup"> = {
   domestic: "groupDomestic",
   overseas_direct: "groupOverseasDirect",
   overseas_agent: "groupOverseasAgency",
+  direct_pickup: "groupDirectPickup",
 };
 
 type CheckoutItemGroupProps = {

@@ -31,11 +31,14 @@ const STOCK_MODES = new Set(["TRACKED", "UNLIMITED"]);
 /** category column values a caller can resolve against — usually every admin category's slug. */
 export type CsvCategoryLookup = Map<string, string>; // slug -> id
 
-export type CsvShippingResolution = { shippingType: "DOMESTIC" | "OVERSEAS_DIRECT" | "OVERSEAS_AGENCY"; defaultShippingMethod: "SEA" | "AIR" | null };
+export type CsvShippingResolution = {
+  shippingType: "DOMESTIC" | "OVERSEAS_DIRECT" | "OVERSEAS_AGENCY" | "DIRECT_PICKUP";
+  defaultShippingMethod: "SEA" | "AIR" | null;
+};
 
 /**
- * shipping_method in the CSV uses the same three labels Step 3 of the
- * Wizard shows (DOMESTIC_PARCEL/OVERSEAS_SEA/OVERSEAS_AIR) rather than the
+ * shipping_method in the CSV uses the same labels Step 3 of the Wizard shows
+ * (DOMESTIC_PARCEL/OVERSEAS_SEA/OVERSEAS_AIR/DIRECT_PICKUP) rather than the
  * raw shipping_type_enum values, since that's what an operator filling out
  * a spreadsheet actually recognizes. OVERSEAS_SEA/AIR both resolve to
  * shipping_type=OVERSEAS_DIRECT (the CSV has no separate column for the
@@ -51,6 +54,8 @@ function resolveShippingMethod(value: string): CsvShippingResolution | null {
       return { shippingType: "OVERSEAS_DIRECT", defaultShippingMethod: "SEA" };
     case "OVERSEAS_AIR":
       return { shippingType: "OVERSEAS_DIRECT", defaultShippingMethod: "AIR" };
+    case "DIRECT_PICKUP":
+      return { shippingType: "DIRECT_PICKUP", defaultShippingMethod: null };
     default:
       return null;
   }
@@ -172,7 +177,7 @@ export function validateCsvRows(header: string[], dataRows: string[][], categori
     }
 
     const shipping = resolveShippingMethod(raw.shipping_method ?? "");
-    if (!shipping) errors.push("shipping_method는 DOMESTIC_PARCEL/OVERSEAS_SEA/OVERSEAS_AIR 중 하나여야 합니다.");
+    if (!shipping) errors.push("shipping_method는 DOMESTIC_PARCEL/OVERSEAS_SEA/OVERSEAS_AIR/DIRECT_PICKUP 중 하나여야 합니다.");
 
     const priceKrw = parseOptionalPrice(raw.price_krw ?? "");
     const priceInr = parseOptionalPrice(raw.price_inr ?? "");

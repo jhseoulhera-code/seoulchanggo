@@ -21,7 +21,7 @@ export type SearchQueryState = {
 };
 
 const VALID_SORTS: SortOption[] = ["recommended", "popular", "priceLow", "priceHigh", "reviews", "latest"];
-const VALID_SHIPPING: ShippingType[] = ["domestic", "overseas_direct", "overseas_agent"];
+const VALID_SHIPPING: ShippingType[] = ["domestic", "overseas_direct", "overseas_agent", "direct_pickup"];
 
 export type RawSearchParams = Record<string, string | string[] | undefined>;
 

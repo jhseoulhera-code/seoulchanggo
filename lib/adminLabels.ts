@@ -35,9 +35,12 @@ export const SHIPPING_GROUP_STATUS_LABEL: Record<ShippingGroupStatusEnum, string
   CUSTOMS: "통관중",
   OUT_FOR_DELIVERY: "배송출발",
   DELIVERED: "배송완료",
+  /** STEP 26.1 — DIRECT_PICKUP-only branch; a courier-based group never reaches either. */
+  READY_FOR_PICKUP: "수령대기",
+  PICKED_UP: "수령완료",
 };
 
-/** Ordered by the STEP 09 spec's default transition path (item 30); shown to admins picking a next status. */
+/** Ordered by the STEP 09 spec's default transition path (item 30); shown to admins picking a next status. READY_FOR_PICKUP/PICKED_UP are the separate DIRECT_PICKUP branch, appended rather than interleaved. */
 export const SHIPPING_GROUP_STATUS_ORDER: ShippingGroupStatusEnum[] = [
   "PREPARING",
   "PURCHASING",
@@ -47,11 +50,13 @@ export const SHIPPING_GROUP_STATUS_ORDER: ShippingGroupStatusEnum[] = [
   "CUSTOMS",
   "OUT_FOR_DELIVERY",
   "DELIVERED",
+  "READY_FOR_PICKUP",
+  "PICKED_UP",
 ];
 
-/** Mirrors is_valid_shipping_status_transition() in 20260822000200_admin_shipping_status.sql — kept in sync so the UI only offers transitions the RPC will actually accept. */
+/** Mirrors is_valid_shipping_status_transition() in 20260822000200_admin_shipping_status.sql (extended by 20260906000900_step26_1_direct_pickup_logic.sql) — kept in sync so the UI only offers transitions the RPC will actually accept. */
 export const NEXT_SHIPPING_STATUSES: Record<ShippingGroupStatusEnum, ShippingGroupStatusEnum[]> = {
-  PREPARING: ["READY_TO_SHIP", "PURCHASING"],
+  PREPARING: ["READY_TO_SHIP", "PURCHASING", "READY_FOR_PICKUP"],
   PURCHASING: ["READY_TO_SHIP"],
   READY_TO_SHIP: ["SHIPPED"],
   SHIPPED: ["IN_TRANSIT"],
@@ -59,6 +64,8 @@ export const NEXT_SHIPPING_STATUSES: Record<ShippingGroupStatusEnum, ShippingGro
   CUSTOMS: ["OUT_FOR_DELIVERY"],
   OUT_FOR_DELIVERY: ["DELIVERED"],
   DELIVERED: [],
+  READY_FOR_PICKUP: ["PICKED_UP"],
+  PICKED_UP: [],
 };
 
 export const SUPPLY_TYPE_LABEL: Record<SupplyTypeEnum, string> = {
@@ -71,6 +78,7 @@ export const SHIPPING_TYPE_LABEL: Record<string, string> = {
   DOMESTIC: "국내배송",
   OVERSEAS_DIRECT: "해외직배송",
   OVERSEAS_AGENCY: "해외구매대행",
+  DIRECT_PICKUP: "직접수령",
 };
 
 export const PAYMENT_PROVIDER_LABEL: Record<PaymentProviderEnum, string> = {

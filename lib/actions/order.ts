@@ -21,6 +21,7 @@ const SHIPPING_TYPE_TO_DB: Record<CheckoutItem["shippingType"], ShippingTypeEnum
   domestic: "DOMESTIC",
   overseas_direct: "OVERSEAS_DIRECT",
   overseas_agent: "OVERSEAS_AGENCY",
+  direct_pickup: "DIRECT_PICKUP",
 };
 
 export type CreateOrderActionInput = {
