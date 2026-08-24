@@ -1,0 +1,109 @@
+name: Deploy Supabase Database Migrations
+
+# Manual-only, on purpose: this deploys migrations to the PRODUCTION Supabase
+# project. It must never run automatically on push/pull_request/schedule —
+# only a human clicking "Run workflow" (and typing the confirm phrase below)
+# triggers a deployment.
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: "Type PRODUCTION to deploy"
+        required: true
+
+# Read-only: this workflow only checks out the repo and talks to Supabase's
+# API/Postgres pooler — it never needs to write back to the GitHub repo.
+permissions:
+  contents: read
+
+# Prevents two migration deploys from ever running against the same
+# production database at the same time. A second manual trigger while one
+# is already running queues behind it rather than racing it.
+concurrency:
+  group: supabase-production-db
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy migrations to Supabase (production)
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Show Supabase CLI version
+        run: supabase --version
+
+      # Fails with a clear message if a secret was never configured (or was
+      # deleted) — never prints the actual secret value, only whether it's
+      # present.
+      - name: Verify required secrets are configured
+        run: |
+          missing=0
+          for name in SUPABASE_ACCESS_TOKEN SUPABASE_DB_PASSWORD SUPABASE_PROJECT_ID; do
+            value="${!name}"
+            if [ -z "$value" ]; then
+              echo "::error::Required secret $name is not set. Configure it under repository Settings > Secrets and variables > Actions before running this workflow."
+              missing=1
+            fi
+          done
+          if [ "$missing" -eq 1 ]; then
+            exit 1
+          fi
+          echo "All required secrets are present."
+
+      # The workflow_dispatch input is user-controlled, so it's passed
+      # through an env var (not interpolated directly into the script) to
+      # avoid any shell-injection risk from what someone types into it.
+      - name: Verify manual confirmation
+        env:
+          CONFIRM_INPUT: ${{ github.event.inputs.confirm }}
+        run: |
+          if [ "$CONFIRM_INPUT" != "PRODUCTION" ]; then
+            echo "::error::This workflow deploys migrations to the PRODUCTION Supabase database. Re-run it and type exactly PRODUCTION (all caps, no extra spaces) in the confirm input to proceed."
+            exit 1
+          fi
+          echo "Manual confirmation accepted."
+
+      - name: Link Supabase project
+        run: supabase link --project-ref "$SUPABASE_PROJECT_ID"
+
+      # Read-only preview of exactly which not-yet-applied migrations would
+      # run and what SQL they contain — nothing is written to the database
+      # by this step. If this step fails, the job stops here (GitHub
+      # Actions' default `bash -e` behavior) and "Deploy migrations" below
+      # never runs.
+      - name: Dry-run migration check
+        run: supabase db push --dry-run
+
+      # --yes skips the CLI's interactive "push these migrations? [Y/n]"
+      # confirmation, which would otherwise hang a non-interactive CI
+      # runner — the actual human confirmation already happened above (the
+      # workflow_dispatch input) and manual triggering of this workflow, so
+      # this flag doesn't add any new way for a deploy to happen
+      # unattended. Only migrations already in this checkout's
+      # supabase/migrations/ that the linked project hasn't recorded yet
+      # are applied — never a reset, repair, or pull.
+      - name: Deploy migrations
+        run: supabase db push --yes
+
+      - name: Write deployment summary
+        if: success()
+        run: |
+          {
+            echo "### Supabase migration deployment succeeded"
+            echo ""
+            echo "- **Project ref:** \`$SUPABASE_PROJECT_ID\`"
+            echo "- **Commit:** \`${{ github.sha }}\`"
+            echo "- **Dry-run:** passed"
+            echo "- **Migration deployment:** passed"
+          } >> "$GITHUB_STEP_SUMMARY"
