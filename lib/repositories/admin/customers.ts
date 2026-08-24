@@ -58,14 +58,18 @@ export async function getAdminCustomerDetail(id: string): Promise<AdminCustomerD
   const profile = data as unknown as ProfileRow;
 
   const { data: orderRows, error: ordersError } = await supabase
+    // STEP 26 hotfix — orders.user_id references auth.users(id), not
+    // profiles(id) directly, so `profiles(...)` cannot be embedded here on a
+    // real Supabase project. Every row is already filtered to THIS one
+    // customer (eq("user_id", id)), so the already-fetched `profile` above
+    // is the correct source — no separate per-row lookup is needed at all.
     .from("orders")
-    .select("*, profiles(display_name, email), order_items(id), shipping_groups(destination_country)")
+    .select("*, order_items(id), shipping_groups(destination_country)")
     .eq("user_id", id)
     .order("created_at", { ascending: false });
   if (ordersError) fail("getAdminCustomerDetail (orders)", ordersError);
 
   type OrderListRow = OrderRow & {
-    profiles: { display_name: string; email: string } | null;
     order_items: { id: string }[];
     shipping_groups: { destination_country: AdminOrderListItem["marketCode"] }[];
   };
@@ -74,8 +78,8 @@ export async function getAdminCustomerDetail(id: string): Promise<AdminCustomerD
     orderNumber: row.order_number,
     createdAt: row.created_at,
     isGuest: false,
-    customerName: row.profiles?.display_name ?? profile.display_name,
-    customerEmail: row.profiles?.email ?? profile.email,
+    customerName: profile.display_name,
+    customerEmail: profile.email,
     marketCode: row.market_code,
     currencyCode: row.currency_code,
     destinationCountries: [...new Set(row.shipping_groups.map((group) => group.destination_country))],

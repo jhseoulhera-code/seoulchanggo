@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
+import { fetchProfilesByIds } from "@/lib/repositories/admin/profiles";
 import type { ProductRow, ProductVariantRow } from "@/types/database";
 import type { AdminDashboardStats, AdminLowStockItem, AdminOrderListItem } from "@/types/admin";
 
@@ -120,7 +121,11 @@ export async function getAdminRecentOrders(limit = 10): Promise<AdminOrderListIt
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("orders")
-    .select("*, profiles(display_name, email), order_items(id), shipping_groups(destination_country)")
+    // STEP 26 hotfix — orders.user_id references auth.users(id), not
+    // profiles(id) directly, so `profiles(...)` cannot be embedded here on a
+    // real Supabase project ("Could not find a relationship between
+    // 'orders' and 'profiles'"). Resolved via fetchProfilesByIds() below.
+    .select("*, order_items(id), shipping_groups(destination_country)")
     .order("created_at", { ascending: false })
     .limit(limit);
   if (error) fail("getAdminRecentOrders", error);
@@ -136,18 +141,20 @@ export async function getAdminRecentOrders(limit = 10): Promise<AdminOrderListIt
     total_amount: number;
     payment_status: AdminOrderListItem["paymentStatus"];
     order_status: AdminOrderListItem["orderStatus"];
-    profiles: { display_name: string; email: string } | null;
     order_items: { id: string }[];
     shipping_groups: { destination_country: AdminOrderListItem["marketCode"] }[];
   };
 
-  return ((data ?? []) as unknown as OrderListRow[]).map((row) => ({
+  const rows = (data ?? []) as unknown as OrderListRow[];
+  const profileMap = await fetchProfilesByIds(supabase, rows.map((row) => row.user_id));
+
+  return rows.map((row) => ({
     id: row.id,
     orderNumber: row.order_number,
     createdAt: row.created_at,
     isGuest: row.user_id === null,
-    customerName: row.profiles?.display_name ?? "비회원",
-    customerEmail: row.profiles?.email ?? row.guest_email ?? "-",
+    customerName: (row.user_id && profileMap.get(row.user_id)?.displayName) ?? "비회원",
+    customerEmail: (row.user_id && profileMap.get(row.user_id)?.email) ?? row.guest_email ?? "-",
     marketCode: row.market_code,
     currencyCode: row.currency_code,
     destinationCountries: [...new Set(row.shipping_groups.map((group) => group.destination_country))],

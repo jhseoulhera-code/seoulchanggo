@@ -16,6 +16,7 @@ import type {
 } from "@/types/database";
 import type { AdminOrderDetail, AdminOrderListItem, AdminOrderListResult, AdminReconciliationWarning } from "@/types/admin";
 import { isStalePendingRefund, STALE_REFUND_PENDING_THRESHOLD_MINUTES } from "@/lib/payments/reconciliation";
+import { fetchProfilesByIds } from "@/lib/repositories/admin/profiles";
 
 function fail(context: string, error: { message: string }): never {
   console.error(`[admin/orders] ${context} failed:`, error.message);
@@ -40,7 +41,6 @@ const DEFAULT_PAGE_SIZE = 20;
 const MAX_PAGE_SIZE = 100;
 
 type OrderListRow = OrderRow & {
-  profiles: { display_name: string; email: string } | null;
   order_items: { id: string }[];
   shipping_groups: { destination_country: AdminOrderListItem["marketCode"]; status: ShippingGroupStatusEnum; shipping_type: ShippingTypeEnum }[];
 };
@@ -92,7 +92,12 @@ export async function listAdminOrders(filters: AdminOrderFilters = {}): Promise<
 
   let query = supabase
     .from("orders")
-    .select("*, profiles(display_name, email), order_items(id), shipping_groups(destination_country, status, shipping_type)", {
+    // STEP 26 hotfix — orders.user_id references auth.users(id), NOT
+    // profiles(id) directly, so PostgREST cannot embed `profiles(...)` here
+    // ("Could not find a relationship between 'orders' and 'profiles'" on a
+    // real Supabase project). display_name/email are resolved via a
+    // separate fetchProfilesByIds() call below instead.
+    .select("*, order_items(id), shipping_groups(destination_country, status, shipping_type)", {
       count: "exact",
     })
     .order("created_at", { ascending: false });
@@ -114,13 +119,16 @@ export async function listAdminOrders(filters: AdminOrderFilters = {}): Promise<
   const { data, error, count } = await query.range(from, to);
   if (error) fail("listAdminOrders", error);
 
-  const items = ((data ?? []) as unknown as OrderListRow[]).map((row) => ({
+  const rows = (data ?? []) as unknown as OrderListRow[];
+  const profileMap = await fetchProfilesByIds(supabase, rows.map((row) => row.user_id));
+
+  const items = rows.map((row) => ({
     id: row.id,
     orderNumber: row.order_number,
     createdAt: row.created_at,
     isGuest: row.user_id === null,
-    customerName: row.profiles?.display_name ?? "비회원",
-    customerEmail: row.profiles?.email ?? row.guest_email ?? "-",
+    customerName: (row.user_id && profileMap.get(row.user_id)?.displayName) ?? "비회원",
+    customerEmail: (row.user_id && profileMap.get(row.user_id)?.email) ?? row.guest_email ?? "-",
     marketCode: row.market_code,
     currencyCode: row.currency_code,
     destinationCountries: [...new Set(row.shipping_groups.map((group) => group.destination_country))],
@@ -136,7 +144,6 @@ export async function listAdminOrders(filters: AdminOrderFilters = {}): Promise<
 }
 
 type OrderDetailRow = OrderRow & {
-  profiles: { display_name: string; email: string } | null;
   order_items: OrderItemRow[];
   shipping_groups: (ShippingGroupRow & { shipping_group_items: ShippingGroupItemRow[] })[];
   payments: PaymentRow[];
@@ -198,9 +205,10 @@ export async function getAdminOrderDetail(id: string): Promise<AdminOrderDetail 
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("orders")
-    .select(
-      "*, profiles(display_name, email), order_items(*), shipping_groups(*, shipping_group_items(*)), payments(*), payment_refunds(*, payment_refund_items(*))"
-    )
+    // STEP 26 hotfix — see listAdminOrders's own comment: no direct FK
+    // exists between orders and profiles, so `profiles(...)` cannot be
+    // embedded here on a real Supabase project.
+    .select("*, order_items(*), shipping_groups(*, shipping_group_items(*)), payments(*), payment_refunds(*, payment_refund_items(*))")
     .eq("id", id)
     .maybeSingle();
   if (error) fail("getAdminOrderDetail", error);
@@ -208,6 +216,8 @@ export async function getAdminOrderDetail(id: string): Promise<AdminOrderDetail 
 
   const row = data as unknown as OrderDetailRow;
   const customsInfo = row.customs_info as unknown as { personalCustomsCode?: string } | null;
+  const profileMap = await fetchProfilesByIds(supabase, [row.user_id]);
+  const profile = row.user_id ? profileMap.get(row.user_id) : undefined;
 
   // STEP 26 — "already refunded" only ever counts PENDING+COMPLETED refunds
   // (a FAILED refund never consumed any of the refundable quota), mirroring
@@ -245,8 +255,8 @@ export async function getAdminOrderDetail(id: string): Promise<AdminOrderDetail 
     paymentMethod: row.payment_method,
     paymentStatus: row.payment_status,
     orderStatus: row.order_status,
-    customerName: row.profiles?.display_name ?? "비회원",
-    customerEmail: row.profiles?.email ?? row.guest_email ?? "-",
+    customerName: profile?.displayName ?? "비회원",
+    customerEmail: profile?.email ?? row.guest_email ?? "-",
     customerPhone: row.guest_phone ?? "-",
     isGuest: row.user_id === null,
     shippingAddress: (row.shipping_address as unknown as Record<string, unknown>) ?? {},
