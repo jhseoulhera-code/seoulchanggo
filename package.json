@@ -20,7 +20,8 @@
     "test:admin-orders": "node --experimental-strip-types scripts/test-admin-orders.mts",
     "test:refunds": "node --experimental-strip-types scripts/test-refunds.mts",
     "test:admin-profile-embed": "node --experimental-strip-types scripts/test-admin-profile-embed.mts",
-    "test:direct-pickup": "node --experimental-strip-types scripts/test-direct-pickup.mts"
+    "test:direct-pickup": "node --experimental-strip-types scripts/test-direct-pickup.mts",
+    "test:integration-audit-fixes": "node --experimental-strip-types scripts/test-integration-audit-fixes.mts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",
