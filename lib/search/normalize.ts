@@ -13,10 +13,6 @@ export function normalizeSearchQuery(raw: string): string {
     .slice(0, MAX_QUERY_LENGTH);
 }
 
-export function isValidSearchQuery(raw: string): boolean {
-  return normalizeSearchQuery(raw).length > 0;
-}
-
 /** Escapes PostgREST ilike wildcards (%, _) in user input before building an ilike pattern. */
 export function escapeIlikePattern(value: string): string {
   return value.replace(/[%_]/g, (match) => `\\${match}`);

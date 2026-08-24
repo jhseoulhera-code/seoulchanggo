@@ -6,7 +6,6 @@
  * round trip for an obviously-invalid input. Keep both in sync if the policy
  * changes.
  */
-export const POINTS_EARN_RATE = 0.01;
 export const POINTS_MIN_USE = 1000;
 export const POINTS_MAX_USE_RATIO = 0.5;
 

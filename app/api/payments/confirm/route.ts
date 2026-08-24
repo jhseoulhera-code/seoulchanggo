@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getPaymentAdapter } from "@/lib/payments/registry";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from "@/lib/supabase/serviceClient";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import type { PaymentProvider } from "@/lib/payments/types";
 
@@ -60,7 +61,20 @@ export async function POST(request: Request) {
     simulateAmountMismatch: body.simulateAmountMismatch,
   });
 
-  const supabase = await createClient();
+  // STEP 26.6 — confirm_payment is no longer callable by the anon/authenticated
+  // client at all (see 20260906001100's migration comment for the exact
+  // bypass this closes: a caller forging their own order's already-visible
+  // amount/currency straight into the RPC, skipping this route and the
+  // adapter entirely). The caller's identity is resolved here from the
+  // verified session cookie — never from the request body — and finalize
+  // happens through the service-role client, which is the only role still
+  // granted EXECUTE on confirm_payment.
+  const sessionClient = await createClient();
+  const {
+    data: { user },
+  } = await sessionClient.auth.getUser();
+
+  const supabase = createServiceRoleClient();
   const { data, error } = await supabase.rpc("confirm_payment", {
     p_payment_id: body.paymentId,
     p_success: result.ok,
@@ -74,6 +88,10 @@ export async function POST(request: Request) {
     // route's own body) before ever marking a payment PAID.
     p_provider_amount: result.ok ? result.amount : null,
     p_provider_currency: result.ok ? result.currencyCode : null,
+    // STEP 26.6 — the server-verified caller identity, checked against
+    // orders.user_id inside confirm_payment (auth.uid() isn't populated for
+    // a service-role call, so this replaces it as the ownership proof).
+    p_caller_user_id: user?.id ?? null,
   } as never);
 
   if (error || !data) {

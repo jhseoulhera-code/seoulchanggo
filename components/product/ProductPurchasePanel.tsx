@@ -13,14 +13,14 @@ import { ShippingInfoPanel } from "@/components/product/ShippingInfoPanel";
 import { useCart } from "@/contexts/CartContext";
 import { useMarket } from "@/contexts/MarketContext";
 import { setBuyNowItem } from "@/lib/buyNow";
-import { convertFromKrw, formatCurrency, getProductMarketPrice } from "@/lib/currency";
+import { resolveSellPrice } from "@/lib/checkout/normalize";
+import { formatCurrency, getProductMarketPrice } from "@/lib/currency";
 import { formatNumber } from "@/lib/intl";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { isProductAvailableInMarket } from "@/lib/shipping";
 import { getLocalizedProductName, getLocalizedProductShortDescription } from "@/lib/productLocalization";
 import { shippingTypeLabel } from "@/lib/shippingLabels";
 import {
-  calculateVariantPrice,
   findMatchingVariant,
   getEffectiveStock,
   getOptionValueStatus,
@@ -73,20 +73,17 @@ export function ProductPurchasePanel({ product }: ProductPurchasePanelProps) {
     ? isProductSoldOut(true, variants, product.stock)
     : isProductSoldOut(false, [], product.stock);
 
-  // STEP 18 documented additional_price as a raw KRW delta with no
-  // per-market override — converting it the same way getProductMarketPrice
-  // converts the base price keeps a non-KRW market's final price honest
-  // instead of mixing units.
-  const additionalPriceInMarketCurrency = matchedVariant
-    ? market.currency === "KRW"
-      ? matchedVariant.additionalPrice
-      : convertFromKrw(matchedVariant.additionalPrice, market.currency)
-    : 0;
-  const unitPrice = hasOptions
-    ? matchedVariant
-      ? calculateVariantPrice(basePrice, additionalPriceInMarketCurrency)
-      : null
-    : basePrice;
+  // STEP 26.6 — the actual sell price for a variant is resolveSellPrice()'s
+  // job (also used by cart/checkout/order), never recomputed here; the
+  // "+delta" display line is derived from its result rather than
+  // independently re-converting additionalPrice, so there's exactly one
+  // place that knows how a KRW delta becomes a market-currency amount.
+  const resolvedVariantPrice = useMemo(
+    () => (matchedVariant ? resolveSellPrice({ product, variant: matchedVariant, market }) : null),
+    [product, matchedVariant, market]
+  );
+  const additionalPriceInMarketCurrency = resolvedVariantPrice ? resolvedVariantPrice.salePrice - basePrice : 0;
+  const unitPrice = hasOptions ? (resolvedVariantPrice ? resolvedVariantPrice.salePrice : null) : basePrice;
 
   const effectiveStock = hasOptions
     ? getEffectiveStock(true, matchedVariant, product.stock)

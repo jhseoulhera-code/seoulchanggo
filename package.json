@@ -21,7 +21,8 @@
     "test:refunds": "node --experimental-strip-types scripts/test-refunds.mts",
     "test:admin-profile-embed": "node --experimental-strip-types scripts/test-admin-profile-embed.mts",
     "test:direct-pickup": "node --experimental-strip-types scripts/test-direct-pickup.mts",
-    "test:integration-audit-fixes": "node --experimental-strip-types scripts/test-integration-audit-fixes.mts"
+    "test:integration-audit-fixes": "node --experimental-strip-types scripts/test-integration-audit-fixes.mts",
+    "test:payment-rpc-hardening": "node --experimental-strip-types scripts/test-payment-rpc-hardening.mts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",

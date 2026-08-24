@@ -664,6 +664,7 @@ export type Database = {
           p_guest_contact?: string | null;
           p_provider_amount?: number | null;
           p_provider_currency?: CurrencyCodeEnum | null;
+          p_caller_user_id?: string | null;
         };
         Returns: Json;
       };

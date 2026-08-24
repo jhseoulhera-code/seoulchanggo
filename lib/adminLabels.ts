@@ -40,20 +40,6 @@ export const SHIPPING_GROUP_STATUS_LABEL: Record<ShippingGroupStatusEnum, string
   PICKED_UP: "수령완료",
 };
 
-/** Ordered by the STEP 09 spec's default transition path (item 30); shown to admins picking a next status. READY_FOR_PICKUP/PICKED_UP are the separate DIRECT_PICKUP branch, appended rather than interleaved. */
-export const SHIPPING_GROUP_STATUS_ORDER: ShippingGroupStatusEnum[] = [
-  "PREPARING",
-  "PURCHASING",
-  "READY_TO_SHIP",
-  "SHIPPED",
-  "IN_TRANSIT",
-  "CUSTOMS",
-  "OUT_FOR_DELIVERY",
-  "DELIVERED",
-  "READY_FOR_PICKUP",
-  "PICKED_UP",
-];
-
 /** Mirrors is_valid_shipping_status_transition() in 20260822000200_admin_shipping_status.sql (extended by 20260906000900_step26_1_direct_pickup_logic.sql) — kept in sync so the UI only offers transitions the RPC will actually accept. */
 export const NEXT_SHIPPING_STATUSES: Record<ShippingGroupStatusEnum, ShippingGroupStatusEnum[]> = {
   PREPARING: ["READY_TO_SHIP", "PURCHASING", "READY_FOR_PICKUP"],
